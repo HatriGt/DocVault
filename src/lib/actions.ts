@@ -9,6 +9,7 @@ const fail = (e: unknown) => Alert.alert('Something went wrong', e instanceof Er
 
 export async function openDoc(doc: DocRecord) {
   try {
+    // Images open in the in-app zoomable viewer; everything else in the system viewer.
     if (isImage(doc)) router.push(`/viewer/${doc.id}`);
     else await openNative(doc);
   } catch (e) {
@@ -55,6 +56,7 @@ export function docActions(doc: DocRecord): SheetAction[] {
       onPress: () => toggleFavorite(doc),
     },
     { label: 'Edit details', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
+    { label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
     { label: 'Save a copy', icon: 'download-outline', onPress: () => exportCopy(doc).catch(fail) },
     { label: 'Delete', icon: 'trash-outline', destructive: true, onPress: () => confirmDelete(doc) },
   ];

@@ -12,13 +12,14 @@
  * the VMK wrapped by the recovery-key-derived KEK. Signing into Google alone
  * can never reveal any key material.
  */
-import { gcm } from '@noble/ciphers/aes.js';
+import QuickCrypto from 'react-native-quick-crypto';
 import { scryptAsync } from '@noble/hashes/scrypt.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { getRandomBytes } from 'expo-crypto';
 
 const MAGIC = new Uint8Array([0x44, 0x56, 0x4b, 0x31]); // "DVK1"
 const NONCE_LEN = 12;
+const TAG_LEN = 16;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
@@ -36,11 +37,18 @@ export function fromUtf8(b: Uint8Array) {
 export function seal(key: Uint8Array, plaintext: Uint8Array, aad: string): Uint8Array {
   if (key.length !== 32) throw new Error('AES-256 key required');
   const nonce = randomBytes(NONCE_LEN);
-  const ct = gcm(key, nonce, utf8(aad)).encrypt(plaintext);
-  const out = new Uint8Array(MAGIC.length + NONCE_LEN + ct.length);
+  // Native (OpenSSL via JSI) AES-256-GCM — orders of magnitude faster than pure JS.
+  const c = QuickCrypto.createCipheriv('aes-256-gcm', key, nonce);
+  c.setAAD(utf8(aad) as never);
+  const body = c.update(plaintext);
+  const fin = c.final();
+  const tag = c.getAuthTag();
+  const out = new Uint8Array(MAGIC.length + NONCE_LEN + body.length + fin.length + TAG_LEN);
   out.set(MAGIC, 0);
   out.set(nonce, MAGIC.length);
-  out.set(ct, MAGIC.length + NONCE_LEN);
+  out.set(body, MAGIC.length + NONCE_LEN);
+  out.set(fin, MAGIC.length + NONCE_LEN + body.length);
+  out.set(tag, out.length - TAG_LEN);
   return out;
 }
 
@@ -49,9 +57,17 @@ export function open(key: Uint8Array, envelope: Uint8Array, aad: string): Uint8A
     if (envelope[i] !== MAGIC[i]) throw new Error('Not a DocVault envelope');
   }
   const nonce = envelope.subarray(MAGIC.length, MAGIC.length + NONCE_LEN);
-  const ct = envelope.subarray(MAGIC.length + NONCE_LEN);
-  // Throws on tampering (GCM tag mismatch).
-  return gcm(key, nonce, utf8(aad)).decrypt(ct);
+  const ct = envelope.subarray(MAGIC.length + NONCE_LEN, envelope.length - TAG_LEN);
+  const tag = envelope.subarray(envelope.length - TAG_LEN);
+  const d = QuickCrypto.createDecipheriv('aes-256-gcm', key, nonce);
+  d.setAAD(utf8(aad) as never);
+  d.setAuthTag(tag as never);
+  const body = d.update(ct);
+  const fin = d.final(); // throws on tampering (GCM tag mismatch)
+  const out = new Uint8Array(body.length + fin.length);
+  out.set(body, 0);
+  out.set(fin, body.length);
+  return out;
 }
 
 export const sealJson = (key: Uint8Array, value: unknown, aad: string) =>

@@ -21,11 +21,11 @@ type Source = 'camera' | 'photos' | 'files';
 
 export default function AddDocument() {
   const { c } = useTheme();
-  const params = useLocalSearchParams<{ source?: Source }>();
+  const params = useLocalSearchParams<{ source?: Source; folder?: string }>();
   const { account } = useAccount();
   const [step, setStep] = useState<Step>('source');
   const [src, setSrc] = useState<(ImportSource & { size?: number }) | null>(null);
-  const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [] });
+  const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [], folderId: params.folder ?? null });
   const [newId, setNewId] = useState<string | null>(null);
   const autoStarted = useRef(false);
 
@@ -41,6 +41,7 @@ export default function AddDocument() {
       fields: sug.number ? { number: sug.number } : {},
       notes: '',
       tags: sug.tags,
+      folderId: params.folder ?? null,
     });
     setStep('details');
   };
@@ -94,6 +95,7 @@ export default function AddDocument() {
         fields: form.fields,
         notes: form.notes.trim() || null,
         tags: form.tags,
+        folderId: form.folderId ?? null,
       });
       setNewId(rec.id);
       setStep('done');

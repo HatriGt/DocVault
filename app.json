@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F7F5F1",
+        "backgroundColor": "#7B57F8",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -86,11 +86,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 120,
           "resizeMode": "contain",
-          "backgroundColor": "#F7F5F1",
+          "backgroundColor": "#F6F4FD",
           "dark": {
-            "backgroundColor": "#0F0F12"
+            "backgroundColor": "#F6F4FD"
           }
         }
       ],
@@ -112,7 +112,8 @@
             "enabled": false
           }
         }
-      ]
+      ],
+      "react-native-quick-crypto"
     ],
     "scheme": "docvault",
     "experiments": {

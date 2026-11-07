@@ -4,6 +4,7 @@ import { DocRecord, getDoc, listCustomCategories, listDocs, CustomCategory, list
 import { Account, DEFAULT_PREFS, getAccount, getPrefs, Preferences } from './session';
 import { getSyncStatus, SyncStatus } from './sync';
 import { BUILTIN_CATEGORIES, Category } from './categories';
+import { Folder, listFolders } from './folders';
 
 function useLive<T>(topics: Topic[], load: () => Promise<T>, initial: T, deps: unknown[] = []) {
   const [value, setValue] = useState<T>(initial);
@@ -63,4 +64,8 @@ export function useCategories(): Category[] {
 
 export function useTags() {
   return useLive<{ tag: string; count: number }[]>(['documents'], listTags, []).value;
+}
+
+export function useFolders(): Folder[] {
+  return useLive<Folder[]>(['documents'], listFolders, []).value;
 }

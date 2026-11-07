@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import { Directory, File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as IntentLauncher from 'expo-intent-launcher';
+import { sniffType } from './filetype';
 import { hashHex, open, seal, utf8, uuid } from './crypto';
 import { newWrappedDek, unwrapDek } from './keys';
 import { deleteBlob, hasBlob, purgeTempPlain, readBlob, writeBlob, writeTempPlain } from './blobs';
@@ -36,6 +38,7 @@ export interface NewDocDetails {
   offlinePref?: OfflinePref;
   notes?: string | null;
   tags?: string[];
+  folderId?: string | null;
 }
 export { normalizeTags };
 
@@ -71,6 +74,8 @@ const blobAad = (id: string) => `doc:${id}`;
 /** Encrypts plaintext and stores it as a new document. Returns the record. */
 export async function createDocument(plain: Uint8Array, src: { name: string; mime: string }, d: NewDocDetails) {
   const id = uuid();
+  const real = sniffType(plain);
+  if (real) src = { name: src.name.replace(/\.[a-z0-9]{2,5}$/i, '') + '.' + real.ext, mime: real.mime };
   const { dek, wrapped } = await newWrappedDek(id);
   const ct = seal(dek, plain, blobAad(id));
   dek.fill(0);
@@ -112,6 +117,7 @@ export async function createDocument(plain: Uint8Array, src: { name: string; mim
     back_id: null,
     notes: d.notes ?? null,
     tags: JSON.stringify(normalizeTags(d.tags ?? [])),
+    folder_id: d.folderId ?? null,
   };
   await insertDoc(rec);
   if (prefs.expiryReminders) scheduleReminders(rec).catch(() => {});
@@ -155,18 +161,31 @@ export async function markAccessed(id: string) {
   await updateDoc(id, { accessed_at: Date.now() });
 }
 
-/** Decrypts to a temporary file for an in-app or native viewer. */
+/** Decrypts to a temporary file (named with its real extension) for viewing/sharing. */
 export async function materialize(doc: DocRecord) {
   const plain = await decryptDocument(doc);
-  const f = await writeTempPlain(fileNameFor(doc), plain);
+  const real = sniffType(plain) ?? { mime: doc.mime, ext: doc.ext };
+  if (real.mime !== doc.mime || real.ext !== doc.ext) {
+    updateDoc(doc.id, { mime: real.mime, ext: real.ext }, true).catch(() => {}); // self-heal stale metadata
+  }
+  const base = doc.name.replace(/\.[a-z0-9]{2,5}$/i, '') || 'document';
+  const file = await writeTempPlain(`${base}.${real.ext}`, plain);
   markAccessed(doc.id);
-  return f;
+  return Object.assign(file, { realMime: real.mime });
 }
 
-/** Opens the platform's native viewer (QuickLook on iOS, system viewer on Android). */
+/** Opens the platform viewer with an explicit MIME type (QuickLook on iOS). */
 export async function openNative(doc: DocRecord) {
   const f = await materialize(doc);
-  await f.preview();
+  if (Platform.OS === 'android') {
+    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+      data: f.contentUri,
+      type: f.realMime,
+      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+    });
+  } else {
+    await f.preview();
+  }
 }
 
 /** Native share sheet (AirDrop, Quick Share, Mail, WhatsApp…). Works offline for local docs. */
@@ -174,8 +193,8 @@ export async function shareDocument(doc: DocRecord) {
   const f = await materialize(doc);
   try {
     await Sharing.shareAsync(f.uri, {
-      mimeType: doc.mime,
-      UTI: isPdf(doc) ? 'com.adobe.pdf' : isImage(doc) ? 'public.image' : undefined,
+      mimeType: f.realMime,
+      UTI: f.realMime === 'application/pdf' ? 'com.adobe.pdf' : f.realMime.startsWith('image/') ? 'public.image' : undefined,
       dialogTitle: `Share ${doc.name}`,
     });
   } finally {
@@ -213,6 +232,25 @@ export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, '
   if (next && ('expiry' in patch || 'name' in patch)) {
     if ((await getPrefs()).expiryReminders) scheduleReminders(next).catch(() => {});
   }
+  requestSync();
+}
+
+/** Replaces a document's content in place (same id and key), e.g. after editing. */
+export async function replaceContent(doc: DocRecord, plain: Uint8Array, mime: string, ext: string) {
+  const dek = await unwrapDek(doc.id, doc.wrapped_dek);
+  const ct = seal(dek, plain, blobAad(doc.id));
+  dek.fill(0);
+  await writeBlob(doc.id, ct);
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, {
+    mime,
+    ext,
+    size: plain.length,
+    content_hash: hashHex(ct),
+    has_local: 1,
+    updated_at: Date.now(),
+    ...(cloud ? { content_dirty: 1, meta_dirty: 1, sync_state: 'upload_pending' } : {}),
+  });
   requestSync();
 }
 
@@ -269,6 +307,7 @@ export async function duplicateAsConflictCopy(doc: DocRecord) {
       favorite: !!doc.favorite,
       notes: doc.notes,
       tags: parseTags(doc),
+      folderId: doc.folder_id,
     },
   );
 }

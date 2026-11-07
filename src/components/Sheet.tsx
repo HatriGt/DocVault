@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,6 +68,53 @@ export function ActionSheet({
             ))}
           </Animated.View>
         </View>
+      )}
+    </Modal>
+  );
+}
+
+/** Generic animated bottom sheet with drag handle; keyboard-aware. */
+export function BottomSheet({
+  visible,
+  onClose,
+  children,
+  title,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  title?: string;
+}) {
+  const { c } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      {visible && (
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(150)} style={StyleSheet.absoluteFill}>
+            <Pressable style={{ flex: 1, backgroundColor: c.overlay }} onPress={onClose} accessibilityLabel="Close" />
+          </Animated.View>
+          <Animated.View
+            entering={SlideInDown.springify().damping(20)}
+            exiting={SlideOutDown.duration(180)}
+            style={{
+              backgroundColor: c.bg,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              paddingTop: space.md,
+              paddingBottom: insets.bottom + space.lg,
+              maxHeight: '88%',
+            }}
+          >
+            <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: c.border, marginBottom: space.md }} />
+            {title && (
+              <T v="heading" style={{ paddingHorizontal: space.xl, marginBottom: space.md }}>
+                {title}
+              </T>
+            )}
+            {children}
+          </Animated.View>
+        </KeyboardAvoidingView>
       )}
     </Modal>
   );

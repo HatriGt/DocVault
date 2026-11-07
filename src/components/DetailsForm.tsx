@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { FolderPicker, useFolderLabel } from './Folders';
 import { ScrollView, View } from 'react-native';
-import { Chip, Field, T } from './ui';
+import { Chip, Field, T, Tap } from './ui';
 import { TagInput } from './Tags';
-import { space } from '../theme';
+import { elevation, radius, space, useTheme } from '../theme';
 import { useCategories } from '../lib/hooks';
 import { EXPIRING_TYPES } from '../lib/categories';
 import { parseDate } from '../lib/classify';
@@ -16,6 +18,7 @@ export interface FormState {
   fields: DocFields;
   notes: string;
   tags: string[];
+  folderId?: string | null;
 }
 
 export const expiryValid = (s: string) => !s.trim() || parseDate(s.trim()) != null;
@@ -23,6 +26,9 @@ export const normalizeExpiry = (s: string) => (s.trim() ? parseDate(s.trim()) : 
 
 export function DetailsForm({ value, onChange }: { value: FormState; onChange: (v: FormState) => void }) {
   const categories = useCategories();
+  const { c } = useTheme();
+  const [picking, setPicking] = useState(false);
+  const folderLabel = useFolderLabel(value.folderId);
   const cat = categories.find((c) => c.id === value.category);
   const set = (p: Partial<FormState>) => onChange({ ...value, ...p });
   const setField = (k: keyof DocFields, v: string) => set({ fields: { ...value.fields, [k]: v || undefined } });
@@ -31,6 +37,23 @@ export function DetailsForm({ value, onChange }: { value: FormState; onChange: (
   return (
     <View style={{ gap: space.xl }}>
       <Field label="Name" value={value.name} onChangeText={(name) => set({ name })} placeholder="e.g. Passport" returnKeyType="done" />
+
+      <View style={{ gap: 6 }}>
+        <T v="caption" color="muted">
+          Folder
+        </T>
+        <Tap
+          onPress={() => setPicking(true)}
+          style={[{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.md, height: 54, paddingHorizontal: space.lg }, elevation(c, 1)]}
+        >
+          <Ionicons name={value.folderId ? 'folder' : 'albums-outline'} size={20} color={c.accent} />
+          <T v="body" style={{ flex: 1 }} numberOfLines={1}>
+            {folderLabel}
+          </T>
+          <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
+        </Tap>
+        <FolderPicker visible={picking} onClose={() => setPicking(false)} value={value.folderId ?? null} onPick={(folderId) => set({ folderId })} />
+      </View>
 
       <View style={{ gap: space.sm }}>
         <T v="caption" color="muted">

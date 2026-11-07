@@ -11,6 +11,7 @@ import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../compone
 import { FileStack, StackFile } from '../components/FileStack';
 import { SaveSuccess } from '../components/SaveSuccess';
 import { TagInput } from '../components/Tags';
+import { FolderPicker, useFolderLabel } from '../components/Folders';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { useAccount, useCategories } from '../lib/hooks';
 import { hasLocalVaultKey } from '../lib/keys';
@@ -37,6 +38,9 @@ export default function ShareInto() {
   const [names, setNames] = useState<string[]>([]);
   const [category, setCategory] = useState('personal');
   const [tags, setTags] = useState<string[]>([]);
+  const [multiFolder, setMultiFolder] = useState<string | null>(null);
+  const [pickFolder, setPickFolder] = useState(false);
+  const multiFolderLabel = useFolderLabel(multiFolder);
 
   useEffect(() => {
     hasLocalVaultKey().then(setVaultReady);
@@ -76,6 +80,7 @@ export default function ShareInto() {
       fields: s0?.number ? { number: s0.number } : {},
       notes: '',
       tags: s0?.tags ?? [],
+      folderId: null,
     });
   }
 
@@ -96,8 +101,8 @@ export default function ShareInto() {
         const rec = await importDocument(
           { uri: next[i].uri, name: next[i].name, mime: next[i].mime },
           single && form
-            ? { name: form.name, category: form.category, docType: form.docType, expiry: normalizeExpiry(form.expiry), fields: form.fields, notes: form.notes.trim() || null, tags: form.tags }
-            : { name: names[i] || prettifyName(next[i].name), category, docType: suggest(next[i].name).docType, expiry: null, fields: {}, tags },
+            ? { name: form.name, category: form.category, docType: form.docType, expiry: normalizeExpiry(form.expiry), fields: form.fields, notes: form.notes.trim() || null, tags: form.tags, folderId: form.folderId ?? null }
+            : { name: names[i] || prettifyName(next[i].name), category, docType: suggest(next[i].name).docType, expiry: null, fields: {}, tags, folderId: multiFolder },
         );
         next[i] = { ...next[i], status: 'done', id: rec.id };
       } catch (e) {
@@ -224,6 +229,11 @@ export default function ShareInto() {
                           <Chip key={cat.id} label={cat.name} icon={cat.icon as never} tint={cat.hue} active={category === cat.id} onPress={() => setCategory(cat.id)} />
                         ))}
                       </ScrollView>
+                    </Animated.View>
+                    <Animated.View entering={FadeInDown.delay(230).springify()} style={{ gap: space.sm }}>
+                      <T v="heading">Folder for all</T>
+                      <Button title={multiFolderLabel} icon="folder-open-outline" variant="secondary" onPress={() => setPickFolder(true)} />
+                      <FolderPicker visible={pickFolder} onClose={() => setPickFolder(false)} value={multiFolder} onPick={setMultiFolder} />
                     </Animated.View>
                     <Animated.View entering={FadeInDown.delay(260).springify()}>
                       <TagInput value={tags} onChange={setTags} />

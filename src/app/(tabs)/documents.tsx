@@ -6,11 +6,12 @@ import { Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../..
 import { DocRow, DocTile } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { Fab } from './index';
-import { fonts, space, useTheme } from '../../theme';
+import { fonts, radius, space, useTheme } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { Backdrop } from '../../components/Backdrop';
 import { TAB_BAR_HEIGHT } from '../../components/TabBar';
-import { useCategories, useDocuments, useTags } from '../../lib/hooks';
+import { useCategories, useDocuments, useFolders, useTags } from '../../lib/hooks';
+import { FolderEditor, FolderTile } from '../../components/Folders';
 import { kvGet, kvSet, DocRecord } from '../../lib/db';
 import { docActions } from '../../lib/actions';
 import { parseFields, parseTags } from '../../lib/documents';
@@ -34,6 +35,9 @@ export default function Documents() {
   const [offlineOnly, setOfflineOnly] = useState(false);
   const [tag, setTag] = useState<string | null>(params.tag ?? null);
   const allTags = useTags();
+  const folders = useFolders();
+  const rootFolders = folders.filter((f) => !f.parent_id);
+  const [newFolder, setNewFolder] = useState(false);
   const [lastTagParam, setLastTagParam] = useState(params.tag);
   if (params.tag !== lastTagParam) {
     setLastTagParam(params.tag);
@@ -103,6 +107,38 @@ export default function Documents() {
         ))}
         <Chip label="Offline" icon="cloud-done-outline" active={offlineOnly} onPress={() => setOfflineOnly(!offlineOnly)} />
       </ScrollView>
+      {!query && category === 'all' && !tag && (
+        <View style={{ marginBottom: space.lg }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space.xl, marginBottom: space.md }}>
+            <T v="heading">Folders</T>
+            <Tap onPress={() => setNewFolder(true)} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="add-circle" size={18} color={c.accent} />
+              <T v="callout" color="accent" style={{ fontFamily: fonts.semibold }}>
+                New
+              </T>
+            </Tap>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.md, paddingHorizontal: space.xl, paddingBottom: space.sm }}>
+            {rootFolders.map((f) => (
+              <FolderTile key={f.id} folder={f} width={136} onPress={() => router.push(`/folder/${f.id}`)} />
+            ))}
+            {rootFolders.length === 0 && (
+              <Tap
+                onPress={() => setNewFolder(true)}
+                style={{ width: 220, height: 130, borderRadius: radius.lg, borderWidth: 2, borderStyle: 'dashed', borderColor: c.accent + '55', alignItems: 'center', justifyContent: 'center', gap: 6, padding: space.md }}
+              >
+                <Ionicons name="folder-open" size={28} color={c.accent} />
+                <T v="callout" color="accent" style={{ fontFamily: fonts.semibold, textAlign: 'center' }}>
+                  Create your first folder
+                </T>
+                <T v="caption" color="muted" style={{ textAlign: 'center' }}>
+                  e.g. Family › Kids › School
+                </T>
+              </Tap>
+            )}
+          </ScrollView>
+        </View>
+      )}
       {allTags.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingBottom: space.lg, marginTop: -space.sm }}>
           {allTags.map((t) => (
@@ -164,6 +200,7 @@ export default function Documents() {
           onPress: () => setSort(s),
         }))}
       />
+      <FolderEditor visible={newFolder} onClose={() => setNewFolder(false)} parentId={null} onSaved={(f) => router.push(`/folder/${f.id}`)} />
       <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc) : []} />
     </Screen>
   );

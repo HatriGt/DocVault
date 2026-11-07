@@ -12,6 +12,7 @@ import { ActionSheet } from '../../components/Sheet';
 import { Backdrop } from '../../components/Backdrop';
 import { TAB_BAR_HEIGHT } from '../../components/TabBar';
 import { TagPill } from '../../components/Tags';
+import { FolderEditor } from '../../components/Folders';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useAccount, useCategories, useDocuments, useTags } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
@@ -22,11 +23,11 @@ import type { DocRecord } from '../../lib/db';
 
 const ESSENTIAL_ORDER = ['Passport', 'National ID', 'Driving Licence', 'Residence Permit', 'Visa', 'Aadhaar', 'PAN Card'];
 
-const QUICK: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; go: () => void }[] = [
+const QUICK_BASE: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; go: () => void }[] = [
   { icon: 'camera', label: 'Scan', color: '#6A4BFF', go: () => router.push({ pathname: '/add', params: { source: 'camera' } }) },
   { icon: 'cloud-upload', label: 'Upload', color: '#2F9BEA', go: () => router.push({ pathname: '/add', params: { source: 'files' } }) },
-  { icon: 'folder', label: 'New Folder', color: '#F5B32F', go: () => router.push('/manage/categories') },
-  { icon: 'sparkles', label: 'Smart Tags', color: '#B84DF0', go: () => router.push({ pathname: '/(tabs)/documents', params: { focus: '1' } }) },
+  { icon: 'folder', label: 'New Folder', color: '#F5B32F', go: () => {} },
+  { icon: 'color-wand', label: 'Tools', color: '#B84DF0', go: () => router.push('/tools') },
 ];
 
 export default function Home() {
@@ -39,6 +40,8 @@ export default function Home() {
   const topTags = useTags().slice(0, 10);
   const [refreshing, setRefreshing] = useState(false);
   const [menuDoc, setMenuDoc] = useState<DocRecord | null>(null);
+  const [newFolder, setNewFolder] = useState(false);
+  const QUICK = QUICK_BASE.map((q) => (q.label === 'New Folder' ? { ...q, go: () => setNewFolder(true) } : q));
 
   const essentials = useMemo(() => {
     const cards = docs
@@ -116,7 +119,7 @@ export default function Home() {
           </Animated.View>
         </View>
         <Animated.View entering={FadeInRight.delay(120).springify().damping(16)} style={{ alignItems: 'flex-end', marginTop: -space.xxl, paddingRight: pad - 8 }}>
-          <Image source={require('../../../assets/logo.png')} style={{ width: width * 0.5, height: width * 0.42 }} contentFit="contain" />
+          <Image source={require('../../../assets/hero.png')} style={{ width: width * 0.5, height: width * 0.42 }} contentFit="contain" />
         </Animated.View>
 
         {/* Search (overlaps hero, as in the design) */}
@@ -251,6 +254,7 @@ export default function Home() {
           </>
         )}
       </ScrollView>
+      <FolderEditor visible={newFolder} onClose={() => setNewFolder(false)} parentId={null} onSaved={(f) => router.push(`/folder/${f.id}`)} />
       <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc) : []} />
     </Screen>
   );

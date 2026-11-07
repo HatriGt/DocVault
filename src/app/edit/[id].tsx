@@ -7,6 +7,7 @@ import { space } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { parseFields, parseTags, updateDetails } from '../../lib/documents';
 import type { DocRecord } from '../../lib/db';
+import { moveDocument } from '../../lib/folders';
 
 export default function EditDocument() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,6 +25,7 @@ function EditForm({ doc }: { doc: DocRecord }) {
     fields: parseFields(doc),
     notes: doc.notes ?? '',
     tags: parseTags(doc),
+    folderId: doc.folder_id,
   }));
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +40,7 @@ function EditForm({ doc }: { doc: DocRecord }) {
       fields: form.fields,
       tags: form.tags,
     });
+    if ((form.folderId ?? null) !== doc.folder_id) await moveDocument(doc.id, form.folderId ?? null);
     setSaving(false);
     router.back();
   };

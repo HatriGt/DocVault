@@ -5,16 +5,17 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Banner, Button, Group, IconButton, Row, Screen, T, Tap } from '../../components/ui';
+import { Banner, Button, Chip, Group, IconButton, Row, Screen, T, Tap } from '../../components/ui';
 import { categoryOf, DocThumb, PassportBook, SyncBadge, WalletCard } from '../../components/docs';
 import { Backdrop } from '../../components/Backdrop';
 import { ActionSheet } from '../../components/Sheet';
 import { TagPill } from '../../components/Tags';
+import { useFolderLabel } from '../../components/Folders';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
-import { exportCopy, OfflineChangeError, parseFields, parseTags, setOfflinePreference, toggleFavorite } from '../../lib/documents';
+import { exportCopy, isImage, isPdf, OfflineChangeError, parseFields, parseTags, setOfflinePreference, toggleFavorite } from '../../lib/documents';
 import { confirmDelete, openDoc, shareDoc } from '../../lib/actions';
 import { retryFailed } from '../../lib/sync';
 
@@ -28,6 +29,7 @@ export default function DocumentDetail() {
   const [busy, setBusy] = useState<'open' | 'share' | null>(null);
   const [revealed, setRevealed] = useState(false);
   const flip = useSharedValue(0);
+  const folderLabel = useFolderLabel(doc?.folder_id);
 
   const front = useAnimatedStyle(() => ({
     transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flip.value, [0, 1], [0, 180])}deg` }],
@@ -171,6 +173,32 @@ export default function DocumentDetail() {
             </View>
           )}
 
+          <Tap onPress={() => (doc.folder_id ? router.push(`/folder/${doc.folder_id}`) : router.push(`/move/${doc.id}`))} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.md, alignSelf: 'flex-start' }}>
+            <Ionicons name={doc.folder_id ? 'folder' : 'folder-open-outline'} size={16} color={c.accent} />
+            <T v="callout" color="accent" style={{ fontFamily: fonts.semibold }}>
+              {doc.folder_id ? folderLabel : 'Add to a folder'}
+            </T>
+          </Tap>
+          {/* Quick tools */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: space.lg, marginHorizontal: -space.xl }} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl }}>
+            {(isImage(doc)
+              ? [
+                  { label: 'Edit & crop', icon: 'crop', go: () => router.push({ pathname: '/edit-image/[id]', params: { id: doc.id } }) },
+                  { label: 'Convert format', icon: 'swap-horizontal', go: () => router.push({ pathname: '/edit-image/[id]', params: { id: doc.id } }) },
+                  { label: 'To PDF', icon: 'document-text', go: () => router.push({ pathname: '/tools/run', params: { tool: 'img2pdf', ids: doc.id } }) },
+                ]
+              : isPdf(doc)
+                ? [
+                    { label: 'Rotate', icon: 'refresh-circle', go: () => router.push({ pathname: '/tools/run', params: { tool: 'rotate', ids: doc.id } }) },
+                    { label: 'Extract pages', icon: 'albums', go: () => router.push({ pathname: '/tools/run', params: { tool: 'extract', ids: doc.id } }) },
+                    { label: 'Split', icon: 'cut', go: () => router.push({ pathname: '/tools/run', params: { tool: 'split', ids: doc.id } }) },
+                    { label: 'Merge with…', icon: 'git-merge', go: () => router.push({ pathname: '/tools/run', params: { tool: 'merge', ids: doc.id } }) },
+                  ]
+                : []
+            ).map((t) => (
+              <Chip key={t.label} label={t.label} icon={t.icon as never} tint={c.accent} onPress={t.go} />
+            ))}
+          </ScrollView>
           {tags.length > 0 && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.lg }}>
               {tags.map((t) => (
@@ -272,6 +300,8 @@ export default function DocumentDetail() {
         title={doc.name}
         actions={[
           { label: 'Edit details', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
+          { label: 'Edit & convert tools', icon: 'color-wand-outline', onPress: () => router.push('/tools') },
+          { label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
           {
             label: 'Save a copy',
             icon: 'download-outline',

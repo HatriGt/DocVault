@@ -43,6 +43,7 @@ export interface DocRecord {
   back_id: string | null; // optional linked doc id for card back side
   notes: string | null;
   tags: string; // JSON string[] of lowercase hashtags (without #)
+  folder_id: string | null;
 }
 
 export interface CustomCategory {
@@ -94,6 +95,19 @@ const MIGRATIONS: string[] = [
     id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, icon TEXT NOT NULL, hue TEXT NOT NULL
   );`,
   `ALTER TABLE documents ADD COLUMN tags TEXT NOT NULL DEFAULT '[]';`,
+  `CREATE TABLE IF NOT EXISTS folders (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    parent_id TEXT,
+    color TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
+  ALTER TABLE documents ADD COLUMN folder_id TEXT;
+  CREATE INDEX IF NOT EXISTS idx_docs_folder ON documents(folder_id);`,
 ];
 
 export function getDb() {
@@ -203,6 +217,6 @@ export async function addCustomCategory(c: CustomCategory) {
 
 export async function wipeDatabase() {
   const db = await getDb();
-  await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories;');
+  await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories; DELETE FROM folders;');
   emit('documents');
 }

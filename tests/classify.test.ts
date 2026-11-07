@@ -49,3 +49,22 @@ test('normalizeTags cleans, dedupes and lowercases hashtags', () => {
 test('suggest returns tags', () => {
   assert.deepEqual(suggest('emirates_id_dubai.pdf').tags, ['national-id', 'uae']);
 });
+
+import { sniffType } from '../src/lib/filetype.ts';
+test('sniffType detects real formats from magic bytes', () => {
+  const pad = (a: number[]) => new Uint8Array([...a, ...new Array(16).fill(0)]);
+  assert.equal(sniffType(pad([0x25, 0x50, 0x44, 0x46]))?.ext, 'pdf');
+  assert.equal(sniffType(pad([0xff, 0xd8, 0xff, 0xe0]))?.mime, 'image/jpeg');
+  assert.equal(sniffType(pad([0x89, 0x50, 0x4e, 0x47]))?.ext, 'png');
+  assert.equal(sniffType(new TextEncoder().encode('RIFF\0\0\0\0WEBPVP8 '))?.ext, 'webp');
+  assert.equal(sniffType(new TextEncoder().encode('\0\0\0\x18ftypheic\0\0'))?.ext, 'heic');
+  assert.equal(sniffType(pad([1, 2, 3])), null);
+});
+
+import { parsePageRanges } from '../src/lib/pageRanges.ts';
+test('parsePageRanges handles ranges, reversed ranges, junk and bounds', () => {
+  assert.deepEqual(parsePageRanges('1-3, 5, 8-9', 10), [0, 1, 2, 4, 7, 8]);
+  assert.deepEqual(parsePageRanges('4-2', 10), [1, 2, 3]);
+  assert.deepEqual(parsePageRanges('x, 0, 12, 3', 10), [2]);
+  assert.deepEqual(parsePageRanges('', 5), []);
+});

@@ -33,9 +33,35 @@ import { emit } from './events';
 import { getAccount, getPrefs } from './session';
 import { duplicateAsConflictCopy } from './documents';
 import { registerSyncRunner } from './syncQueue';
+import { allFoldersIncludingDeleted, Folder, mergeFolders } from './folders';
 import { scheduleReminders, cancelReminders } from './notifications';
 
 const KEYFILE = 'vault.json';
+const FOLDERS_FILE = 'folders.dvf';
+
+async function pullFolders(fileId: string) {
+  const bytes = await Drive.download(fileId);
+  try {
+    const list = openJson<Folder[]>(await getVmk(), bytes, 'folders');
+    await mergeFolders(list);
+  } catch {
+    console.warn('[sync] skipping undecryptable folders file');
+  }
+}
+
+async function pushFoldersIfDirty() {
+  if (!(await kvGet<boolean>('folders.dirty', false))) return;
+  const existing = await Drive.findByName(FOLDERS_FILE);
+  if (existing) await pullFolders(existing.id); // merge first so we never clobber another device
+  const all = await allFoldersIncludingDeleted();
+  await Drive.upload({
+    name: FOLDERS_FILE,
+    bytes: sealJson(await getVmk(), all, 'folders'),
+    existingId: existing?.id,
+    appProperties: { dv: 'folders' },
+  });
+  await kvSet('folders.dirty', false);
+}
 
 /** Fields replicated through the encrypted .meta file. */
 interface RemoteMeta {
@@ -55,6 +81,7 @@ interface RemoteMeta {
   fields: string;
   notes: string | null;
   tags?: string; // optional for metas written before tags existed
+  folder_id?: string | null;
   wrapped_dek: string;
   content_hash: string | null;
   bin_id: string | null;
@@ -125,6 +152,7 @@ async function encodeMeta(d: DocRecord): Promise<Uint8Array> {
     fields: d.fields,
     notes: d.notes,
     tags: d.tags,
+    folder_id: d.folder_id,
     wrapped_dek: d.wrapped_dek,
     content_hash: d.content_hash,
     bin_id: d.remote_bin_id,
@@ -176,6 +204,7 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
       back_id: null,
       notes: meta.notes,
       tags: meta.tags ?? '[]',
+      folder_id: meta.folder_id ?? null,
     });
     if (prefs.expiryReminders && meta.expiry) scheduleReminders({ ...meta }).catch(() => {});
     return;
@@ -222,6 +251,7 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
     fields: meta.fields,
     notes: meta.notes,
     tags: meta.tags ?? local.tags,
+    folder_id: meta.folder_id !== undefined ? meta.folder_id : local.folder_id,
     wrapped_dek: meta.wrapped_dek,
     content_hash: meta.content_hash,
     remote_meta_id: metaFileId,
@@ -256,12 +286,18 @@ async function pull() {
     const start = await Drive.getStartPageToken(); // take token first: no gap
     const metas = await Drive.listAll('.meta');
     for (const f of metas) if (f.name.endsWith('.meta')) await pullMetaFile(f.id, f.name);
+    const ff = await Drive.findByName(FOLDERS_FILE);
+    if (ff) await pullFolders(ff.id);
     await kvSet('sync.changesToken', start);
     return;
   }
   const { changes, newStartPageToken } = await Drive.listChanges(token);
   for (const c of changes) {
     if (c.removed || !c.file || c.file.trashed) continue;
+    if (c.file.name === FOLDERS_FILE) {
+      await pullFolders(c.fileId);
+      continue;
+    }
     if (!c.file.name.endsWith('.meta')) continue;
     await pullMetaFile(c.fileId, c.file.name);
   }
@@ -366,6 +402,7 @@ export function syncNow(): Promise<void> {
       if (pendingKf) await uploadKeyFile(pendingKf);
 
       await pull();
+      await pushFoldersIfDirty();
 
       const toPush = await docsNeedingPush();
       const toFetch = await docsNeedingDownload();
