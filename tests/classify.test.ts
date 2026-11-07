@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { suggest, extractExpiry, parseDate, prettifyName } from '../src/lib/classify.ts';
 import { makeSamplePdf } from '../src/lib/samplePdf.ts';
+import { normalizeTags } from '../src/lib/tags.ts';
 
 test('suggests category and type from filename', () => {
   assert.deepEqual(
@@ -41,7 +42,6 @@ test('sample PDF has a valid header, xref and trailer', () => {
   assert.ok(pdf.includes('Holder: Test \\(Sample\\)'));
 });
 
-import { normalizeTags } from '../src/lib/tags.ts';
 test('normalizeTags cleans, dedupes and lowercases hashtags', () => {
   assert.deepEqual(normalizeTags('#Travel, visa  #UAE #travel ##x!'), ['travel', 'visa', 'uae', 'x']);
   assert.deepEqual(normalizeTags(['  ', '#Ünïcode']), ['ünïcode']);

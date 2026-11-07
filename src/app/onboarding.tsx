@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -9,7 +9,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Screen, T, Tap } from '../components/ui';
 import { radius, space, useTheme } from '../theme';
 import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../lib/google';
-import { completeGoogleSignIn } from '../lib/googleSignIn';
+import { onGoogleSignIn, startGoogleSignIn } from '../lib/googleSignIn';
 import { lookupExistingVault } from '../lib/vault';
 import { setPendingAccount } from '../lib/pending';
 
@@ -44,8 +44,30 @@ export default function Onboarding() {
     ...googleClientIds,
     scopes: GOOGLE_SCOPES,
     selectAccount: true,
+    shouldAutoExchangeCode: false, // exchanged in googleSignIn.ts (works even if the browser "dismisses")
     extraParams: { access_type: 'offline', prompt: 'consent' },
   });
+
+  useEffect(
+    () =>
+      onGoogleSignIn(async ({ profile, error }) => {
+        if (error) {
+          setBusy(false);
+          Alert.alert('Couldn’t sign in with Google', error.message);
+          return;
+        }
+        try {
+          setPendingAccount({ mode: 'google', profile: profile!, displayName: profile!.name.split(' ')[0] });
+          const existing = await lookupExistingVault();
+          router.replace(existing ? '/recovery/restore' : '/recovery/setup');
+        } catch (e) {
+          Alert.alert('Couldn’t connect Google Drive', e instanceof Error ? e.message : String(e));
+        } finally {
+          setBusy(false);
+        }
+      }),
+    [],
+  );
 
   const signInGoogle = async () => {
     if (!isGoogleConfigured()) {
@@ -55,17 +77,14 @@ export default function Onboarding() {
       );
       return;
     }
+    if (!request) return;
     setBusy(true);
     try {
-      const profile = await completeGoogleSignIn(await promptAsync(), request?.clientId ?? '');
-      if (!profile) return;
-      setPendingAccount({ mode: 'google', profile, displayName: profile.name.split(' ')[0] });
-      const existing = await lookupExistingVault();
-      router.replace(existing ? '/recovery/restore' : '/recovery/setup');
+      const ok = await startGoogleSignIn(request, promptAsync);
+      if (!ok) setBusy(false); // cancelled; on success the listener navigates
     } catch (e) {
-      Alert.alert('Couldn’t connect Google Drive', e instanceof Error ? e.message : String(e));
-    } finally {
       setBusy(false);
+      Alert.alert('Couldn’t sign in with Google', e instanceof Error ? e.message : String(e));
     }
   };
 

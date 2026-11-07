@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, Share, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import * as Google from 'expo-auth-session/providers/google';
@@ -6,7 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Button, T } from '../../components/ui';
 import { radius, space, useTheme } from '../../theme';
 import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../../lib/google';
-import { completeGoogleSignIn } from '../../lib/googleSignIn';
+import { onGoogleSignIn, startGoogleSignIn } from '../../lib/googleSignIn';
 import { connectDriveToLocalVault, lookupExistingVault } from '../../lib/vault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 import { useAccount } from '../../lib/hooks';
@@ -23,32 +23,47 @@ export default function Connect() {
     ...googleClientIds,
     scopes: GOOGLE_SCOPES,
     selectAccount: true,
+    shouldAutoExchangeCode: false,
     extraParams: { access_type: 'offline', prompt: 'consent' },
   });
+
+  const displayName = account?.displayName;
+  useEffect(
+    () =>
+      onGoogleSignIn(async ({ profile, error }) => {
+        try {
+          if (error) throw error;
+          if (await lookupExistingVault()) {
+            Alert.alert(
+              'This Google account already has a vault',
+              'To use it, sign out on this device and restore it with its recovery key. To keep this vault, connect a different Google account.',
+            );
+            return;
+          }
+          const k = await connectDriveToLocalVault({ mode: 'google', profile: profile!, displayName: displayName || profile!.name.split(' ')[0] });
+          registerBackgroundSync();
+          setKey(k);
+        } catch (e) {
+          Alert.alert('Couldn’t connect', e instanceof Error ? e.message : String(e));
+        } finally {
+          setBusy(false);
+        }
+      }),
+    [displayName],
+  );
 
   const connect = async () => {
     if (!isGoogleConfigured()) {
       Alert.alert('Google isn’t configured', 'Add OAuth client IDs to .env — see README.');
       return;
     }
+    if (!request) return;
     setBusy(true);
     try {
-      const profile = await completeGoogleSignIn(await promptAsync(), request?.clientId ?? '');
-      if (!profile) return;
-      if (await lookupExistingVault()) {
-        Alert.alert(
-          'This Google account already has a vault',
-          'To use it, sign out on this device and restore it with its recovery key. To keep this vault, connect a different Google account.',
-        );
-        return;
-      }
-      const k = await connectDriveToLocalVault({ mode: 'google', profile, displayName: account?.displayName || profile.name.split(' ')[0] });
-      registerBackgroundSync();
-      setKey(k);
+      if (!(await startGoogleSignIn(request, promptAsync))) setBusy(false);
     } catch (e) {
-      Alert.alert('Couldn’t connect', e instanceof Error ? e.message : String(e));
-    } finally {
       setBusy(false);
+      Alert.alert('Couldn’t connect', e instanceof Error ? e.message : String(e));
     }
   };
 
