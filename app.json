@@ -74,6 +74,14 @@
         {
           "color": "#5B4CF0"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "# WorkManager (used by expo-background-task) creates its Room database via reflection.\n-keep class androidx.work.impl.WorkDatabase_Impl { <init>(...); }\n-keep class * extends androidx.room.RoomDatabase { <init>(...); }\n-keep class androidx.work.** { *; }\n-dontwarn androidx.work.**"
+          }
+        }
       ]
     ],
     "scheme": "docvault",
