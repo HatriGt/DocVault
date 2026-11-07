@@ -2,7 +2,10 @@ import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { T } from '../../components/ui';
+import * as WebBrowser from 'expo-web-browser';
+import { Button, T } from '../../components/ui';
+
+const PRIVACY_URL = 'https://hatrigt.github.io/DocVault/privacy.html';
 import { space, useTheme } from '../../theme';
 
 const ITEMS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
@@ -32,6 +35,12 @@ export default function Privacy() {
           </View>
         </View>
       ))}
+      <Button
+        title="Read the full privacy policy"
+        variant="secondary"
+        icon="open-outline"
+        onPress={() => WebBrowser.openBrowserAsync(PRIVACY_URL)}
+      />
     </ScrollView>
   );
 }
