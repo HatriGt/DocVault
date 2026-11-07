@@ -3,6 +3,7 @@ import { AppState, StyleSheet, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { getPrefs } from '../lib/session';
 import { lockKeysInMemory, verifyPin } from '../lib/keys';
@@ -100,9 +101,7 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: space.xxl }}>
-      <View style={{ width: 76, height: 76, borderRadius: 26, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name="lock-closed" size={34} color={c.onAccent} />
-      </View>
+      <Image source={require('../../assets/logo.png')} style={{ width: 96, height: 96 }} contentFit="contain" />
       <T v="title" style={{ marginTop: space.xl }}>
         DocVault is locked
       </T>

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Screen, T, Tap } from '../components/ui';
 import { radius, space, useTheme } from '../theme';
@@ -79,9 +80,7 @@ export default function Onboarding() {
     <Screen edges={['top', 'bottom']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, height: 48 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="lock-closed" size={17} color={c.onAccent} />
-          </View>
+          <Image source={require('../../assets/logo.png')} style={{ width: 34, height: 34 }} contentFit="contain" accessibilityIgnoresInvertColors />
           <T v="heading">DocVault</T>
         </View>
         {!last && (

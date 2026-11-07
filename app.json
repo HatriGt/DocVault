@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#5B4CF0",
+        "backgroundColor": "#F7F5F1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -80,6 +80,18 @@
         {
           "android": {
             "extraProguardRules": "# WorkManager (used by expo-background-task) creates its Room database via reflection.\n-keep class androidx.work.impl.WorkDatabase_Impl { <init>(...); }\n-keep class * extends androidx.room.RoomDatabase { <init>(...); }\n-keep class androidx.work.** { *; }\n-dontwarn androidx.work.**"
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F5F1",
+          "dark": {
+            "backgroundColor": "#0F0F12"
           }
         }
       ]
