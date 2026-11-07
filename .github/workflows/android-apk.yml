@@ -46,7 +46,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # GitHub's ubuntu runners ship the Android SDK (ANDROID_HOME); fail fast if not.
+      - name: Check Android SDK
+        run: |
+          test -n "$ANDROID_HOME" && test -d "$ANDROID_HOME"
+          echo "sdk.dir=$ANDROID_HOME"
+          ls "$ANDROID_HOME/build-tools" | tail -3
 
       - uses: gradle/actions/setup-gradle@v4
 
