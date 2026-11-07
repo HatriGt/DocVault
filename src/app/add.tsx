@@ -65,7 +65,7 @@ export default function AddDocument() {
         accept({ uri: a.uri, name: a.fileName ?? 'Photo.jpg', mime: a.mimeType ?? 'image/jpeg', size: a.fileSize });
       } else {
         // System picker: includes local storage, iCloud Drive and Google Drive providers.
-        const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+        const r = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
         if (r.canceled) return;
         const a = r.assets[0];
         accept({ uri: a.uri, name: a.name, mime: a.mimeType ?? 'application/octet-stream', size: a.size });
@@ -127,7 +127,7 @@ export default function AddDocument() {
           </T>
           <SourceOption icon="scan" title="Scan with camera" body="Capture a card or paper document" onPress={() => pick('camera')} />
           <SourceOption icon="images-outline" title="Choose from Photos" body="Import an existing photo" onPress={() => pick('photos')} />
-          <SourceOption icon="document-attach-outline" title="Import a file" body="PDFs and images from your device" onPress={() => pick('files')} />
+          <SourceOption icon="document-attach-outline" title="Import a file" body="PDF, Word, Excel, photos, video — anything" onPress={() => pick('files')} />
           <SourceOption icon="logo-google" title="From Google Drive" body="Pick a file using the Drive provider" onPress={() => pick('files')} />
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.lg }}>
             <Ionicons name="lock-closed" size={15} color={c.textMuted} />
@@ -238,7 +238,7 @@ function SourcePreview({ src }: { src: ImportSource & { size?: number } }) {
           {src.name}
         </T>
         <T v="caption" color="muted">
-          {image ? 'Image' : 'PDF'}
+          {image ? 'Image' : src.mime === 'application/pdf' ? 'PDF' : (src.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? 'File').toUpperCase()}
           {src.size ? ` · ${formatBytes(src.size)}` : ''}
         </T>
       </View>

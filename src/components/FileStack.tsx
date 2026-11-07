@@ -6,6 +6,16 @@ import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } fro
 import { T } from './ui';
 import { elevation, fonts, radius, useTheme } from '../theme';
 
+const KINDS: { test: (ext: string, mime: string) => boolean; color: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { test: (e, m) => e === 'pdf' || m === 'application/pdf', color: '#E5484D', icon: 'document-text' },
+  { test: (e) => ['doc', 'docx', 'odt', 'rtf'].includes(e), color: '#2B6CE6', icon: 'document' },
+  { test: (e) => ['xls', 'xlsx', 'ods', 'csv'].includes(e), color: '#16A36A', icon: 'grid' },
+  { test: (e) => ['ppt', 'pptx', 'odp', 'key'].includes(e), color: '#F07A2F', icon: 'easel' },
+  { test: (_e, m) => m.startsWith('video/'), color: '#6A4BFF', icon: 'videocam' },
+  { test: (_e, m) => m.startsWith('audio/'), color: '#B84DF0', icon: 'musical-notes' },
+  { test: () => true, color: '#5F5B76', icon: 'document-outline' },
+];
+
 export interface StackFile {
   uri: string;
   name: string;
@@ -27,6 +37,8 @@ function Card({ f, i, n, size }: { f: StackFile; i: number; n: number; size: num
     transform: [{ translateY: (1 - v.get()) * 60 }, { translateX: dx * v.get() }, { rotate: `${rot * v.get()}deg` }, { scale: 0.85 + v.get() * 0.15 }],
   }));
   const image = f.mime.startsWith('image/');
+  const ext = (f.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? (f.mime === 'application/pdf' ? 'pdf' : 'file')).toLowerCase();
+  const look = KINDS.find((k) => k.test(ext, f.mime)) ?? KINDS[KINDS.length - 1];
   return (
     <Animated.View
       style={[
@@ -39,14 +51,14 @@ function Card({ f, i, n, size }: { f: StackFile; i: number; n: number; size: num
         <Image source={{ uri: f.uri }} style={{ flex: 1 }} contentFit="cover" transition={200} />
       ) : (
         <View style={{ flex: 1, padding: size * 0.08, gap: size * 0.05 }}>
-          <View style={{ width: '60%', height: size * 0.05, borderRadius: 3, backgroundColor: '#E5484D' }} />
+          <View style={{ width: '60%', height: size * 0.05, borderRadius: 3, backgroundColor: look.color }} />
           {[0.9, 1, 0.75, 0.95, 0.6, 0.85].map((w, k) => (
             <View key={k} style={{ width: `${w * 100}%`, height: size * 0.03, borderRadius: 2, backgroundColor: c.surfaceAlt }} />
           ))}
           <View style={{ position: 'absolute', bottom: size * 0.06, left: size * 0.08, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Ionicons name="document-text" size={size * 0.1} color="#E5484D" />
-            <T v="overline" color="#E5484D" style={{ fontFamily: fonts.extrabold, fontSize: size * 0.07 }}>
-              PDF
+            <Ionicons name={look.icon} size={size * 0.1} color={look.color} />
+            <T v="overline" color={look.color} style={{ fontFamily: fonts.extrabold, fontSize: size * 0.07 }}>
+              {ext.toUpperCase()}
             </T>
           </View>
         </View>

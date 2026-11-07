@@ -2,16 +2,15 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import type { DocRecord } from './db';
-import { deleteDocument, exportCopy, isImage, openNative, shareDocument, toggleFavorite } from './documents';
+import { deleteDocument, exportCopy, shareDocument, toggleFavorite } from './documents';
 import type { SheetAction } from '../components/Sheet';
 
 const fail = (e: unknown) => Alert.alert('Something went wrong', e instanceof Error ? e.message : String(e));
 
 export async function openDoc(doc: DocRecord) {
   try {
-    // Images open in the in-app zoomable viewer; everything else in the system viewer.
-    if (isImage(doc)) router.push(`/viewer/${doc.id}`);
-    else await openNative(doc);
+    // Everything opens in the in-app universal viewer (it offers "Open with…" too).
+    router.push(`/view/${doc.id}`);
   } catch (e) {
     fail(e);
   }

@@ -18,11 +18,20 @@ import { hasLocalVaultKey } from '../lib/keys';
 import { importDocument } from '../lib/documents';
 import { prettifyName, suggest } from '../lib/classify';
 import { formatBytes } from '../lib/format';
+import { extForMime, extOf } from '../lib/filetype';
 
 type Phase = 'form' | 'saving' | 'done';
 type Item = StackFile & { size: number | null; status: 'pending' | 'working' | 'done' | 'error'; id?: string; error?: string };
 
-const SUPPORTED = (mime: string) => mime === 'application/pdf' || mime.startsWith('image/');
+const kindLabel = (mime: string, name: string) => {
+  const ext = extOf(name) || extForMime(mime) || '';
+  if (mime === 'application/pdf') return 'PDF';
+  if (mime.startsWith('image/')) return 'Image';
+  if (mime.startsWith('video/')) return 'Video';
+  if (mime.startsWith('audio/')) return 'Audio';
+  return ext ? ext.toUpperCase() : 'File';
+};
+const SUPPORTED = (_mime: string) => true; // any file can be stored; the viewer handles what it can
 
 /** "Add to DocVault" — receives files shared from WhatsApp, Files, Gallery, etc. */
 export default function ShareInto() {
@@ -123,7 +132,7 @@ export default function ShareInto() {
   if (!accountLoading && vaultReady === false) {
     blocker = { icon: 'lock-closed', title: 'Set up DocVault first', body: 'Create your encrypted vault, then share the file again.', action: 'Set up vault', go: () => router.replace('/onboarding') };
   } else if (!isResolving && resolvedSharedPayloads.length > 0 && supported.length === 0) {
-    blocker = { icon: 'document-outline', title: 'Nothing to add', body: 'DocVault can store PDFs and images. Text and links can’t be added.', action: 'Close', go: close };
+    blocker = { icon: 'document-outline', title: 'Nothing to add', body: 'Shared text and links can’t be added. Share a file instead.', action: 'Close', go: close };
   } else if (!isResolving && !error && resolvedSharedPayloads.length === 0 && vaultReady) {
     blocker = { icon: 'share-social-outline', title: 'No shared file', body: 'Share a PDF or photo from any app and choose DocVault.', action: 'Go to my vault', go: () => router.replace('/') };
   } else if (error) {
@@ -215,7 +224,7 @@ export default function ShareInto() {
                       {items.map((f, i) => (
                         <Animated.View key={f.uri} entering={FadeInDown.delay(120 + i * 60).springify()}>
                           <Field
-                            label={`${f.mime === 'application/pdf' ? 'PDF' : 'Image'}${f.size ? ` · ${formatBytes(f.size)}` : ''}`}
+                            label={`${kindLabel(f.mime, f.name)}${f.size ? ` · ${formatBytes(f.size)}` : ''}`}
                             value={names[i]}
                             onChangeText={(v) => setNames(names.map((n, k) => (k === i ? v : n)))}
                           />
@@ -287,7 +296,7 @@ function FileChip({ f }: { f?: Item }) {
           {f.name}
         </T>
         <T v="caption" color="muted">
-          {f.mime === 'application/pdf' ? 'PDF' : 'Image'}
+          {kindLabel(f.mime, f.name)}
           {f.size ? ` · ${formatBytes(f.size)}` : ''}
         </T>
       </View>

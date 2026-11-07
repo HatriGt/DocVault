@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { Directory, File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { sniffType } from './filetype';
+import { resolveType } from './filetype';
 import { hashHex, open, seal, utf8, uuid } from './crypto';
 import { newWrappedDek, unwrapDek } from './keys';
 import { deleteBlob, hasBlob, purgeTempPlain, readBlob, writeBlob, writeTempPlain } from './blobs';
@@ -74,8 +74,8 @@ const blobAad = (id: string) => `doc:${id}`;
 /** Encrypts plaintext and stores it as a new document. Returns the record. */
 export async function createDocument(plain: Uint8Array, src: { name: string; mime: string }, d: NewDocDetails) {
   const id = uuid();
-  const real = sniffType(plain);
-  if (real) src = { name: src.name.replace(/\.[a-z0-9]{2,5}$/i, '') + '.' + real.ext, mime: real.mime };
+  const real = resolveType(plain, src.name, src.mime);
+  src = { name: src.name.replace(/\.[a-z0-9]{1,5}$/i, '') + '.' + real.ext, mime: real.mime };
   const { dek, wrapped } = await newWrappedDek(id);
   const ct = seal(dek, plain, blobAad(id));
   dek.fill(0);
@@ -164,7 +164,7 @@ export async function markAccessed(id: string) {
 /** Decrypts to a temporary file (named with its real extension) for viewing/sharing. */
 export async function materialize(doc: DocRecord) {
   const plain = await decryptDocument(doc);
-  const real = sniffType(plain) ?? { mime: doc.mime, ext: doc.ext };
+  const real = resolveType(plain, `x.${doc.ext}`, doc.mime);
   if (real.mime !== doc.mime || real.ext !== doc.ext) {
     updateDoc(doc.id, { mime: real.mime, ext: real.ext }, true).catch(() => {}); // self-heal stale metadata
   }

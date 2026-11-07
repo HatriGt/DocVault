@@ -46,7 +46,7 @@ function Navigator() {
           <Stack.Screen name="move/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
           <Stack.Screen name="edit-image/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="oauthredirect" options={{ animation: 'none', presentation: 'transparentModal' }} />
-          <Stack.Screen name="viewer/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="view/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         </Stack>
       </AppLock>
     </>

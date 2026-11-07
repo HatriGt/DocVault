@@ -9,6 +9,7 @@ const STUBS = {
 
 export async function resolve(specifier, context, next) {
   if (STUBS[specifier]) return { url: STUBS[specifier], shortCircuit: true };
+  if (specifier === 'mammoth/mammoth.browser') return next('mammoth', context); // node build, same API
   if (specifier.startsWith('.') && context.parentURL && !/\.[mc]?[jt]s$/.test(specifier)) {
     const base = fileURLToPath(new URL(specifier, context.parentURL));
     if (existsSync(`${base}.ts`)) return { url: pathToFileURL(`${base}.ts`).href, shortCircuit: true };

@@ -100,12 +100,10 @@
           "android": {
             "enabled": true,
             "singleShareMimeTypes": [
-              "application/pdf",
-              "image/*"
+              "*/*"
             ],
             "multipleShareMimeTypes": [
-              "application/pdf",
-              "image/*"
+              "*/*"
             ]
           },
           "ios": {
@@ -113,7 +111,20 @@
           }
         }
       ],
-      "react-native-quick-crypto"
+      "react-native-quick-crypto",
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true,
+          "supportsBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ]
     ],
     "scheme": "docvault",
     "experiments": {
