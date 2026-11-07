@@ -15,7 +15,9 @@ on:
   push:
     branches: [main]
     tags: ['v*']
+    paths-ignore: ['site/**', '**/*.md', '.github/workflows/pages.yml', '.github/workflows/ci.yml']
   pull_request:
+    paths-ignore: ['site/**', '**/*.md', '.github/workflows/pages.yml', '.github/workflows/ci.yml']
 
 concurrency:
   group: apk-${{ github.ref }}
@@ -54,6 +56,18 @@ jobs:
           ls "$ANDROID_HOME/build-tools" | tail -3
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Let PR builds save caches too (default is main-only), so repeat PR builds are warm.
+          cache-read-only: false
+
+      # Native (C/C++) compilation of React Native libraries is most of the build time.
+      # ccache reuses object files across runs when sources haven't changed.
+      - name: Set up ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: android-${{ hashFiles('package-lock.json') }}
+          restore-keys: android-
+          max-size: 2G
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -61,9 +75,37 @@ jobs:
       - name: Generate native Android project (CNG)
         run: npx expo prebuild --platform android --no-install --clean
 
+      - name: Tune Gradle for CI
+        run: |
+          cat >> android/gradle.properties <<'PROPS'
+          org.gradle.caching=true
+          org.gradle.parallel=true
+          org.gradle.configureondemand=true
+          org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC -Dfile.encoding=UTF-8
+          kotlin.daemon.jvmargs=-Xmx2g
+          PROPS
+
+      # PRs: your phone (arm64) + the emulator (x86_64). main/tags: every architecture.
+      - name: Choose architectures
+        id: abi
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "list=arm64-v8a,x86_64" >> "$GITHUB_OUTPUT"
+          else
+            echo "list=arm64-v8a,armeabi-v7a,x86_64" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a,x86_64
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+          CCACHE_BASEDIR: ${{ github.workspace }}
+          CCACHE_NOHASHDIR: 'true'
+          CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
+        run: |
+          ./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures=${{ steps.abi.outputs.list }}
+          ccache --show-stats || true
 
       - name: Sign with release keystore (if configured)
         env:
