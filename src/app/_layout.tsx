@@ -41,6 +41,8 @@ function Navigator() {
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="add" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom', gestureEnabled: false }} />
+          <Stack.Screen name="expo-sharing" options={{ animation: 'none' }} />
           <Stack.Screen name="oauthredirect" options={{ animation: 'none', presentation: 'transparentModal' }} />
           <Stack.Screen name="viewer/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         </Stack>

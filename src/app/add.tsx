@@ -5,11 +5,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Button, IconButton, Screen, T, Tap } from '../components/ui';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../components/DetailsForm';
 import { radius, space, useTheme } from '../theme';
+import { SaveSuccess } from '../components/SaveSuccess';
 import { importDocument, ImportSource } from '../lib/documents';
 import { prettifyName, suggest } from '../lib/classify';
 import { recognizeText, ocrAvailable } from '../lib/ocr';
@@ -96,7 +96,6 @@ export default function AddDocument() {
         tags: form.tags,
       });
       setNewId(rec.id);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setStep('done');
     } catch (e) {
       Alert.alert('Couldn’t save document', e instanceof Error ? e.message : String(e));
@@ -184,15 +183,7 @@ export default function AddDocument() {
 
       {step === 'done' && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.lg }}>
-          <Animated.View entering={ZoomIn.springify().damping(12)} style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: c.successSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="checkmark" size={46} color={c.success} />
-          </Animated.View>
-          <Animated.View entering={FadeInDown.delay(150)} style={{ alignItems: 'center', gap: space.sm }}>
-            <T v="title">Saved securely</T>
-            <T v="body" color="muted" style={{ textAlign: 'center' }}>
-              {form.name} is encrypted and available offline.{cloud ? ' It’ll back up to Drive automatically.' : ''}
-            </T>
-          </Animated.View>
+          <SaveSuccess title="Saved securely" subtitle={`${form.name} is encrypted and available offline.${cloud ? ' It’ll back up to Drive automatically.' : ''}`} />
           <View style={{ alignSelf: 'stretch', gap: space.md, marginTop: space.xl }}>
             <Button title="View document" onPress={() => router.replace(`/doc/${newId}`)} />
             <Button

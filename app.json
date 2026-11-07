@@ -50,7 +50,6 @@
           "faceIDPermission": "Unlock your document vault with Face ID."
         }
       ],
-      "expo-sharing",
       "expo-web-browser",
       "expo-font",
       "expo-image",
@@ -92,6 +91,25 @@
           "backgroundColor": "#F7F5F1",
           "dark": {
             "backgroundColor": "#0F0F12"
+          }
+        }
+      ],
+      [
+        "expo-sharing",
+        {
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "application/pdf",
+              "image/*"
+            ],
+            "multipleShareMimeTypes": [
+              "application/pdf",
+              "image/*"
+            ]
+          },
+          "ios": {
+            "enabled": false
           }
         }
       ]
