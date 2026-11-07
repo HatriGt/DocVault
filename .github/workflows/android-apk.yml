@@ -77,6 +77,8 @@ jobs:
 
       - name: Tune Gradle for CI
         run: |
+          # Prebuild's last line has no trailing newline; start on a fresh line.
+          echo >> android/gradle.properties
           cat >> android/gradle.properties <<'PROPS'
           org.gradle.caching=true
           org.gradle.parallel=true
