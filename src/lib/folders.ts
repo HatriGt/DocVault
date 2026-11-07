@@ -20,7 +20,7 @@ export interface Folder {
   deleted: number;
 }
 
-export const FOLDER_COLORS = ['#15171B', '#B08A5B', '#2F7D5B', '#3E5A7A', '#8C4A3F', '#6B5B95', '#5E6B4E', '#A0705A'];
+export const FOLDER_COLORS = ['#5B45F2', '#2F80ED', '#F2B23A', '#E5484D', '#15A06A', '#F2784B', '#B04CE0', '#16132D'];
 export const FOLDER_ICONS = [
   'folder',
   'airplane',

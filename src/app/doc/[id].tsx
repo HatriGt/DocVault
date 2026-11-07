@@ -11,6 +11,7 @@ import { categoryOf, DocThumb, PassportBook, SyncBadge, WalletCard } from '../..
 import { ActionSheet } from '../../components/Sheet';
 import { TagPill } from '../../components/Tags';
 import { useFolderLabel } from '../../components/Folders';
+import { Backdrop } from '../../components/Backdrop';
 import { ActivityList } from '../../components/ActivityList';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
@@ -78,32 +79,31 @@ export default function DocumentDetail() {
     }
   };
 
-  const glass = 'rgba(255,255,255,0.12)';
+  const glass = c.surface;
   return (
     <Screen edges={[]}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={{ position: 'absolute', zIndex: 10, top: insets.top + space.sm, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xl }}>
-        <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} bg={glass} tint={c.heroText} />
+        <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} bg={glass} tint={c.text} />
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <IconButton
             icon={doc.favorite ? 'heart' : 'heart-outline'}
-            tint={doc.favorite ? '#D3AE7C' : c.heroText}
-            bg={glass}
+            tint={c.danger}
+            bg={c.dangerSoft}
             label={doc.favorite ? 'Remove from favorites' : 'Add to favorites'}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               toggleFavorite(doc);
             }}
           />
-          <IconButton icon="ellipsis-horizontal" label="More actions" onPress={() => setMore(true)} bg={glass} tint={c.heroText} />
+          <IconButton icon="ellipsis-horizontal" label="More actions" onPress={() => setMore(true)} />
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         {/* Preview */}
-        <View style={{ alignItems: 'center', backgroundColor: c.hero, paddingTop: insets.top + 72, paddingBottom: space.xxxl, borderBottomLeftRadius: radius.xl, borderBottomRightRadius: radius.xl, marginBottom: space.xl, overflow: 'hidden' }}>
-          {/* soft spotlight behind the document */}
-          <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 40, width: width * 0.9, height: width * 0.9, borderRadius: width, backgroundColor: '#D3AE7C', opacity: 0.07 }} />
+        <View style={{ alignItems: 'center', paddingTop: insets.top + 72, paddingBottom: space.xxl, marginBottom: space.md, overflow: 'hidden' }}>
+          <Backdrop variant="detail" />
           {doc.doc_type === 'Passport' ? (
             <View style={{ transform: [{ rotate: '-7deg' }], marginVertical: space.lg }}>
               <PassportBook doc={doc} width={Math.min(width * 0.52, 230)} />
@@ -124,8 +124,8 @@ export default function DocumentDetail() {
                 </Animated.View>
               </Tap>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.md }}>
-                <Ionicons name="sync-outline" size={13} color={c.heroMuted} />
-                <T v="caption" color={c.heroMuted}>
+                <Ionicons name="sync-outline" size={13} color={c.textFaint} />
+                <T v="caption" color="faint">
                   Tap card to flip
                 </T>
               </View>

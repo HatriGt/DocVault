@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Backdrop } from '../components/Backdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState, IconButton, T, Tap } from '../components/ui';
 import { CountdownRing } from '../components/CountdownRing';
@@ -33,6 +34,7 @@ export default function Renewals() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
+      <Backdrop variant="list" />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
         <View style={{ paddingHorizontal: space.xl, paddingTop: space.sm }}>
           <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} size={40} />

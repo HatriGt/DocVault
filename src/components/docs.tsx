@@ -64,17 +64,17 @@ export function SyncBadge({ doc, compact }: { doc: DocRecord; compact?: boolean 
 
 // ---------- Wallet card ----------
 const CARD_SKINS: Record<string, { bg: string; fg: string; sub: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  Passport: { bg: '#1B2333', fg: '#D9B98A', sub: 'rgba(217,185,138,0.72)', icon: 'globe-outline' },
-  'National ID': { bg: '#DCE3DA', fg: '#1E2A22', sub: '#55665A', icon: 'id-card-outline' },
-  'Driving Licence': { bg: '#ECE3D3', fg: '#2A2218', sub: '#7A6A52', icon: 'car-sport-outline' },
-  'Residence Permit': { bg: '#D9DEE6', fg: '#1C2533', sub: '#556175', icon: 'home-outline' },
-  Visa: { bg: '#2C3A3F', fg: '#EDE6D8', sub: 'rgba(237,230,216,0.66)', icon: 'airplane-outline' },
-  Aadhaar: { bg: '#EFE5D6', fg: '#2B2014', sub: '#7D6A50', icon: 'finger-print-outline' },
-  'PAN Card': { bg: '#DDE1EA', fg: '#1A2236', sub: '#58627A', icon: 'card-outline' },
-  'Credit Card': { bg: '#16181C', fg: '#F3EFE7', sub: 'rgba(243,239,231,0.6)', icon: 'card-outline' },
-  'Boarding Pass': { bg: '#24343F', fg: '#F3EFE7', sub: 'rgba(243,239,231,0.66)', icon: 'airplane' },
+  Passport: { bg: '#23307A', fg: '#F2C14E', sub: 'rgba(242,193,78,0.78)', icon: 'globe-outline' },
+  'National ID': { bg: '#E4F1FF', fg: '#16233A', sub: '#4E5D77', icon: 'id-card-outline' },
+  'Driving Licence': { bg: '#FCE8F5', fg: '#2A1630', sub: '#7A5A74', icon: 'car-sport-outline' },
+  'Residence Permit': { bg: '#E5F6EC', fg: '#13291F', sub: '#466556', icon: 'home-outline' },
+  Visa: { bg: '#0F4C5C', fg: '#F1F5F4', sub: 'rgba(241,245,244,0.72)', icon: 'airplane-outline' },
+  Aadhaar: { bg: '#FFF1DE', fg: '#2B1E0E', sub: '#7A6342', icon: 'finger-print-outline' },
+  'PAN Card': { bg: '#E8ECFF', fg: '#171E3D', sub: '#545D82', icon: 'card-outline' },
+  'Credit Card': { bg: '#16132D', fg: '#F4F2FF', sub: 'rgba(244,242,255,0.6)', icon: 'card-outline' },
+  'Boarding Pass': { bg: '#3A6FD8', fg: '#FFFFFF', sub: 'rgba(255,255,255,0.75)', icon: 'airplane' },
 };
-const DEFAULT_SKIN = { bg: '#E8E3D9', fg: '#15171B', sub: '#6B675E', icon: 'id-card-outline' as const };
+const DEFAULT_SKIN = { bg: '#ECE9FE', fg: '#16132D', sub: '#57536E', icon: 'id-card-outline' as const };
 
 export function WalletCard({
   doc,
@@ -330,7 +330,7 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
   const { c } = useTheme();
   const f = parseFields(doc);
   const h = width * 1.4;
-  const gold = '#D9B98A';
+  const gold = '#F2C14E';
   const country = (f.country ?? f.issuer ?? '').toUpperCase();
   return (
     <View
@@ -339,13 +339,13 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
           width,
           height: h,
           borderRadius: width * 0.07,
-          backgroundColor: '#1B2333',
+          backgroundColor: '#23307A',
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingVertical: h * 0.08,
           paddingHorizontal: width * 0.1,
           borderLeftWidth: width * 0.05,
-          borderLeftColor: '#141A27',
+          borderLeftColor: '#1B2563',
         },
         elevation(c, 3),
       ]}

@@ -12,8 +12,14 @@ import { registerBackgroundSync } from '../lib/backgroundSync';
 import { purgeTempPlain } from '../lib/blobs';
 import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
-import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 function Navigator() {
   const { c, dark } = useTheme();
@@ -51,12 +57,11 @@ function Navigator() {
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-    InstrumentSerif_400Regular,
-    InstrumentSerif_400Regular_Italic,
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
   useEffect(() => {
     let unsub: (() => void) | undefined;

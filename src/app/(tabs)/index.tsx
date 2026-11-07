@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Backdrop } from '../../components/Backdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
 import { DocRow, EssentialCard } from '../../components/docs';
@@ -74,6 +75,7 @@ export default function Home() {
 
   return (
     <Screen>
+      <Backdrop variant="home" />
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 56 }}
         refreshControl={account?.mode === 'google' ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.gold} /> : undefined}
@@ -90,8 +92,8 @@ export default function Home() {
               {account?.profile?.picture ? (
                 <Image source={{ uri: account.profile.picture }} style={{ width: 40, height: 40, borderRadius: 20 }} />
               ) : (
-                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.hero, alignItems: 'center', justifyContent: 'center' }}>
-                  <T v="bodyStrong" color={c.gold}>
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+                  <T v="bodyStrong" color="#FFFFFF">
                     {(first[0] ?? 'D').toUpperCase()}
                   </T>
                 </View>

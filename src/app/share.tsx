@@ -144,7 +144,7 @@ export default function ShareInto() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {/* Gradient hero */}
       <LinearGradient
-        colors={['#2A2D33', '#16181C', c.bg]}
+        colors={[c.accent, '#7B66FF', c.bg]}
         locations={[0, 0.55, 1]}
         style={{ paddingTop: insets.top + space.sm, paddingBottom: space.xxxl + space.lg }}
       >

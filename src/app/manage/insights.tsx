@@ -10,7 +10,7 @@ import { localVaultBytes } from '../../lib/blobs';
 
 const kindOf = (mime: string) =>
   mime === 'application/pdf' ? 'PDF' : mime.startsWith('image/') ? 'Images' : mime.startsWith('video/') ? 'Video' : mime.startsWith('audio/') ? 'Audio' : /word|excel|spreadsheet|presentation|officedocument|msword/.test(mime) ? 'Office' : 'Other';
-const KIND_COLOR: Record<string, string> = { PDF: '#C2413A', Images: '#B08A5B', Office: '#2B5FD9', Video: '#5B5F97', Audio: '#7A4F86', Other: '#7C7B74' };
+const KIND_COLOR: Record<string, string> = { PDF: '#C2413A', Images: '#F2994A', Office: '#2B5FD9', Video: '#5B5F97', Audio: '#7A4F86', Other: '#7C7B74' };
 
 function Bar({ share, color, delay }: { share: number; color: string; delay: number }) {
   const { c } = useTheme();

@@ -50,8 +50,8 @@ export default function Settings() {
           {account?.profile?.picture ? (
             <Image source={{ uri: account.profile.picture }} style={{ width: 52, height: 52, borderRadius: 26 }} />
           ) : (
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
-              <T v="heading" color={c.gold}>
+            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+              <T v="heading" color="#FFFFFF">
                 {(account?.displayName?.[0] ?? 'D').toUpperCase()}
               </T>
             </View>

@@ -46,7 +46,7 @@ export default function ToolsHub() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
-        <LinearGradient colors={['#2A2D33', '#16181C', c.bg]} locations={[0, 0.6, 1]} style={{ paddingTop: insets.top + space.sm, paddingBottom: space.xxl, paddingHorizontal: space.xl }}>
+        <LinearGradient colors={[c.accent, '#7B66FF', c.bg]} locations={[0, 0.6, 1]} style={{ paddingTop: insets.top + space.sm, paddingBottom: space.xxl, paddingHorizontal: space.xl }}>
           <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} bg="rgba(255,255,255,0.2)" tint="#fff" />
           <Animated.View entering={FadeInDown.duration(400)} style={{ marginTop: space.lg }}>
             <T v="title" color="#fff">

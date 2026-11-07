@@ -2,7 +2,6 @@ import React from 'react';
 import { View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { T, Tap } from './ui';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
@@ -23,7 +22,7 @@ export function VaultCard() {
   return (
     <Tap onPress={() => router.push('/manage/sync')} scaleTo={0.985} accessibilityLabel={`Vault: ${docs.length} documents, ${syncLabel}`}>
       <LinearGradient
-        colors={['#2A2D33', '#16181C', '#101114']}
+        colors={['#7360FF', '#5B45F2', '#3A2BB8']}
         locations={[0, 0.55, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -31,21 +30,23 @@ export function VaultCard() {
       >
         {/* brushed-metal sheen */}
         <LinearGradient
-          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.07)', 'rgba(255,255,255,0)']}
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.10)', 'rgba(255,255,255,0)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0.6 }}
           style={{ position: 'absolute', top: -40, left: -60, right: -60, height: 160, transform: [{ rotate: '-12deg' }] }}
         />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <Image source={require('../../assets/logo.png')} style={{ width: 26, height: 26 }} contentFit="contain" />
+            <View style={{ width: 26, height: 26, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="shield-checkmark" size={15} color="#FFFFFF" />
+            </View>
             <T v="overline" color={c.heroMuted}>
               DOCVAULT
             </T>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(211,174,124,0.45)', paddingHorizontal: 10, height: 26, borderRadius: radius.pill }}>
-            <Ionicons name="lock-closed" size={11} color="#D3AE7C" />
-            <T v="caption" color="#D3AE7C" style={{ fontFamily: fonts.semibold, fontSize: 11 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.16)', paddingHorizontal: 10, height: 26, borderRadius: radius.pill }}>
+            <Ionicons name="lock-closed" size={11} color="#FFFFFF" />
+            <T v="caption" color="#FFFFFF" style={{ fontFamily: fonts.semibold, fontSize: 11 }}>
               AES-256
             </T>
           </View>
@@ -58,13 +59,13 @@ export function VaultCard() {
             {docs.length === 1 ? 'document secured' : 'documents secured'}
           </T>
         </View>
-        <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: space.md }}>
+        <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.16)', paddingTop: space.md }}>
           {[
             { k: 'Offline', v: `${offline}/${docs.length}` },
             { k: 'Sync', v: syncLabel },
             { k: 'Size', v: formatBytes(size) },
           ].map((x, i) => (
-            <View key={x.k} style={{ flex: 1, paddingLeft: i ? space.md : 0, borderLeftWidth: i ? 1 : 0, borderLeftColor: 'rgba(255,255,255,0.08)' }}>
+            <View key={x.k} style={{ flex: 1, paddingLeft: i ? space.md : 0, borderLeftWidth: i ? 1 : 0, borderLeftColor: 'rgba(255,255,255,0.16)' }}>
               <T v="caption" color={c.heroMuted} style={{ fontSize: 11 }}>
                 {x.k}
               </T>

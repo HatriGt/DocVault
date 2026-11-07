@@ -3,6 +3,7 @@ import { Alert, FlatList, ScrollView, StyleSheet, useWindowDimensions, View } fr
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { Backdrop } from '../../components/Backdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Button, Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../../components/ui';
@@ -180,6 +181,7 @@ export default function Library() {
 
   return (
     <Screen>
+      <Backdrop variant="list" />
       <FlatList
         key={grid && !selecting ? 'grid' : 'list'}
         data={filtered}

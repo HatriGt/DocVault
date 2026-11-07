@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
+import { Backdrop } from '../../components/Backdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { EmptyState, Screen, SectionHeader, T, Tap } from '../../components/ui';
@@ -23,6 +24,7 @@ export default function Favorites() {
 
   return (
     <Screen>
+      <Backdrop variant="list" />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingHorizontal: space.xl, paddingTop: space.md }}>
           <T v="title">Wallet</T>
