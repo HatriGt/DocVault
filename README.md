@@ -88,7 +88,7 @@ A **development build** is required (not Expo Go) for Google OAuth redirects, Ke
 
 1. Create a project and enable the **Google Drive API**.
 2. OAuth consent screen: add scopes `openid`, `email`, `profile`, `.../auth/drive.appdata`.
-3. Create OAuth clients: **iOS** (bundle id `com.docvault.app`) and **Android** (package `com.docvault.app` + your signing SHA-1).
+3. Create OAuth clients: **iOS** (bundle id `com.hatrigt.docvault`) and **Android** (package `com.hatrigt.docvault` + your signing SHA-1).
 4. Put the IDs in `.env`.
 
 ### Download an APK (GitHub Actions)
