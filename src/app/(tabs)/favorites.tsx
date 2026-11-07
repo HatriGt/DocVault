@@ -25,16 +25,16 @@ export default function Favorites() {
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingHorizontal: space.xl, paddingTop: space.md }}>
-          <T v="title">Favorites</T>
+          <T v="title">Wallet</T>
           <T v="callout" color="muted" style={{ marginTop: 4 }}>
-            Your most important documents, one tap away — even offline.
+            Your essential cards and favourites, ready even offline.
           </T>
         </View>
         {loading ? null : favs.length === 0 ? (
           <EmptyState
             icon="heart-outline"
-            title="No favorites yet"
-            body="Tap the heart on any document to keep it here for instant access."
+            title="Your wallet is empty"
+            body="Tap the heart on any document to keep it here, one tap away."
             action="Browse documents"
             onAction={() => router.push('/(tabs)/documents')}
           />

@@ -64,12 +64,17 @@ export function SyncBadge({ doc, compact }: { doc: DocRecord; compact?: boolean 
 
 // ---------- Wallet card ----------
 const CARD_SKINS: Record<string, { bg: string; fg: string; sub: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  Passport: { bg: '#1E2A5A', fg: '#E9C46A', sub: 'rgba(233,196,106,0.75)', icon: 'globe-outline' },
-  Visa: { bg: '#0F4C5C', fg: '#F1F5F4', sub: 'rgba(241,245,244,0.7)', icon: 'airplane-outline' },
-  'Credit Card': { bg: '#17161A', fg: '#F3F2EF', sub: 'rgba(243,242,239,0.6)', icon: 'card-outline' },
-  'Boarding Pass': { bg: '#2F8FDB', fg: '#FFFFFF', sub: 'rgba(255,255,255,0.75)', icon: 'airplane' },
+  Passport: { bg: '#1B2333', fg: '#D9B98A', sub: 'rgba(217,185,138,0.72)', icon: 'globe-outline' },
+  'National ID': { bg: '#DCE3DA', fg: '#1E2A22', sub: '#55665A', icon: 'id-card-outline' },
+  'Driving Licence': { bg: '#ECE3D3', fg: '#2A2218', sub: '#7A6A52', icon: 'car-sport-outline' },
+  'Residence Permit': { bg: '#D9DEE6', fg: '#1C2533', sub: '#556175', icon: 'home-outline' },
+  Visa: { bg: '#2C3A3F', fg: '#EDE6D8', sub: 'rgba(237,230,216,0.66)', icon: 'airplane-outline' },
+  Aadhaar: { bg: '#EFE5D6', fg: '#2B2014', sub: '#7D6A50', icon: 'finger-print-outline' },
+  'PAN Card': { bg: '#DDE1EA', fg: '#1A2236', sub: '#58627A', icon: 'card-outline' },
+  'Credit Card': { bg: '#16181C', fg: '#F3EFE7', sub: 'rgba(243,239,231,0.6)', icon: 'card-outline' },
+  'Boarding Pass': { bg: '#24343F', fg: '#F3EFE7', sub: 'rgba(243,239,231,0.66)', icon: 'airplane' },
 };
-const DEFAULT_SKIN = { bg: '#F2F0FB', fg: '#1F1B3A', sub: '#6E6890', icon: 'id-card-outline' as const };
+const DEFAULT_SKIN = { bg: '#E8E3D9', fg: '#15171B', sub: '#6B675E', icon: 'id-card-outline' as const };
 
 export function WalletCard({
   doc,
@@ -115,9 +120,9 @@ export function WalletCard({
           width: 200 * scale,
           height: 200 * scale,
           borderRadius: 100 * scale,
-          borderWidth: 26 * scale,
+          borderWidth: 30 * scale,
           borderColor: skin.fg,
-          opacity: 0.06,
+          opacity: 0.07,
         }}
       />
       {side === 'front' ? (
@@ -189,65 +194,32 @@ export function WalletCard({
 }
 
 // ---------- Thumbnail (mini document page) ----------
+const FORMAT_TINT: Record<string, string> = {
+  pdf: '#C2413A', doc: '#2B5FD9', docx: '#2B5FD9', xls: '#2F7D5B', xlsx: '#2F7D5B', csv: '#2F7D5B', ppt: '#C8642B', pptx: '#C8642B',
+  jpg: '#8A6A3F', jpeg: '#8A6A3F', png: '#8A6A3F', heic: '#8A6A3F', webp: '#8A6A3F', mp4: '#5B5F97', mov: '#5B5F97', mp3: '#7A4F86', m4a: '#7A4F86',
+};
+
 export function DocThumb({ doc, size = 56 }: { doc: DocRecord; size?: number }) {
   const { c } = useTheme();
-  const hue = hueFor(doc);
   if (CARD_TYPES.has(doc.doc_type ?? '')) {
-    const skin = CARD_SKINS[doc.doc_type ?? ''] ?? { ...DEFAULT_SKIN, bg: hue + '22', fg: hue };
+    const skin = CARD_SKINS[doc.doc_type ?? ''] ?? DEFAULT_SKIN;
     return (
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: 12,
-          backgroundColor: skin.bg,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <View style={{ width: size, height: size, borderRadius: size * 0.26, backgroundColor: skin.bg, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name={skin.icon} size={size * 0.42} color={skin.fg} />
       </View>
     );
   }
+  const tint = FORMAT_TINT[doc.ext] ?? c.textMuted;
   return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 12,
-        backgroundColor: c.surfaceAlt,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <View
-        style={{
-          width: size * 0.56,
-          height: size * 0.72,
-          borderRadius: 4,
-          backgroundColor: c.surface,
-          padding: size * 0.07,
-          gap: size * 0.05,
-          ...elevation(c, 1),
-        }}
-      >
-        <View style={{ height: size * 0.06, width: '70%', backgroundColor: hue, borderRadius: 2 }} />
-        {[1, 0.8, 0.9, 0.6].map((w, i) => (
-          <View key={i} style={{ height: size * 0.035, width: `${w * 100}%`, backgroundColor: c.border, borderRadius: 2 }} />
+    <View style={{ width: size, height: size, borderRadius: size * 0.26, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: size * 0.5, height: size * 0.62, borderRadius: 4, backgroundColor: c.surface, padding: size * 0.07, gap: size * 0.045, ...elevation(c, 1) }}>
+        {[0.7, 1, 0.85, 0.6].map((w, i) => (
+          <View key={i} style={{ height: size * 0.035, width: `${w * 100}%`, backgroundColor: i === 0 ? tint : c.border, borderRadius: 2 }} />
         ))}
       </View>
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 4,
-          right: 4,
-          paddingHorizontal: 4,
-          borderRadius: 4,
-          backgroundColor: hue,
-        }}
-      >
-        <T v="overline" color="#fff" style={{ fontSize: 8, lineHeight: 12 }}>
-          {doc.ext.toUpperCase()}
+      <View style={{ position: 'absolute', bottom: size * 0.08, paddingHorizontal: 4, borderRadius: 4, backgroundColor: tint }}>
+        <T v="overline" color="#fff" style={{ fontSize: Math.max(7, size * 0.13), lineHeight: Math.max(10, size * 0.19), letterSpacing: 0.4 }}>
+          {doc.ext.toUpperCase().slice(0, 4)}
         </T>
       </View>
     </View>
@@ -255,43 +227,64 @@ export function DocThumb({ doc, size = 56 }: { doc: DocRecord; size?: number }) 
 }
 
 // ---------- List row ----------
-export function DocRow({ doc, onMore }: { doc: DocRecord; onMore?: (d: DocRecord) => void }) {
+export function StatusDot({ doc }: { doc: DocRecord }) {
+  const { c } = useTheme();
+  const sp = syncSpec(doc);
+  const color = { success: c.success, muted: c.textFaint, accent: c.gold, warning: c.warning, danger: c.danger }[sp.tone];
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
+      <T v="caption" color="muted">
+        {sp.label}
+      </T>
+    </View>
+  );
+}
+
+export function DocRow({ doc, onMore, selected, onPress, onLongPress }: { doc: DocRecord; onMore?: (d: DocRecord) => void; selected?: boolean; onPress?: () => void; onLongPress?: () => void }) {
   const { c } = useTheme();
   const cat = categoryOf(doc.category);
   const tags = parseTags(doc);
+  const days = daysUntil(doc.expiry);
   return (
     <Tap
-      onPress={() => router.push(`/doc/${doc.id}`)}
+      onPress={onPress ?? (() => router.push(`/doc/${doc.id}`))}
+      onLongPress={onLongPress}
+      scaleTo={0.985}
       accessibilityLabel={`${doc.name}, ${cat?.name ?? doc.category}, ${syncSpec(doc).label}`}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: space.md,
-        padding: space.md,
-        marginVertical: 6,
-        borderRadius: radius.lg,
-        backgroundColor: c.surface,
-        ...elevation(c, 1),
-      }}
+      accessibilityState={{ selected }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.hairline }}
     >
-      <DocThumb doc={doc} size={60} />
-      <View style={{ flex: 1 }}>
+      {selected !== undefined && (
+        <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: selected ? 0 : 1.5, borderColor: c.textFaint, backgroundColor: selected ? c.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+          {selected && <Ionicons name="checkmark" size={15} color={c.onAccent} />}
+        </View>
+      )}
+      <DocThumb doc={doc} size={48} />
+      <View style={{ flex: 1, gap: 3 }}>
         <T v="bodyStrong" numberOfLines={1}>
           {doc.name}
         </T>
-        <T v="caption" color="muted" style={{ marginTop: 3 }}>
-          {cat?.name ?? doc.category} · {formatBytes(doc.size)}
-        </T>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <T v="caption" color="muted">
+            {cat?.name ?? doc.category} · {formatBytes(doc.size)}
+          </T>
+          <StatusDot doc={doc} />
+          {days != null && days <= 60 && (
+            <T v="caption" color={days < 0 ? c.danger : c.warning}>
+              {days < 0 ? 'Expired' : `${days}d left`}
+            </T>
+          )}
+        </View>
         {tags.length > 0 && (
-          <T v="caption" color="accent" numberOfLines={1} style={{ marginTop: 3 }}>
+          <T v="caption" color={c.gold} numberOfLines={1}>
             {tags.map((t) => `#${t}`).join('  ')}
           </T>
         )}
       </View>
-      <SyncBadge doc={doc} />
-      {onMore && (
+      {onMore && selected === undefined && (
         <Tap onPress={() => onMore(doc)} hitSlop={12} accessibilityLabel={`More actions for ${doc.name}`}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={c.textMuted} />
+          <Ionicons name="ellipsis-horizontal" size={18} color={c.textFaint} />
         </Tap>
       )}
     </Tap>
@@ -337,7 +330,7 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
   const { c } = useTheme();
   const f = parseFields(doc);
   const h = width * 1.4;
-  const gold = '#E7C36B';
+  const gold = '#D9B98A';
   const country = (f.country ?? f.issuer ?? '').toUpperCase();
   return (
     <View
@@ -346,13 +339,13 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
           width,
           height: h,
           borderRadius: width * 0.07,
-          backgroundColor: '#1F2C6B',
+          backgroundColor: '#1B2333',
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingVertical: h * 0.08,
           paddingHorizontal: width * 0.1,
           borderLeftWidth: width * 0.05,
-          borderLeftColor: '#18225A',
+          borderLeftColor: '#141A27',
         },
         elevation(c, 3),
       ]}
@@ -376,30 +369,29 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
 }
 
 // ---------- Essentials card (home carousel) ----------
-const ESSENTIAL_STYLE: Record<string, { bg: string; fg: string; sub: string; icon: keyof typeof Ionicons.glyphMap; iconColor: string }> = {
-  Passport: { bg: '#24307A', fg: '#FFFFFF', sub: 'rgba(255,255,255,0.75)', icon: 'globe-outline', iconColor: '#F5C64F' },
-  'National ID': { bg: '#E6F4FF', fg: '#14112B', sub: '#4E5A70', icon: 'id-card', iconColor: '#1F9D6B' },
-  'Driving Licence': { bg: '#FCE9F8', fg: '#14112B', sub: '#6B4E68', icon: 'car-sport', iconColor: '#6A4BFF' },
-  Visa: { bg: '#FFF1DE', fg: '#14112B', sub: '#6E5636', icon: 'airplane', iconColor: '#E07A1F' },
-  'Residence Permit': { bg: '#EAF8EE', fg: '#14112B', sub: '#3F6150', icon: 'home', iconColor: '#16A36A' },
-  Aadhaar: { bg: '#FFF4E0', fg: '#14112B', sub: '#6E5636', icon: 'finger-print', iconColor: '#E07A1F' },
-  'PAN Card': { bg: '#E9EEFF', fg: '#14112B', sub: '#4A5378', icon: 'card', iconColor: '#3B5BDB' },
-};
-
 export function EssentialCard({ doc, width }: { doc: DocRecord; width: number }) {
-  const { c, dark } = useTheme();
-  const base = ESSENTIAL_STYLE[doc.doc_type ?? ''] ?? { bg: hueFor(doc) + '1A', fg: c.text, sub: c.textMuted, icon: 'document-text' as const, iconColor: hueFor(doc) };
-  const s = dark && base.bg !== '#24307A' ? { ...base, bg: c.surfaceAlt, fg: c.text, sub: c.textMuted } : base;
-  const days = daysUntil(doc.expiry);
+  if (CARD_TYPES.has(doc.doc_type ?? '')) return <WalletCard doc={doc} width={width} />;
+  return <FileCard doc={doc} width={width} />;
+}
+
+/** Non-card documents in the wallet carousel: paper-like card with format accent. */
+function FileCard({ doc, width }: { doc: DocRecord; width: number }) {
+  const { c } = useTheme();
+  const h = width / 1.586;
   return (
-    <View style={[{ width, height: width * 1.08, borderRadius: radius.lg, backgroundColor: s.bg, padding: space.lg, justifyContent: 'space-between' }, elevation(c, 1)]}>
-      <Ionicons name={s.icon} size={width * 0.3} color={s.iconColor} />
+    <View style={[{ width, height: h, borderRadius: 18, backgroundColor: c.surface, padding: 18, justifyContent: 'space-between', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }, elevation(c, 2)]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <T v="overline" color="muted">
+          {(categoryOf(doc.category)?.name ?? doc.category).toUpperCase()}
+        </T>
+        <DocThumb doc={doc} size={34} />
+      </View>
       <View>
-        <T v="bodyStrong" color={s.fg} numberOfLines={2}>
+        <T v="heading" numberOfLines={1}>
           {doc.name}
         </T>
-        <T v="caption" color={days != null && days <= 90 ? c.danger : s.sub} style={{ marginTop: 3 }} numberOfLines={1}>
-          {doc.expiry ? `Exp: ${formatDate(doc.expiry)}` : categoryOf(doc.category)?.name ?? ''}
+        <T v="caption" color="muted" style={{ marginTop: 2 }}>
+          {doc.expiry ? `Valid until ${formatDate(doc.expiry)}` : `${doc.ext.toUpperCase()} · ${formatBytes(doc.size)}`}
         </T>
       </View>
     </View>

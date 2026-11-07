@@ -5,6 +5,7 @@ import { Account, DEFAULT_PREFS, getAccount, getPrefs, Preferences } from './ses
 import { getSyncStatus, SyncStatus } from './sync';
 import { BUILTIN_CATEGORIES, Category } from './categories';
 import { Folder, listFolders } from './folders';
+import { Activity, listActivity } from './activity';
 
 function useLive<T>(topics: Topic[], load: () => Promise<T>, initial: T, deps: unknown[] = []) {
   const [value, setValue] = useState<T>(initial);
@@ -68,4 +69,8 @@ export function useTags() {
 
 export function useFolders(): Folder[] {
   return useLive<Folder[]>(['documents'], listFolders, []).value;
+}
+
+export function useActivity(docId: string | undefined) {
+  return useLive<Activity[]>(['documents'], () => (docId ? listActivity(docId) : Promise.resolve([])), [], [docId]).value;
 }

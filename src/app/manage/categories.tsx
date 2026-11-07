@@ -9,7 +9,7 @@ import { addCustomCategory } from '../../lib/db';
 import { uuid } from '../../lib/crypto';
 
 const ICONS = ['folder-outline', 'home-outline', 'car-outline', 'school-outline', 'briefcase-outline', 'paw-outline', 'medkit-outline', 'receipt-outline'] as const;
-const HUES = ['#5B4CF0', '#E0576B', '#2F8FDB', '#1F9D6B', '#C27A12', '#8A5CF6'];
+const HUES = ['#3E5A7A', '#8C4A3F', '#2F6F7A', '#5E6B4E', '#B08A5B', '#6B5B95'];
 
 export default function Categories() {
   const { c } = useTheme();

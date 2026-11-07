@@ -1,34 +1,26 @@
 import React, { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Banner, EmptyState, Screen, SearchField, SectionHeader, T, Tap } from '../../components/ui';
+import { EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
 import { DocRow, EssentialCard } from '../../components/docs';
-import { SyncPill } from '../../components/SyncPill';
 import { ActionSheet } from '../../components/Sheet';
-import { Backdrop } from '../../components/Backdrop';
+import { VaultCard } from '../../components/VaultCard';
+import { CountdownRing } from '../../components/CountdownRing';
 import { TAB_BAR_HEIGHT } from '../../components/TabBar';
-import { TagPill } from '../../components/Tags';
-import { FolderEditor } from '../../components/Folders';
-import { elevation, fonts, radius, space, useTheme } from '../../theme';
-import { useAccount, useCategories, useDocuments, useTags } from '../../lib/hooks';
+import { FolderEditor, FolderTile } from '../../components/Folders';
+import { fonts, radius, space, useTheme } from '../../theme';
+import { useAccount, useDocuments, useFolders } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
-import { daysUntil, greeting } from '../../lib/format';
+import { daysUntil, formatDate, greeting } from '../../lib/format';
 import { syncNow } from '../../lib/sync';
 import { docActions } from '../../lib/actions';
 import type { DocRecord } from '../../lib/db';
 
 const ESSENTIAL_ORDER = ['Passport', 'National ID', 'Driving Licence', 'Residence Permit', 'Visa', 'Aadhaar', 'PAN Card'];
-
-const QUICK_BASE: { icon: keyof typeof Ionicons.glyphMap; label: string; color: string; go: () => void }[] = [
-  { icon: 'camera', label: 'Scan', color: '#6A4BFF', go: () => router.push({ pathname: '/add', params: { source: 'camera' } }) },
-  { icon: 'cloud-upload', label: 'Upload', color: '#2F9BEA', go: () => router.push({ pathname: '/add', params: { source: 'files' } }) },
-  { icon: 'folder', label: 'New Folder', color: '#F5B32F', go: () => {} },
-  { icon: 'color-wand', label: 'Tools', color: '#B84DF0', go: () => router.push('/tools') },
-];
 
 export default function Home() {
   const { c } = useTheme();
@@ -36,25 +28,25 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const { account } = useAccount();
   const { docs, loading } = useDocuments();
-  const categories = useCategories();
-  const topTags = useTags().slice(0, 10);
+  const folders = useFolders();
   const [refreshing, setRefreshing] = useState(false);
   const [menuDoc, setMenuDoc] = useState<DocRecord | null>(null);
   const [newFolder, setNewFolder] = useState(false);
-  const QUICK = QUICK_BASE.map((q) => (q.label === 'New Folder' ? { ...q, go: () => setNewFolder(true) } : q));
+  const pad = space.xl;
 
-  const essentials = useMemo(() => {
-    const cards = docs
-      .filter((d) => CARD_TYPES.has(d.doc_type ?? '') || d.favorite)
-      .sort((a, b) => {
-        const ia = ESSENTIAL_ORDER.indexOf(a.doc_type ?? '');
-        const ib = ESSENTIAL_ORDER.indexOf(b.doc_type ?? '');
-        return (b.pinned - a.pinned) || ((ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib));
-      });
-    return cards.slice(0, 8);
-  }, [docs]);
-
-  const expiring = useMemo(
+  const wallet = useMemo(
+    () =>
+      docs
+        .filter((d) => CARD_TYPES.has(d.doc_type ?? '') || d.favorite)
+        .sort((a, b) => {
+          const ia = ESSENTIAL_ORDER.indexOf(a.doc_type ?? '');
+          const ib = ESSENTIAL_ORDER.indexOf(b.doc_type ?? '');
+          return b.pinned - a.pinned || (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+        })
+        .slice(0, 10),
+    [docs],
+  );
+  const attention = useMemo(
     () =>
       docs
         .map((d) => ({ d, days: daysUntil(d.expiry) }))
@@ -62,11 +54,17 @@ export default function Home() {
         .sort((a, b) => a.days! - b.days!),
     [docs],
   );
+  const rootFolders = folders.filter((f) => !f.parent_id).slice(0, 4);
 
-  const name = account?.displayName ?? '';
-  const pad = space.xl;
-  const tileW = (width - pad * 2 - space.md * 3) / 4;
-  const essW = Math.min((width - pad * 2 - space.md * 2) / 2.6, 160);
+  const first = account?.displayName ?? '';
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+  const cardW = Math.min(width * 0.78, 330);
+  const QUICK: { icon: keyof typeof Ionicons.glyphMap; label: string; go: () => void }[] = [
+    { icon: 'scan-outline', label: 'Scan', go: () => router.push({ pathname: '/add', params: { source: 'camera' } }) },
+    { icon: 'arrow-down-circle-outline', label: 'Import', go: () => router.push({ pathname: '/add', params: { source: 'files' } }) },
+    { icon: 'folder-open-outline', label: 'Folder', go: () => setNewFolder(true) },
+    { icon: 'color-wand-outline', label: 'Tools', go: () => router.push('/tools') },
+  ];
 
   const refresh = async () => {
     setRefreshing(true);
@@ -76,132 +74,107 @@ export default function Home() {
 
   return (
     <Screen>
-      <Backdrop variant="home" />
       <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 48 }}
-        refreshControl={account?.mode === 'google' ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accent} /> : undefined}
+        contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 56 }}
+        refreshControl={account?.mode === 'google' ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.gold} /> : undefined}
         showsVerticalScrollIndicator={false}
       >
-        {/* Brand header */}
+        {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: pad, paddingTop: space.sm }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-            <Image source={require('../../../assets/logo.png')} style={{ width: 42, height: 42 }} contentFit="contain" />
-            <T v="heading" style={{ fontFamily: fonts.extrabold, fontSize: 21 }}>
-              DocVault
-            </T>
+          <T v="overline" color="muted">
+            {today.toUpperCase()}
+          </T>
+          <View style={{ flexDirection: 'row', gap: space.sm, alignItems: 'center' }}>
+            <IconButton icon="search" label="Search" onPress={() => router.push('/search')} size={40} />
+            <Tap onPress={() => router.push('/(tabs)/settings')} accessibilityLabel="Your profile">
+              {account?.profile?.picture ? (
+                <Image source={{ uri: account.profile.picture }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+              ) : (
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: c.hero, alignItems: 'center', justifyContent: 'center' }}>
+                  <T v="bodyStrong" color={c.gold}>
+                    {(first[0] ?? 'D').toUpperCase()}
+                  </T>
+                </View>
+              )}
+            </Tap>
           </View>
-          <Tap onPress={() => router.push('/(tabs)/settings')} accessibilityLabel="Profile and settings">
-            {account?.profile?.picture ? (
-              <Image source={{ uri: account.profile.picture }} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: c.surface }} />
-            ) : (
-              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: c.surface }}>
-                <T v="bodyStrong" color="onAccent">
-                  {(name[0] ?? 'D').toUpperCase()}
-                </T>
-              </View>
-            )}
-          </Tap>
         </View>
 
-        {/* Greeting + hero */}
-        <View style={{ paddingHorizontal: pad, marginTop: space.xl }}>
-          <Animated.View entering={FadeInDown.duration(500)}>
-            <T v="display" style={{ fontSize: 31, lineHeight: 37 }}>
-              {greeting()},{'\n'}
-              {name || 'there'} 👋
+        <Animated.View entering={FadeInDown.duration(500)} style={{ paddingHorizontal: pad, marginTop: space.lg }}>
+          <T v="display">
+            {greeting()},{'\n'}
+            <T v="display" style={{ fontFamily: fonts.serifItalic, color: c.gold }}>
+              {first || 'welcome'}
             </T>
-            <T v="callout" color="muted" style={{ marginTop: space.xs, fontSize: 15 }}>
-              Your secure document wallet
-            </T>
-            <View style={{ marginTop: space.md }}>
-              <SyncPill />
-            </View>
-          </Animated.View>
-        </View>
-        <Animated.View entering={FadeInRight.delay(120).springify().damping(16)} style={{ alignItems: 'flex-end', marginTop: -space.xxl, paddingRight: pad - 8 }}>
-          <Image source={require('../../../assets/hero.png')} style={{ width: width * 0.5, height: width * 0.42 }} contentFit="contain" />
+          </T>
         </Animated.View>
 
-        {/* Search (overlaps hero, as in the design) */}
-        <View style={{ paddingHorizontal: pad, marginTop: -space.xxl }}>
-          <Tap onPress={() => router.push({ pathname: '/(tabs)/documents', params: { focus: '1' } })} haptic={false} scaleTo={0.99}>
-            <View pointerEvents="box-none">
-              <SearchField
-                placeholder="Search documents"
-                editable={false}
-                pointerEvents="none"
-                trailing={
-                  <Tap
-                    onPress={() => router.push({ pathname: '/add', params: { source: 'camera' } })}
-                    hitSlop={10}
-                    accessibilityLabel="Scan a document"
-                  >
-                    <Ionicons name="scan-outline" size={24} color={c.accent} />
-                  </Tap>
-                }
-              />
-            </View>
-          </Tap>
-        </View>
+        <Animated.View entering={FadeInDown.delay(80).duration(500)} style={{ paddingHorizontal: pad, marginTop: space.xl }}>
+          <VaultCard />
+        </Animated.View>
 
         {/* Quick actions */}
-        <View style={{ flexDirection: 'row', gap: space.md, paddingHorizontal: pad, marginTop: space.lg }}>
-          {QUICK.map((q, i) => (
-            <Animated.View key={q.label} entering={FadeInDown.delay(80 + i * 50).springify().damping(18)}>
-              <Tap
-                onPress={q.go}
-                accessibilityLabel={q.label}
-                style={[{ width: tileW, height: tileW * 1.02, borderRadius: radius.lg, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: 8 }, elevation(c, 1)]}
-              >
-                <Ionicons name={q.icon} size={26} color={q.color} />
-                <T v="caption" style={{ fontFamily: fonts.semibold, fontSize: 12.5, textAlign: 'center' }} numberOfLines={1}>
-                  {q.label}
-                </T>
-              </Tap>
-            </Animated.View>
+        <Animated.View entering={FadeInDown.delay(140).duration(500)} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: pad + space.sm, marginTop: space.xl }}>
+          {QUICK.map((q) => (
+            <Tap key={q.label} onPress={q.go} accessibilityLabel={q.label} style={{ alignItems: 'center', gap: 8, width: 68 }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name={q.icon} size={23} color={c.text} />
+              </View>
+              <T v="caption" color="muted">
+                {q.label}
+              </T>
+            </Tap>
           ))}
-        </View>
+        </Animated.View>
 
         {loading ? null : docs.length === 0 ? (
           <EmptyState
-            icon="wallet-outline"
-            title="Your vault is empty"
-            body="Add your passport, ID or any important document. It’s encrypted on your phone and available offline."
+            icon="shield-checkmark-outline"
+            title="Your vault is ready"
+            body="Add your passport, ID or any important file. It’s encrypted on this phone and always available offline."
             action="Add your first document"
             onAction={() => router.push('/add')}
           />
         ) : (
           <>
-            {expiring.length > 0 && (
-              <View style={{ paddingHorizontal: pad, marginTop: space.xl }}>
-                <Banner
-                  tone={expiring[0].days! < 0 ? 'danger' : 'warning'}
-                  icon="time-outline"
-                  text={
-                    expiring[0].days! < 0
-                      ? `${expiring[0].d.name} has expired`
-                      : `${expiring[0].d.name} expires in ${expiring[0].days} days${expiring.length > 1 ? ` · +${expiring.length - 1} more` : ''}`
-                  }
-                  action="View"
-                  onAction={() => router.push(`/doc/${expiring[0].d.id}`)}
-                />
+            {/* Needs attention */}
+            {attention.length > 0 && (
+              <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
+                <SectionHeader title="Needs attention" action={attention.length > 3 ? `All ${attention.length}` : 'Renewals'} onAction={() => router.push('/renewals')} />
+                <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline, paddingHorizontal: space.lg }}>
+                  {attention.slice(0, 3).map(({ d, days }, i) => (
+                    <Tap
+                      key={d.id}
+                      onPress={() => router.push(`/doc/${d.id}`)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 12, borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: c.hairline }}
+                    >
+                      <CountdownRing days={days!} size={42} />
+                      <View style={{ flex: 1 }}>
+                        <T v="bodyStrong" numberOfLines={1}>
+                          {d.name}
+                        </T>
+                        <T v="caption" color="muted">
+                          {days! < 0 ? `Expired ${formatDate(d.expiry)}` : `Expires ${formatDate(d.expiry)}`}
+                        </T>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+                    </Tap>
+                  ))}
+                </View>
               </View>
             )}
 
-            {/* Your Essentials */}
-            {essentials.length > 0 && (
+            {/* Wallet */}
+            {wallet.length > 0 && (
               <View style={{ marginTop: space.xxl }}>
-                <Tap onPress={() => router.push('/(tabs)/favorites')} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: pad, marginBottom: space.md }}>
-                  <T v="heading" style={{ fontFamily: fonts.extrabold, fontSize: 21 }}>
-                    Your Essentials
-                  </T>
-                  <Ionicons name="chevron-forward" size={22} color={c.text} />
-                </Tap>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: pad, gap: space.md, paddingBottom: space.md }}>
-                  {essentials.map((d, i) => (
-                    <Animated.View key={d.id} entering={FadeInRight.delay(i * 60).springify().damping(18)}>
-                      <Tap onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} accessibilityLabel={`Open ${d.name}`}>
-                        <EssentialCard doc={d} width={essW} />
+                <View style={{ paddingHorizontal: pad }}>
+                  <SectionHeader title="Wallet" action="Open" onAction={() => router.push('/(tabs)/favorites')} />
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + space.md} decelerationRate="fast" contentContainerStyle={{ paddingHorizontal: pad, gap: space.md, paddingBottom: space.lg }}>
+                  {wallet.map((d, i) => (
+                    <Animated.View key={d.id} entering={FadeInDown.delay(200 + i * 50).springify().damping(18)}>
+                      <Tap onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} scaleTo={0.98} accessibilityLabel={`Open ${d.name}`}>
+                        <EssentialCard doc={d} width={cardW} />
                       </Tap>
                     </Animated.View>
                   ))}
@@ -209,47 +182,33 @@ export default function Home() {
               </View>
             )}
 
-            {topTags.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: pad, paddingTop: space.md }}>
-                {topTags.map((t) => (
-                  <TagPill key={t.tag} tag={t.tag} />
+            {/* Folders */}
+            <View style={{ paddingHorizontal: pad, marginTop: space.xl }}>
+              <SectionHeader title="Folders" action={rootFolders.length ? 'Library' : 'New'} onAction={() => (rootFolders.length ? router.push('/(tabs)/documents') : setNewFolder(true))} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
+                {rootFolders.map((f) => (
+                  <FolderTile key={f.id} folder={f} width={(width - pad * 2 - space.md) / 2} onPress={() => router.push(`/folder/${f.id}`)} />
                 ))}
-              </ScrollView>
-            )}
-
-            {/* Recently added */}
-            <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
-              <SectionHeader title="Recently added" action="See all" onAction={() => router.push('/(tabs)/documents')} />
-              {docs.slice(0, 4).map((d) => (
-                <DocRow key={d.id} doc={d} onMore={setMenuDoc} />
-              ))}
+                {rootFolders.length < 2 && (
+                  <Tap
+                    onPress={() => setNewFolder(true)}
+                    style={{ width: (width - pad * 2 - space.md) / 2, height: 132, borderRadius: radius.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    <Ionicons name="add" size={22} color={c.textMuted} />
+                    <T v="callout" color="muted">
+                      New folder
+                    </T>
+                  </Tap>
+                )}
+              </View>
             </View>
 
-            {/* Categories */}
+            {/* Recent */}
             <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
-              <SectionHeader title="Categories" />
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-                {categories.slice(0, 4).map((cat) => {
-                  const count = docs.filter((d) => d.category === cat.id).length;
-                  return (
-                    <Tap
-                      key={cat.id}
-                      onPress={() => router.push({ pathname: '/(tabs)/documents', params: { category: cat.id } })}
-                      style={[{ width: (width - pad * 2 - space.md) / 2, borderRadius: radius.lg, backgroundColor: c.surface, padding: space.lg, gap: space.md }, elevation(c, 1)]}
-                    >
-                      <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: cat.hue + '1F', alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name={cat.icon as keyof typeof Ionicons.glyphMap} size={21} color={cat.hue} />
-                      </View>
-                      <View>
-                        <T v="bodyStrong">{cat.name}</T>
-                        <T v="caption" color="muted">
-                          {count} {count === 1 ? 'document' : 'documents'}
-                        </T>
-                      </View>
-                    </Tap>
-                  );
-                })}
-              </View>
+              <SectionHeader title="Recent" action="See all" onAction={() => router.push('/(tabs)/documents')} />
+              {docs.slice(0, 5).map((d) => (
+                <DocRow key={d.id} doc={d} onMore={setMenuDoc} />
+              ))}
             </View>
           </>
         )}
@@ -260,19 +219,7 @@ export default function Home() {
   );
 }
 
-/** Large accent "+" button, floating above the tab bar. */
+/** Kept for screens that still show a floating add button (folders). */
 export function Fab() {
-  const { c } = useTheme();
-  const insets = useSafeAreaInsets();
-  return (
-    <View style={{ position: 'absolute', right: space.xl, bottom: Math.max(insets.bottom, space.md) + TAB_BAR_HEIGHT + space.lg }}>
-      <Tap
-        onPress={() => router.push('/add')}
-        accessibilityLabel="Add document"
-        style={[{ width: 68, height: 68, borderRadius: 34, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }, elevation(c, 3)]}
-      >
-        <Ionicons name="add" size={34} color={c.onAccent} />
-      </Tap>
-    </View>
-  );
+  return null;
 }

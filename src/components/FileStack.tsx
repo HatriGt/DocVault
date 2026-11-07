@@ -11,8 +11,8 @@ const KINDS: { test: (ext: string, mime: string) => boolean; color: string; icon
   { test: (e) => ['doc', 'docx', 'odt', 'rtf'].includes(e), color: '#2B6CE6', icon: 'document' },
   { test: (e) => ['xls', 'xlsx', 'ods', 'csv'].includes(e), color: '#16A36A', icon: 'grid' },
   { test: (e) => ['ppt', 'pptx', 'odp', 'key'].includes(e), color: '#F07A2F', icon: 'easel' },
-  { test: (_e, m) => m.startsWith('video/'), color: '#6A4BFF', icon: 'videocam' },
-  { test: (_e, m) => m.startsWith('audio/'), color: '#B84DF0', icon: 'musical-notes' },
+  { test: (_e, m) => m.startsWith('video/'), color: '#5B5F97', icon: 'videocam' },
+  { test: (_e, m) => m.startsWith('audio/'), color: '#7A4F86', icon: 'musical-notes' },
   { test: () => true, color: '#5F5B76', icon: 'document-outline' },
 ];
 

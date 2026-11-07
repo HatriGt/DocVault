@@ -113,8 +113,8 @@ export function Button({
   size?: 'lg' | 'md';
 }) {
   const { c } = useTheme();
-  const bg = { primary: c.accent, secondary: c.surfaceAlt, ghost: 'transparent', danger: c.dangerSoft }[variant];
-  const fg = { primary: c.onAccent, secondary: c.text, ghost: c.accent, danger: c.danger }[variant];
+  const bg = { primary: c.accent, secondary: c.surface, ghost: 'transparent', danger: c.dangerSoft }[variant];
+  const fg = { primary: c.onAccent, secondary: c.text, ghost: c.text, danger: c.danger }[variant];
   return (
     <Tap
       onPress={onPress}
@@ -122,7 +122,7 @@ export function Button({
       accessibilityLabel={title}
       style={[
         {
-          height: size === 'lg' ? 54 : 44,
+          height: size === 'lg' ? 56 : 44,
           borderRadius: radius.pill,
           backgroundColor: bg,
           paddingHorizontal: space.xl,
@@ -130,7 +130,9 @@ export function Button({
           alignItems: 'center',
           justifyContent: 'center',
           gap: space.sm,
-          opacity: disabled ? 0.45 : 1,
+          opacity: disabled ? 0.4 : 1,
+          borderWidth: variant === 'secondary' ? StyleSheet.hairlineWidth : 0,
+          borderColor: c.hairline,
         },
         variant === 'primary' && elevation(c, 2),
         style,
@@ -178,7 +180,7 @@ export function IconButton({
         backgroundColor: bg ?? c.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        ...(bg ? {} : elevation(c, 1)),
+        ...(bg ? {} : { borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }),
       }}
     >
       <Ionicons name={icon} size={size * 0.45} color={tint ?? c.text} />
@@ -200,26 +202,24 @@ export function Chip({
   tint?: string;
 }) {
   const { c } = useTheme();
-  const fg = active ? c.onAccent : c.text;
   return (
     <Tap
       onPress={onPress}
       accessibilityState={{ selected: active }}
-      style={[
-        {
-          height: 44,
-          paddingHorizontal: icon ? space.lg : space.xl,
-          borderRadius: radius.pill,
-          backgroundColor: active ? c.accent : tint ? tint + '14' : c.surface,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 7,
-        },
-        active ? elevation(c, 2) : null,
-      ]}
+      style={{
+        height: 38,
+        paddingHorizontal: icon ? 14 : 16,
+        borderRadius: radius.pill,
+        backgroundColor: active ? c.accent : c.surface,
+        borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+        borderColor: c.hairline,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+      }}
     >
-      {icon && <Ionicons name={icon} size={17} color={active ? c.onAccent : tint ?? c.accent} />}
-      <T v="callout" color={fg} style={{ fontFamily: fonts.semibold }}>
+      {icon && <Ionicons name={icon} size={15} color={active ? c.onAccent : tint ?? c.textMuted} />}
+      <T v="callout" color={active ? c.onAccent : c.text} style={{ fontFamily: fonts.medium }}>
         {label}
       </T>
     </Tap>
@@ -227,12 +227,13 @@ export function Chip({
 }
 
 export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md }}>
-      <T v="heading">{title}</T>
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: space.md }}>
+      <T v="heading" style={{ fontSize: 18 }}>{title}</T>
       {action && (
         <Tap onPress={onAction} hitSlop={10}>
-          <T v="callout" color="accent" style={{ fontFamily: fonts.semibold }}>
+          <T v="callout" color={c.gold} style={{ fontFamily: fonts.semibold }}>
             {action}
           </T>
         </Tap>
@@ -246,17 +247,16 @@ export function SearchField({ ref, ...props }: TextInputProps & { trailing?: Rea
   return (
     <View
       style={{
-        height: 56,
-        borderRadius: radius.pill,
-        backgroundColor: c.surface,
+        height: 50,
+        borderRadius: radius.md,
+        backgroundColor: c.surfaceAlt,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: space.xl,
-        gap: space.md,
-        ...elevation(c, 1),
+        paddingHorizontal: space.lg,
+        gap: space.sm,
       }}
     >
-      <Ionicons name="search" size={21} color={c.text} />
+      <Ionicons name="search" size={19} color={c.textMuted} />
       <TextInput
         ref={ref}
         placeholderTextColor={c.textFaint}
@@ -288,7 +288,7 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
             backgroundColor: c.surface,
             borderRadius: radius.md,
             paddingHorizontal: space.lg,
-            height: props.multiline ? 96 : 50,
+            height: props.multiline ? 96 : 52,
             paddingTop: props.multiline ? space.md : 0,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: c.border,
@@ -312,11 +312,11 @@ export function Group({ children, title, footer }: { children: React.ReactNode; 
   return (
     <View style={{ marginBottom: space.xxl }}>
       {title && (
-        <T v="overline" color="faint" style={{ marginBottom: space.sm, marginLeft: space.xs, textTransform: 'uppercase' }}>
+        <T v="overline" color="muted" style={{ marginBottom: space.sm, marginLeft: space.xs, textTransform: 'uppercase' }}>
           {title}
         </T>
       )}
-      <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
         {items.map((child, i) => (
           <View key={i}>
             {i > 0 && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.border, marginLeft: 56 }} />}
@@ -409,13 +409,13 @@ export function EmptyState({
           width: 72,
           height: 72,
           borderRadius: 24,
-          backgroundColor: c.accentSoft,
+          backgroundColor: c.goldSoft,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: space.sm,
         }}
       >
-        <Ionicons name={icon} size={32} color={c.accent} />
+        <Ionicons name={icon} size={30} color={c.gold} />
       </View>
       <T v="heading" style={{ textAlign: 'center' }}>
         {title}

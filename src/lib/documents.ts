@@ -3,6 +3,7 @@ import { Directory, File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { resolveType } from './filetype';
+import { logActivity } from './activity';
 import { hashHex, open, seal, utf8, uuid } from './crypto';
 import { newWrappedDek, unwrapDek } from './keys';
 import { deleteBlob, hasBlob, purgeTempPlain, readBlob, writeBlob, writeTempPlain } from './blobs';
@@ -120,6 +121,7 @@ export async function createDocument(plain: Uint8Array, src: { name: string; mim
     folder_id: d.folderId ?? null,
   };
   await insertDoc(rec);
+  logActivity(id, 'added');
   if (prefs.expiryReminders) scheduleReminders(rec).catch(() => {});
   requestSync();
   return rec;
@@ -159,6 +161,7 @@ const fileNameFor = (doc: DocRecord) => `${doc.name.replace(/\.[a-z0-9]{2,5}$/i,
 
 export async function markAccessed(id: string) {
   await updateDoc(id, { accessed_at: Date.now() });
+  logActivity(id, 'opened');
 }
 
 /** Decrypts to a temporary file (named with its real extension) for viewing/sharing. */
@@ -191,6 +194,7 @@ export async function openNative(doc: DocRecord) {
 /** Native share sheet (AirDrop, Quick Share, Mail, WhatsApp…). Works offline for local docs. */
 export async function shareDocument(doc: DocRecord) {
   const f = await materialize(doc);
+  logActivity(doc.id, 'shared');
   try {
     await Sharing.shareAsync(f.uri, {
       mimeType: f.realMime,
@@ -210,6 +214,7 @@ export async function exportCopy(doc: DocRecord) {
     const plain = await decryptDocument(doc);
     const out = dir.createFile(fileNameFor(doc), doc.mime);
     await out.write(plain);
+    logActivity(doc.id, 'exported');
     return 'saved';
   }
   await shareDocument(doc); // iOS: "Save to Files" lives in the share sheet
@@ -228,6 +233,7 @@ export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, '
     updated_at: Date.now(),
     ...(cloud ? { meta_dirty: 1, sync_state: doc.sync_state === 'synced' ? 'upload_pending' : doc.sync_state } : {}),
   });
+  if (fields || 'name' in patch || 'expiry' in patch || 'category' in patch || 'notes' in patch || tags) logActivity(id, 'edited');
   const next = await getDoc(id);
   if (next && ('expiry' in patch || 'name' in patch)) {
     if ((await getPrefs()).expiryReminders) scheduleReminders(next).catch(() => {});
@@ -251,6 +257,7 @@ export async function replaceContent(doc: DocRecord, plain: Uint8Array, mime: st
     updated_at: Date.now(),
     ...(cloud ? { content_dirty: 1, meta_dirty: 1, sync_state: 'upload_pending' } : {}),
   });
+  logActivity(doc.id, 'edited', 'content replaced');
   requestSync();
 }
 

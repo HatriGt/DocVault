@@ -10,14 +10,14 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 export function page(body: string, dark: boolean, extraCss = '') {
   const fg = dark ? '#F4F2FF' : '#14112B';
   const bg = dark ? '#0E0D17' : '#FFFFFF';
-  const muted = dark ? '#2A2838' : '#EEE9FF';
+  const muted = dark ? '#2A2838' : '#EAE4D8';
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'">
 <style>
   html,body{margin:0;background:${bg};color:${fg};font:16px/1.6 -apple-system,Roboto,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
   .doc{padding:28px 22px 80px;max-width:820px;margin:0 auto;word-wrap:break-word}
-  h1,h2,h3{line-height:1.25} img{max-width:100%;height:auto} a{color:#6A4BFF}
+  h1,h2,h3{line-height:1.25} img{max-width:100%;height:auto} a{color:#8A6A3F}
   table{border-collapse:collapse;max-width:100%} td,th{border:1px solid ${muted};padding:6px 10px;vertical-align:top}
   pre{white-space:pre-wrap;word-break:break-word;font:13px/1.55 ui-monospace,Menlo,monospace;margin:0;padding:20px}
   ${extraCss}
@@ -42,7 +42,7 @@ export function readSheets(bytes: Uint8Array, ext: string): SheetBook {
     html: (i, dark) => {
       const ws = wb.Sheets[wb.SheetNames[i]];
       const table = XLSX.utils.sheet_to_html(ws, { header: '', footer: '' });
-      const head = dark ? '#1A1828' : '#F6F4FD';
+      const head = dark ? '#1A1828' : '#F5F2EC';
       return page(
         `<div style="overflow:auto">${table}</div>`,
         dark,

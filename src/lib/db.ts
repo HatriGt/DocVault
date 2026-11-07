@@ -108,6 +108,14 @@ const MIGRATIONS: string[] = [
   CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
   ALTER TABLE documents ADD COLUMN folder_id TEXT;
   CREATE INDEX IF NOT EXISTS idx_docs_folder ON documents(folder_id);`,
+  `CREATE TABLE IF NOT EXISTS activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    detail TEXT,
+    at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_activity_doc ON activity(doc_id, at);`,
 ];
 
 export function getDb() {
@@ -217,6 +225,6 @@ export async function addCustomCategory(c: CustomCategory) {
 
 export async function wipeDatabase() {
   const db = await getDb();
-  await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories; DELETE FROM folders;');
+  await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories; DELETE FROM folders; DELETE FROM activity;');
   emit('documents');
 }

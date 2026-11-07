@@ -7,6 +7,7 @@ import { getDb, kvSet, updateDoc } from './db';
 import { emit } from './events';
 import { uuid } from './crypto';
 import { requestSync } from './syncQueue';
+import { logActivity } from './activity';
 
 export interface Folder {
   id: string;
@@ -19,7 +20,7 @@ export interface Folder {
   deleted: number;
 }
 
-export const FOLDER_COLORS = ['#6A4BFF', '#2F9BEA', '#F5B32F', '#F0456B', '#16A36A', '#FF7A45', '#B84DF0', '#14112B'];
+export const FOLDER_COLORS = ['#15171B', '#B08A5B', '#2F7D5B', '#3E5A7A', '#8C4A3F', '#6B5B95', '#5E6B4E', '#A0705A'];
 export const FOLDER_ICONS = [
   'folder',
   'airplane',
@@ -120,6 +121,7 @@ export async function moveDocument(docId: string, folderId: string | null, silen
     },
     silent,
   );
+  logActivity(docId, 'moved');
   if (!silent) requestSync();
 }
 

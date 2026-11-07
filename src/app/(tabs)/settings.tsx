@@ -42,23 +42,25 @@ export default function Settings() {
     <Screen>
       <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + 140 }}>
         <T v="title" style={{ marginBottom: space.xl }}>
-          Settings
+          You
         </T>
 
         {/* Account card */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, marginBottom: space.xxl }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.hero, borderRadius: radius.xl, padding: space.xl, marginBottom: space.xxl }}>
           {account?.profile?.picture ? (
             <Image source={{ uri: account.profile.picture }} style={{ width: 52, height: 52, borderRadius: 26 }} />
           ) : (
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-              <T v="heading" color="accent">
+            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <T v="heading" color={c.gold}>
                 {(account?.displayName?.[0] ?? 'D').toUpperCase()}
               </T>
             </View>
           )}
           <View style={{ flex: 1 }}>
-            <T v="bodyStrong">{account?.profile?.name ?? account?.displayName}</T>
-            <T v="caption" color="muted">
+            <T v="bodyStrong" color={c.heroText}>
+              {account?.profile?.name ?? account?.displayName}
+            </T>
+            <T v="caption" color={c.heroMuted}>
               {account?.mode === 'google' ? account.profile?.email : 'On-device vault · not backed up'}
             </T>
           </View>
@@ -76,6 +78,8 @@ export default function Settings() {
             value={account?.mode === 'google' ? (sync.running ? 'Syncing…' : relativeTime(sync.lastSyncAt)) : 'Off'}
             onPress={() => router.push('/manage/sync')}
           />
+          <Row icon="pie-chart-outline" title="Vault insights" subtitle="Storage, formats and coverage" onPress={() => router.push('/manage/insights')} />
+          <Row icon="calendar-outline" title="Renewals" subtitle="Expiry timeline and reminders" onPress={() => router.push('/renewals')} />
           <Row icon="phone-portrait-outline" title="Offline storage" value={`${docs.filter((d) => d.has_local).length} of ${docs.length}`} onPress={() => router.push('/manage/storage')} />
         </Group>
 

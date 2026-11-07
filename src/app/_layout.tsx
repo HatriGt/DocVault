@@ -12,14 +12,8 @@ import { registerBackgroundSync } from '../lib/backgroundSync';
 import { purgeTempPlain } from '../lib/blobs';
 import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
-import {
-  useFonts,
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-} from '@expo-google-fonts/plus-jakarta-sans';
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { InstrumentSerif_400Regular, InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif';
 
 function Navigator() {
   const { c, dark } = useTheme();
@@ -45,6 +39,7 @@ function Navigator() {
           <Stack.Screen name="expo-sharing" options={{ animation: 'none' }} />
           <Stack.Screen name="move/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
           <Stack.Screen name="edit-image/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="search" options={{ animation: 'fade' }} />
           <Stack.Screen name="oauthredirect" options={{ animation: 'none', presentation: 'transparentModal' }} />
           <Stack.Screen name="view/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         </Stack>
@@ -56,11 +51,12 @@ function Navigator() {
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
   const [fontsLoaded, fontError] = useFonts({
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    InstrumentSerif_400Regular,
+    InstrumentSerif_400Regular_Italic,
   });
   useEffect(() => {
     let unsub: (() => void) | undefined;

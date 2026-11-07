@@ -16,7 +16,7 @@ import { T } from './ui';
 import { space, useTheme } from '../theme';
 
 const PARTICLES = 14;
-const COLORS = ['#6A4BFF', '#F5B32F', '#2F9BEA', '#F0456B', '#16A36A', '#B84DF0'];
+const COLORS = ['#B08A5B', '#D3AE7C', '#15171B', '#8A6A3F', '#E8D9BF', '#2F7D5B'];
 
 function Particle({ i }: { i: number }) {
   const p = useSharedValue(0);

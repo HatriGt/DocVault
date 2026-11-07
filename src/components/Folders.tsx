@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { Button, T, Tap } from './ui';
@@ -18,8 +18,8 @@ export function FolderTile({ folder, width, onPress, onLongPress }: { folder: Fo
   const subs = folders.filter((f) => f.parent_id === folder.id).length;
   const items = docs.filter((d) => d.folder_id === folder.id).length;
   return (
-    <Tap onPress={onPress} onLongPress={onLongPress} accessibilityLabel={`Folder ${folder.name}`} style={[{ width, borderRadius: radius.lg, backgroundColor: c.surface, padding: space.md, gap: space.md }, elevation(c, 1)]}>
-      <View style={{ height: width * 0.48, borderRadius: radius.md, backgroundColor: folder.color + '1C', alignItems: 'center', justifyContent: 'center' }}>
+    <Tap onPress={onPress} onLongPress={onLongPress} accessibilityLabel={`Folder ${folder.name}`} style={{ width, borderRadius: radius.lg, backgroundColor: c.surface, padding: space.md, gap: space.md, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
+      <View style={{ height: width * 0.48, borderRadius: radius.md, backgroundColor: folder.color + '14', alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name="folder" size={width * 0.34} color={folder.color} />
         {folder.icon !== 'folder' && (
           <View style={{ position: 'absolute', top: width * 0.2, alignItems: 'center' }}>

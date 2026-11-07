@@ -5,12 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { StatusBar } from 'expo-status-bar';
 import { Banner, Button, Chip, Group, IconButton, Row, Screen, T, Tap } from '../../components/ui';
 import { categoryOf, DocThumb, PassportBook, SyncBadge, WalletCard } from '../../components/docs';
-import { Backdrop } from '../../components/Backdrop';
 import { ActionSheet } from '../../components/Sheet';
 import { TagPill } from '../../components/Tags';
 import { useFolderLabel } from '../../components/Folders';
+import { ActivityList } from '../../components/ActivityList';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
@@ -77,29 +78,32 @@ export default function DocumentDetail() {
     }
   };
 
+  const glass = 'rgba(255,255,255,0.12)';
   return (
-    <Screen>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xl, paddingVertical: space.sm }}>
-        <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} />
+    <Screen edges={[]}>
+      <StatusBar style="light" />
+      <View style={{ position: 'absolute', zIndex: 10, top: insets.top + space.sm, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xl }}>
+        <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} bg={glass} tint={c.heroText} />
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <IconButton
             icon={doc.favorite ? 'heart' : 'heart-outline'}
-            tint={c.danger}
-            bg={c.dangerSoft}
+            tint={doc.favorite ? '#D3AE7C' : c.heroText}
+            bg={glass}
             label={doc.favorite ? 'Remove from favorites' : 'Add to favorites'}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               toggleFavorite(doc);
             }}
           />
-          <IconButton icon="ellipsis-horizontal" label="More actions" onPress={() => setMore(true)} />
+          <IconButton icon="ellipsis-horizontal" label="More actions" onPress={() => setMore(true)} bg={glass} tint={c.heroText} />
         </View>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         {/* Preview */}
-        <View style={{ alignItems: 'center', paddingVertical: space.xl }}>
-          <Backdrop variant="detail" />
+        <View style={{ alignItems: 'center', backgroundColor: c.hero, paddingTop: insets.top + 72, paddingBottom: space.xxxl, borderBottomLeftRadius: radius.xl, borderBottomRightRadius: radius.xl, marginBottom: space.xl, overflow: 'hidden' }}>
+          {/* soft spotlight behind the document */}
+          <View pointerEvents="none" style={{ position: 'absolute', top: insets.top + 40, width: width * 0.9, height: width * 0.9, borderRadius: width, backgroundColor: '#D3AE7C', opacity: 0.07 }} />
           {doc.doc_type === 'Passport' ? (
             <View style={{ transform: [{ rotate: '-7deg' }], marginVertical: space.lg }}>
               <PassportBook doc={doc} width={Math.min(width * 0.52, 230)} />
@@ -120,8 +124,8 @@ export default function DocumentDetail() {
                 </Animated.View>
               </Tap>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.md }}>
-                <Ionicons name="sync-outline" size={13} color={c.textFaint} />
-                <T v="caption" color="faint">
+                <Ionicons name="sync-outline" size={13} color={c.heroMuted} />
+                <T v="caption" color={c.heroMuted}>
                   Tap card to flip
                 </T>
               </View>
@@ -134,14 +138,14 @@ export default function DocumentDetail() {
         </View>
 
         <View style={{ paddingHorizontal: space.xl }}>
-          <T v="title" style={{ fontSize: 32, lineHeight: 38 }}>
+          <T v="title">
             {doc.name}
           </T>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md, flexWrap: 'wrap' }}>
             {doc.has_local && doc.sync_state !== 'failed' ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 38, paddingHorizontal: space.lg, borderRadius: radius.pill, backgroundColor: c.successSoft }}>
-                <Ionicons name="checkmark-circle" size={20} color={c.success} />
-                <T v="callout" color="success" style={{ fontFamily: fonts.semibold, fontSize: 15 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.successSoft }}>
+                <Ionicons name="checkmark-circle" size={15} color={c.success} />
+                <T v="caption" color="success" style={{ fontFamily: fonts.semibold, fontSize: 13 }}>
                   Available Offline
                 </T>
               </View>
@@ -262,6 +266,7 @@ export default function DocumentDetail() {
               <Row icon="lock-closed-outline" title="Encryption" value="AES-256-GCM" />
             </Group>
 
+            <ActivityList docId={doc.id} />
             {doc.notes ? (
               <Group title="Notes">
                 <View style={{ padding: space.lg }}>
