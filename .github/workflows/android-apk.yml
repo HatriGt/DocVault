@@ -80,7 +80,6 @@ jobs:
           cat >> android/gradle.properties <<'PROPS'
           org.gradle.caching=true
           org.gradle.parallel=true
-          org.gradle.configureondemand=true
           org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC -Dfile.encoding=UTF-8
           kotlin.daemon.jvmargs=-Xmx2g
           PROPS
@@ -104,7 +103,12 @@ jobs:
           CCACHE_NOHASHDIR: 'true'
           CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
         run: |
-          ./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures=${{ steps.abi.outputs.list }}
+          set -o pipefail
+          if ! ./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures=${{ steps.abi.outputs.list }} 2>&1 | tee "$RUNNER_TEMP/gradle.log"; then
+            # Surface the failure as annotations (readable without log access).
+            grep -E "What went wrong|FAILURE|error:|Error:|Exception|> " "$RUNNER_TEMP/gradle.log" | grep -v "^> Task" | head -30 | while IFS= read -r l; do echo "::error title=Gradle::${l//%/%25}"; done
+            exit 1
+          fi
           ccache --show-stats || true
 
       - name: Sign with release keystore (if configured)
