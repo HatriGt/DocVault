@@ -40,7 +40,7 @@ export default function Settings() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + 120 }}>
+      <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + 140 }}>
         <T v="title" style={{ marginBottom: space.xl }}>
           Settings
         </T>

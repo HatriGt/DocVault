@@ -6,7 +6,10 @@ import { Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../..
 import { DocRow, DocTile } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { Fab } from './index';
-import { space } from '../../theme';
+import { fonts, space, useTheme } from '../../theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Backdrop } from '../../components/Backdrop';
+import { TAB_BAR_HEIGHT } from '../../components/TabBar';
 import { useCategories, useDocuments, useTags } from '../../lib/hooks';
 import { kvGet, kvSet, DocRecord } from '../../lib/db';
 import { docActions } from '../../lib/actions';
@@ -16,6 +19,7 @@ type Sort = 'added' | 'name' | 'accessed';
 const SORT_LABEL: Record<Sort, string> = { added: 'Recently added', name: 'Name', accessed: 'Recently opened' };
 
 export default function Documents() {
+  const { c } = useTheme();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ category?: string; focus?: string; tag?: string }>();
@@ -76,17 +80,17 @@ export default function Documents() {
   const header = (
     <View>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, paddingTop: space.md }}>
-        <T v="title">Documents</T>
+        <T v="title" style={{ fontSize: 32, lineHeight: 38 }}>Documents</T>
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <IconButton
-            icon={grid ? 'list' : 'grid-outline'}
+            icon={grid ? 'list-outline' : 'grid-outline'}
             label={grid ? 'Show as list' : 'Show as grid'}
             onPress={() => {
               setGrid(!grid);
               kvSet('ui.grid', !grid);
             }}
           />
-          <IconButton icon="swap-vertical" label="Sort" onPress={() => setSortOpen(true)} />
+          <IconButton icon="options-outline" label="Sort and filter" onPress={() => setSortOpen(true)} />
         </View>
       </View>
       <View style={{ paddingHorizontal: space.xl, marginTop: space.lg }}>
@@ -95,7 +99,7 @@ export default function Documents() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingVertical: space.lg }}>
         <Chip label="All" active={category === 'all'} onPress={() => setCategory('all')} />
         {categories.map((cat) => (
-          <Chip key={cat.id} label={cat.name} icon={cat.icon as never} active={category === cat.id} onPress={() => setCategory(cat.id)} />
+          <Chip key={cat.id} label={cat.name} icon={cat.icon as never} tint={cat.hue} active={category === cat.id} onPress={() => setCategory(cat.id)} />
         ))}
         <Chip label="Offline" icon="cloud-done-outline" active={offlineOnly} onPress={() => setOfflineOnly(!offlineOnly)} />
       </ScrollView>
@@ -107,13 +111,14 @@ export default function Documents() {
         </ScrollView>
       )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xl, marginBottom: space.sm }}>
-        <T v="callout" color="muted">
+        <T v="callout" style={{ fontFamily: fonts.semibold }}>
           {filtered.length} {filtered.length === 1 ? 'document' : 'documents'}
         </T>
-        <Tap onPress={() => setSortOpen(true)}>
-          <T v="callout" color="muted">
-            {SORT_LABEL[sort]} ▾
+        <Tap onPress={() => setSortOpen(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <T v="callout" style={{ fontFamily: fonts.semibold }}>
+            {SORT_LABEL[sort]}
           </T>
+          <Ionicons name="chevron-down" size={16} color={c.text} />
         </Tap>
       </View>
     </View>
@@ -127,6 +132,7 @@ export default function Documents() {
 
   return (
     <Screen>
+      <Backdrop variant="list" />
       <FlatList
         key={grid ? 'grid' : 'list'}
         data={filtered}
@@ -135,7 +141,7 @@ export default function Documents() {
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         keyboardDismissMode="on-drag"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_HEIGHT + 120 }}
         columnWrapperStyle={grid ? { gap: space.lg, paddingHorizontal: space.xl, marginBottom: space.xl } : undefined}
         renderItem={({ item }) =>
           grid ? (

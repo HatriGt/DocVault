@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { T, Tap } from './ui';
-import { radius, space, type, useTheme } from '../theme';
+import { radius, space, type, useTheme, fonts } from '../theme';
 import { useTags } from '../lib/hooks';
 import { normalizeTags } from '../lib/documents';
 
@@ -25,7 +25,7 @@ export function TagPill({ tag, onRemove, small, onPress }: { tag: string; onRemo
         backgroundColor: c.accentSoft,
       }}
     >
-      <T v="caption" color="accent" style={{ fontWeight: '600', fontSize: small ? 11 : 13 }}>
+      <T v="caption" color="accent" style={{ fontFamily: fonts.semibold, fontSize: small ? 11 : 13 }}>
         #{tag}
       </T>
       {onRemove && (

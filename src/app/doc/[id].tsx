@@ -6,10 +6,11 @@ import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } f
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Banner, Button, Group, IconButton, Row, Screen, T, Tap } from '../../components/ui';
-import { categoryOf, DocThumb, SyncBadge, WalletCard } from '../../components/docs';
+import { categoryOf, DocThumb, PassportBook, SyncBadge, WalletCard } from '../../components/docs';
+import { Backdrop } from '../../components/Backdrop';
 import { ActionSheet } from '../../components/Sheet';
 import { TagPill } from '../../components/Tags';
-import { radius, space, useTheme } from '../../theme';
+import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
@@ -81,7 +82,8 @@ export default function DocumentDetail() {
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <IconButton
             icon={doc.favorite ? 'heart' : 'heart-outline'}
-            tint={doc.favorite ? c.danger : c.text}
+            tint={c.danger}
+            bg={c.dangerSoft}
             label={doc.favorite ? 'Remove from favorites' : 'Add to favorites'}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
@@ -95,7 +97,12 @@ export default function DocumentDetail() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         {/* Preview */}
         <View style={{ alignItems: 'center', paddingVertical: space.xl }}>
-          {isCard ? (
+          <Backdrop variant="detail" />
+          {doc.doc_type === 'Passport' ? (
+            <View style={{ transform: [{ rotate: '-7deg' }], marginVertical: space.lg }}>
+              <PassportBook doc={doc} width={Math.min(width * 0.52, 230)} />
+            </View>
+          ) : isCard ? (
             <>
               <Tap
                 scaleTo={0.98}
@@ -125,9 +132,20 @@ export default function DocumentDetail() {
         </View>
 
         <View style={{ paddingHorizontal: space.xl }}>
-          <T v="title">{doc.name}</T>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.sm, flexWrap: 'wrap' }}>
-            <SyncBadge doc={doc} />
+          <T v="title" style={{ fontSize: 32, lineHeight: 38 }}>
+            {doc.name}
+          </T>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md, flexWrap: 'wrap' }}>
+            {doc.has_local && doc.sync_state !== 'failed' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 38, paddingHorizontal: space.lg, borderRadius: radius.pill, backgroundColor: c.successSoft }}>
+                <Ionicons name="checkmark-circle" size={20} color={c.success} />
+                <T v="callout" color="success" style={{ fontFamily: fonts.semibold, fontSize: 15 }}>
+                  Available Offline
+                </T>
+              </View>
+            ) : (
+              <SyncBadge doc={doc} />
+            )}
             {cat && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: c.surfaceAlt, borderRadius: radius.pill, paddingHorizontal: 10, height: 26 }}>
                 <Ionicons name={cat.icon as never} size={13} color={c.textMuted} />
@@ -161,6 +179,30 @@ export default function DocumentDetail() {
             </View>
           )}
 
+          <View style={[{ marginTop: space.xl, backgroundColor: c.surface, borderRadius: radius.lg, paddingHorizontal: space.lg }, elevation(c, 1)]}>
+            {[
+              { icon: 'calendar-outline' as const, k: 'Expiry Date', v: doc.expiry ? formatDate(doc.expiry) : 'Not set' },
+              {
+                icon: 'sync-outline' as const,
+                k: 'Last Synced',
+                v: doc.sync_state === 'local_only' ? 'This device only' : relativeTime(doc.last_synced_at),
+                ok: doc.sync_state === 'synced',
+              },
+              { icon: 'cloud-outline' as const, k: 'File Size', v: formatBytes(doc.size) },
+            ].map((r, i) => (
+              <View key={r.k} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, height: 58, borderTopWidth: i ? StyleSheet.hairlineWidth : 0, borderTopColor: c.border }}>
+                <Ionicons name={r.icon} size={22} color={c.text} />
+                <T v="body" style={{ flex: 1, fontFamily: fonts.medium }}>
+                  {r.k}
+                </T>
+                <T v="body" color="muted" style={{ fontFamily: fonts.medium }}>
+                  {r.v}
+                </T>
+                {r.ok && <Ionicons name="checkmark-circle" size={20} color={c.success} />}
+              </View>
+            ))}
+          </View>
+
           <View style={{ marginTop: space.xxl }}>
             <Group title="Details">
               {doc.doc_type ? <Row icon="pricetag-outline" title="Type" value={doc.doc_type} /> : null}
@@ -177,7 +219,6 @@ export default function DocumentDetail() {
               ) : null}
               {f.issuer ? <Row icon="business-outline" title="Issued by" value={f.issuer} /> : null}
               {f.country ? <Row icon="flag-outline" title="Country" value={f.country} /> : null}
-              <Row icon="calendar-outline" title="Expiry date" value={doc.expiry ? formatDate(doc.expiry) : 'Not set'} />
               <Row icon="add-circle-outline" title="Date added" value={formatDate(doc.created_at)} />
             </Group>
 
@@ -189,7 +230,6 @@ export default function DocumentDetail() {
                 value={doc.offline_pref === 'keep' ? 'On' : 'Off'}
                 onPress={toggleOffline}
               />
-              <Row icon="sync-outline" title="Last synced" value={doc.sync_state === 'local_only' ? 'Device only' : relativeTime(doc.last_synced_at)} />
               <Row icon="document-outline" title="File" value={`${doc.ext.toUpperCase()} · ${formatBytes(doc.size)}`} />
               <Row icon="lock-closed-outline" title="Encryption" value="AES-256-GCM" />
             </Group>
@@ -216,15 +256,13 @@ export default function DocumentDetail() {
           alignItems: 'center',
           gap: space.md,
           paddingHorizontal: space.xl,
-          paddingTop: space.md,
-          paddingBottom: insets.bottom + space.md,
+          paddingTop: space.lg,
+          paddingBottom: insets.bottom + space.lg,
           backgroundColor: c.bg,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: c.border,
         }}
       >
         <BarButton icon="share-outline" label="Share" onPress={() => run('share')} loading={busy === 'share'} />
-        <Button title="Open" icon="eye-outline" onPress={() => run('open')} loading={busy === 'open'} style={{ flex: 1 }} />
+        <Button title="Open" icon="eye-outline" onPress={() => run('open')} loading={busy === 'open'} style={{ flex: 1, height: 66 }} />
         <BarButton icon="ellipsis-horizontal" label="More" onPress={() => setMore(true)} />
       </View>
 
@@ -254,9 +292,9 @@ export default function DocumentDetail() {
 function BarButton({ icon, label, onPress, loading }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; loading?: boolean }) {
   const { c } = useTheme();
   return (
-    <Tap onPress={onPress} disabled={loading} accessibilityLabel={label} style={{ width: 64, height: 54, borderRadius: radius.lg, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-      <Ionicons name={icon} size={20} color={c.text} />
-      <T v="caption" style={{ fontSize: 11 }}>
+    <Tap onPress={onPress} disabled={loading} accessibilityLabel={label} style={[{ width: 74, height: 74, borderRadius: radius.xl, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: 4 }, elevation(c, 1)]}>
+      <Ionicons name={icon} size={24} color={c.text} />
+      <T v="caption" style={{ fontSize: 12.5, fontFamily: fonts.semibold }}>
         {loading ? '…' : label}
       </T>
     </Tap>

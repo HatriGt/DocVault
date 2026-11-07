@@ -4,7 +4,7 @@ import { router, Stack } from 'expo-router';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { Button, T } from '../../components/ui';
-import { radius, space, useTheme } from '../../theme';
+import { radius, space, useTheme, fonts } from '../../theme';
 import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../../lib/google';
 import { onGoogleSignIn, startGoogleSignIn } from '../../lib/googleSignIn';
 import { connectDriveToLocalVault, lookupExistingVault } from '../../lib/vault';
@@ -79,7 +79,7 @@ export default function Connect() {
           <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, padding: space.xl, flexDirection: 'row', flexWrap: 'wrap', gap: space.md, justifyContent: 'center' }}>
             {key.split('-').map((g, i) => (
               <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                <T v="mono" selectable style={{ fontWeight: '700' }}>
+                <T v="mono" selectable style={{ fontFamily: fonts.bold }}>
                   {g}
                 </T>
               </View>

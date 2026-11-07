@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Button, Field, Screen, T } from '../../components/ui';
-import { radius, space, type, useTheme } from '../../theme';
+import { radius, space, type, useTheme, fonts } from '../../theme';
 import { getPendingAccount } from '../../lib/pending';
 import { setUpNewVault } from '../../lib/vault';
 import { seedSampleVault } from '../../lib/sampleVault';
@@ -111,7 +111,7 @@ export default function RecoverySetup() {
             >
               {key.split('-').map((g, i) => (
                 <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                  <T v="mono" selectable style={{ fontWeight: '700' }}>
+                  <T v="mono" selectable style={{ fontFamily: fonts.bold }}>
                     {g}
                   </T>
                 </View>

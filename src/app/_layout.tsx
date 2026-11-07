@@ -12,6 +12,14 @@ import { registerBackgroundSync } from '../lib/backgroundSync';
 import { purgeTempPlain } from '../lib/blobs';
 import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 function Navigator() {
   const { c, dark } = useTheme();
@@ -43,6 +51,13 @@ function Navigator() {
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
   useEffect(() => {
     let unsub: (() => void) | undefined;
     (async () => {
@@ -62,7 +77,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>{ready ? <Navigator /> : null}</ThemeProvider>
+        <ThemeProvider>{ready && (fontsLoaded || fontError) ? <Navigator /> : null}</ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

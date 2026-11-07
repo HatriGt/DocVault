@@ -23,7 +23,7 @@ export default function Favorites() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         <View style={{ paddingHorizontal: space.xl, paddingTop: space.md }}>
           <T v="title">Favorites</T>
           <T v="callout" color="muted" style={{ marginTop: 4 }}>

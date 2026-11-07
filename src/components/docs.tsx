@@ -3,7 +3,7 @@ import { StyleSheet, View, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { T, Tap } from './ui';
-import { radius, space, useTheme, elevation } from '../theme';
+import { radius, space, useTheme, elevation, fonts } from '../theme';
 import type { DocRecord } from '../lib/db';
 import { BUILTIN_CATEGORIES, CARD_TYPES } from '../lib/categories';
 import { parseFields, parseTags } from '../lib/documents';
@@ -49,12 +49,12 @@ export function SyncBadge({ doc, compact }: { doc: DocRecord; compact?: boolean 
         paddingHorizontal: compact ? 0 : 10,
         height: compact ? undefined : 26,
         borderRadius: radius.pill,
-        backgroundColor: compact ? 'transparent' : bg,
+        backgroundColor: compact || s.tone === 'muted' ? 'transparent' : bg,
       }}
     >
       <Ionicons name={s.icon} size={compact ? 14 : 15} color={fg} />
       {!compact && (
-        <T v="caption" color={fg} style={{ fontWeight: '600' }}>
+        <T v="caption" color={fg} style={{ fontFamily: fonts.semibold }}>
           {s.label}
         </T>
       )}
@@ -268,12 +268,13 @@ export function DocRow({ doc, onMore }: { doc: DocRecord; onMore?: (d: DocRecord
         alignItems: 'center',
         gap: space.md,
         padding: space.md,
-        marginVertical: 5,
+        marginVertical: 6,
         borderRadius: radius.lg,
         backgroundColor: c.surface,
+        ...elevation(c, 1),
       }}
     >
-      <DocThumb doc={doc} />
+      <DocThumb doc={doc} size={60} />
       <View style={{ flex: 1 }}>
         <T v="bodyStrong" numberOfLines={1}>
           {doc.name}
@@ -327,5 +328,80 @@ export function DocTile({ doc, width }: { doc: DocRecord; width: number }) {
         {categoryOf(doc.category)?.name ?? doc.category} · {formatBytes(doc.size)}
       </T>
     </Tap>
+  );
+}
+
+// ---------- Passport booklet (detail hero) ----------
+/** Portrait passport booklet: navy cover, gold lettering, emblem and e-passport chip. */
+export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) {
+  const { c } = useTheme();
+  const f = parseFields(doc);
+  const h = width * 1.4;
+  const gold = '#E7C36B';
+  const country = (f.country ?? f.issuer ?? '').toUpperCase();
+  return (
+    <View
+      style={[
+        {
+          width,
+          height: h,
+          borderRadius: width * 0.07,
+          backgroundColor: '#1F2C6B',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: h * 0.08,
+          paddingHorizontal: width * 0.1,
+          borderLeftWidth: width * 0.05,
+          borderLeftColor: '#18225A',
+        },
+        elevation(c, 3),
+      ]}
+    >
+      <T v="overline" color={gold} style={{ fontSize: width * 0.065, lineHeight: width * 0.085, textAlign: 'center' }} numberOfLines={2}>
+        {country ? (country.startsWith('REPUBLIC') ? country : `REPUBLIC OF ${country}`) : 'TRAVEL DOCUMENT'}
+      </T>
+      <View style={{ width: width * 0.38, height: width * 0.38, borderRadius: width * 0.19, borderWidth: 2, borderColor: gold, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="globe-outline" size={width * 0.24} color={gold} />
+      </View>
+      <View style={{ alignItems: 'center', gap: width * 0.04 }}>
+        <T v="heading" color={gold} style={{ fontSize: width * 0.11, lineHeight: width * 0.13, letterSpacing: 2 }}>
+          PASSPORT
+        </T>
+        <View style={{ width: width * 0.16, height: width * 0.1, borderRadius: 3, borderWidth: 2, borderColor: gold, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ width: width * 0.06, height: width * 0.06, borderRadius: width * 0.03, borderWidth: 1.5, borderColor: gold }} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ---------- Essentials card (home carousel) ----------
+const ESSENTIAL_STYLE: Record<string, { bg: string; fg: string; sub: string; icon: keyof typeof Ionicons.glyphMap; iconColor: string }> = {
+  Passport: { bg: '#24307A', fg: '#FFFFFF', sub: 'rgba(255,255,255,0.75)', icon: 'globe-outline', iconColor: '#F5C64F' },
+  'National ID': { bg: '#E6F4FF', fg: '#14112B', sub: '#4E5A70', icon: 'id-card', iconColor: '#1F9D6B' },
+  'Driving Licence': { bg: '#FCE9F8', fg: '#14112B', sub: '#6B4E68', icon: 'car-sport', iconColor: '#6A4BFF' },
+  Visa: { bg: '#FFF1DE', fg: '#14112B', sub: '#6E5636', icon: 'airplane', iconColor: '#E07A1F' },
+  'Residence Permit': { bg: '#EAF8EE', fg: '#14112B', sub: '#3F6150', icon: 'home', iconColor: '#16A36A' },
+  Aadhaar: { bg: '#FFF4E0', fg: '#14112B', sub: '#6E5636', icon: 'finger-print', iconColor: '#E07A1F' },
+  'PAN Card': { bg: '#E9EEFF', fg: '#14112B', sub: '#4A5378', icon: 'card', iconColor: '#3B5BDB' },
+};
+
+export function EssentialCard({ doc, width }: { doc: DocRecord; width: number }) {
+  const { c, dark } = useTheme();
+  const base = ESSENTIAL_STYLE[doc.doc_type ?? ''] ?? { bg: hueFor(doc) + '1A', fg: c.text, sub: c.textMuted, icon: 'document-text' as const, iconColor: hueFor(doc) };
+  const s = dark && base.bg !== '#24307A' ? { ...base, bg: c.surfaceAlt, fg: c.text, sub: c.textMuted } : base;
+  const days = daysUntil(doc.expiry);
+  return (
+    <View style={[{ width, height: width * 1.08, borderRadius: radius.lg, backgroundColor: s.bg, padding: space.lg, justifyContent: 'space-between' }, elevation(c, 1)]}>
+      <Ionicons name={s.icon} size={width * 0.3} color={s.iconColor} />
+      <View>
+        <T v="bodyStrong" color={s.fg} numberOfLines={2}>
+          {doc.name}
+        </T>
+        <T v="caption" color={days != null && days <= 90 ? c.danger : s.sub} style={{ marginTop: 3 }} numberOfLines={1}>
+          {doc.expiry ? `Exp: ${formatDate(doc.expiry)}` : categoryOf(doc.category)?.name ?? ''}
+        </T>
+      </View>
+    </View>
   );
 }

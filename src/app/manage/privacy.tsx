@@ -4,9 +4,9 @@ import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { Button, T } from '../../components/ui';
+import { space, useTheme } from '../../theme';
 
 const PRIVACY_URL = 'https://hatrigt.github.io/DocVault/privacy.html';
-import { space, useTheme } from '../../theme';
 
 const ITEMS: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string }[] = [
   { icon: 'lock-closed', title: 'Encrypted on your device', body: 'Every file is encrypted with its own random 256-bit key using AES-256-GCM before it’s written to storage or uploaded.' },

@@ -3,7 +3,7 @@ import { Alert, ScrollView, Share, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Banner, Button, T } from '../../components/ui';
-import { radius, space, useTheme } from '../../theme';
+import { radius, space, useTheme, fonts } from '../../theme';
 import { newRecoveryKey } from '../../lib/vault';
 import { useAccount } from '../../lib/hooks';
 
@@ -48,7 +48,7 @@ export default function Recovery() {
           <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, padding: space.xl, flexDirection: 'row', flexWrap: 'wrap', gap: space.md, justifyContent: 'center' }}>
             {key.split('-').map((g, i) => (
               <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                <T v="mono" selectable style={{ fontWeight: '700' }}>
+                <T v="mono" selectable style={{ fontFamily: fonts.bold }}>
                   {g}
                 </T>
               </View>

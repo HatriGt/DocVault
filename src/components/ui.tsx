@@ -17,7 +17,7 @@ import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { radius, space, type, useTheme, elevation } from '../theme';
+import { radius, space, type, useTheme, elevation, fonts } from '../theme';
 
 type Variant = keyof typeof type;
 
@@ -178,8 +178,7 @@ export function IconButton({
         backgroundColor: bg ?? c.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: c.border,
+        ...(bg ? {} : elevation(c, 1)),
       }}
     >
       <Ionicons name={icon} size={size * 0.45} color={tint ?? c.text} />
@@ -192,31 +191,35 @@ export function Chip({
   active,
   onPress,
   icon,
+  tint,
 }: {
   label: string;
   active?: boolean;
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
+  tint?: string;
 }) {
   const { c } = useTheme();
+  const fg = active ? c.onAccent : c.text;
   return (
     <Tap
       onPress={onPress}
       accessibilityState={{ selected: active }}
-      style={{
-        height: 38,
-        paddingHorizontal: space.lg,
-        borderRadius: radius.pill,
-        backgroundColor: active ? c.text : c.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: active ? c.text : c.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-      }}
+      style={[
+        {
+          height: 44,
+          paddingHorizontal: icon ? space.lg : space.xl,
+          borderRadius: radius.pill,
+          backgroundColor: active ? c.accent : tint ? tint + '14' : c.surface,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 7,
+        },
+        active ? elevation(c, 2) : null,
+      ]}
     >
-      {icon && <Ionicons name={icon} size={15} color={active ? c.bg : c.textMuted} />}
-      <T v="callout" color={active ? c.bg : c.text} style={{ fontWeight: '600' }}>
+      {icon && <Ionicons name={icon} size={17} color={active ? c.onAccent : tint ?? c.accent} />}
+      <T v="callout" color={fg} style={{ fontFamily: fonts.semibold }}>
         {label}
       </T>
     </Tap>
@@ -229,7 +232,7 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
       <T v="heading">{title}</T>
       {action && (
         <Tap onPress={onAction} hitSlop={10}>
-          <T v="callout" color="accent" style={{ fontWeight: '600' }}>
+          <T v="callout" color="accent" style={{ fontFamily: fonts.semibold }}>
             {action}
           </T>
         </Tap>
@@ -243,18 +246,17 @@ export function SearchField({ ref, ...props }: TextInputProps & { trailing?: Rea
   return (
     <View
       style={{
-        height: 50,
+        height: 56,
         borderRadius: radius.pill,
         backgroundColor: c.surface,
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: space.lg,
-        gap: space.sm,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: c.border,
+        paddingHorizontal: space.xl,
+        gap: space.md,
+        ...elevation(c, 1),
       }}
     >
-      <Ionicons name="search" size={19} color={c.textMuted} />
+      <Ionicons name="search" size={21} color={c.text} />
       <TextInput
         ref={ref}
         placeholderTextColor={c.textFaint}
@@ -459,7 +461,7 @@ export function Banner({
       </T>
       {action && (
         <Tap onPress={onAction} hitSlop={8}>
-          <T v="callout" color={fg} style={{ fontWeight: '700' }}>
+          <T v="callout" color={fg} style={{ fontFamily: fonts.bold }}>
             {action}
           </T>
         </Tap>

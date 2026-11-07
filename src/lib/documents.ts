@@ -10,6 +10,8 @@ import { cancelReminders, scheduleReminders } from './notifications';
 import { download as driveDownload } from './drive';
 import { requestSync } from './syncQueue';
 
+import { normalizeTags } from './tags';
+
 export interface DocFields {
   holder?: string;
   number?: string;
@@ -35,8 +37,6 @@ export interface NewDocDetails {
   notes?: string | null;
   tags?: string[];
 }
-
-import { normalizeTags } from './tags';
 export { normalizeTags };
 
 export const parseTags = (d: Pick<DocRecord, 'tags'>): string[] => {
