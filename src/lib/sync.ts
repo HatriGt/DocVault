@@ -54,6 +54,7 @@ interface RemoteMeta {
   pinned: number;
   fields: string;
   notes: string | null;
+  tags?: string; // optional for metas written before tags existed
   wrapped_dek: string;
   content_hash: string | null;
   bin_id: string | null;
@@ -123,6 +124,7 @@ async function encodeMeta(d: DocRecord): Promise<Uint8Array> {
     pinned: d.pinned,
     fields: d.fields,
     notes: d.notes,
+    tags: d.tags,
     wrapped_dek: d.wrapped_dek,
     content_hash: d.content_hash,
     bin_id: d.remote_bin_id,
@@ -173,6 +175,7 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
       fields: meta.fields,
       back_id: null,
       notes: meta.notes,
+      tags: meta.tags ?? '[]',
     });
     if (prefs.expiryReminders && meta.expiry) scheduleReminders({ ...meta }).catch(() => {});
     return;
@@ -218,6 +221,7 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
     pinned: meta.pinned,
     fields: meta.fields,
     notes: meta.notes,
+    tags: meta.tags ?? local.tags,
     wrapped_dek: meta.wrapped_dek,
     content_hash: meta.content_hash,
     remote_meta_id: metaFileId,

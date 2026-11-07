@@ -7,10 +7,10 @@ import { DocRow, DocTile } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { Fab } from './index';
 import { space } from '../../theme';
-import { useCategories, useDocuments } from '../../lib/hooks';
+import { useCategories, useDocuments, useTags } from '../../lib/hooks';
 import { kvGet, kvSet, DocRecord } from '../../lib/db';
 import { docActions } from '../../lib/actions';
-import { parseFields } from '../../lib/documents';
+import { parseFields, parseTags } from '../../lib/documents';
 
 type Sort = 'added' | 'name' | 'accessed';
 const SORT_LABEL: Record<Sort, string> = { added: 'Recently added', name: 'Name', accessed: 'Recently opened' };
@@ -18,7 +18,7 @@ const SORT_LABEL: Record<Sort, string> = { added: 'Recently added', name: 'Name'
 export default function Documents() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ category?: string; focus?: string }>();
+  const params = useLocalSearchParams<{ category?: string; focus?: string; tag?: string }>();
   const { docs, loading } = useDocuments();
   const categories = useCategories();
   const [query, setQuery] = useState('');
@@ -28,6 +28,13 @@ export default function Documents() {
   const [sortOpen, setSortOpen] = useState(false);
   const [menuDoc, setMenuDoc] = useState<DocRecord | null>(null);
   const [offlineOnly, setOfflineOnly] = useState(false);
+  const [tag, setTag] = useState<string | null>(params.tag ?? null);
+  const allTags = useTags();
+  const [lastTagParam, setLastTagParam] = useState(params.tag);
+  if (params.tag !== lastTagParam) {
+    setLastTagParam(params.tag);
+    if (params.tag) setTag(params.tag);
+  }
   const input = useRef<TextInputInstance | null>(null);
 
   useEffect(() => {
@@ -44,11 +51,16 @@ export default function Documents() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = docs.filter((d) => (category === 'all' || d.category === category) && (!offlineOnly || d.has_local));
-    if (q) {
+    let list = docs.filter(
+      (d) => (category === 'all' || d.category === category) && (!offlineOnly || d.has_local) && (!tag || parseTags(d).includes(tag)),
+    );
+    if (q.startsWith('#')) {
+      const t = q.slice(1);
+      list = list.filter((d) => parseTags(d).some((x) => x.startsWith(t)));
+    } else if (q) {
       list = list.filter((d) => {
         const f = parseFields(d);
-        return [d.name, d.doc_type, d.category, f.holder, f.issuer, f.country, f.number, d.notes]
+        return [d.name, d.doc_type, d.category, f.holder, f.issuer, f.country, f.number, d.notes, ...parseTags(d).map((t) => `#${t}`)]
           .filter(Boolean)
           .some((s) => s!.toLowerCase().includes(q));
       });
@@ -56,7 +68,7 @@ export default function Documents() {
     return [...list].sort((a, b) =>
       sort === 'name' ? a.name.localeCompare(b.name) : sort === 'accessed' ? (b.accessed_at ?? 0) - (a.accessed_at ?? 0) : b.created_at - a.created_at,
     );
-  }, [docs, query, category, sort, offlineOnly]);
+  }, [docs, query, category, sort, offlineOnly, tag]);
 
   const cols = 2;
   const tileW = (width - space.xl * 2 - space.lg) / cols;
@@ -78,7 +90,7 @@ export default function Documents() {
         </View>
       </View>
       <View style={{ paddingHorizontal: space.xl, marginTop: space.lg }}>
-        <SearchField ref={input} value={query} onChangeText={setQuery} placeholder="Search name, number, issuer…" />
+        <SearchField ref={input} value={query} onChangeText={setQuery} placeholder="Search, or type #tag" />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingVertical: space.lg }}>
         <Chip label="All" active={category === 'all'} onPress={() => setCategory('all')} />
@@ -87,6 +99,13 @@ export default function Documents() {
         ))}
         <Chip label="Offline" icon="cloud-done-outline" active={offlineOnly} onPress={() => setOfflineOnly(!offlineOnly)} />
       </ScrollView>
+      {allTags.length > 0 && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingBottom: space.lg, marginTop: -space.sm }}>
+          {allTags.map((t) => (
+            <Chip key={t.tag} label={`#${t.tag}`} active={tag === t.tag} onPress={() => setTag(tag === t.tag ? null : t.tag)} />
+          ))}
+        </ScrollView>
+      )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xl, marginBottom: space.sm }}>
         <T v="callout" color="muted">
           {filtered.length} {filtered.length === 1 ? 'document' : 'documents'}

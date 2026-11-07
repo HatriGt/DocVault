@@ -25,7 +25,7 @@ export default function AddDocument() {
   const { account } = useAccount();
   const [step, setStep] = useState<Step>('source');
   const [src, setSrc] = useState<(ImportSource & { size?: number }) | null>(null);
-  const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '' });
+  const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [] });
   const [newId, setNewId] = useState<string | null>(null);
   const autoStarted = useRef(false);
 
@@ -40,6 +40,7 @@ export default function AddDocument() {
       expiry: sug.expiry ? sug.expiry.split('-').reverse().join('/') : '',
       fields: sug.number ? { number: sug.number } : {},
       notes: '',
+      tags: sug.tags,
     });
     setStep('details');
   };
@@ -92,6 +93,7 @@ export default function AddDocument() {
         expiry: normalizeExpiry(form.expiry),
         fields: form.fields,
         notes: form.notes.trim() || null,
+        tags: form.tags,
       });
       setNewId(rec.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -161,6 +163,7 @@ export default function AddDocument() {
             <Line k="Name" v={form.name} />
             <Line k="Type" v={form.docType ?? '—'} />
             <Line k="Expiry" v={normalizeExpiry(form.expiry) ?? 'Not set'} />
+            {form.tags.length > 0 && <Line k="Tags" v={form.tags.map((t) => `#${t}`).join('  ')} />}
           </View>
           <View style={{ marginTop: space.xl, gap: space.lg }}>
             <PlanStep icon="lock-closed" text="Encrypt with AES-256-GCM on this device" />

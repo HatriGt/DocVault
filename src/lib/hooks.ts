@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { subscribe, Topic } from './events';
-import { DocRecord, getDoc, listCustomCategories, listDocs, CustomCategory } from './db';
+import { DocRecord, getDoc, listCustomCategories, listDocs, CustomCategory, listTags } from './db';
 import { Account, DEFAULT_PREFS, getAccount, getPrefs, Preferences } from './session';
 import { getSyncStatus, SyncStatus } from './sync';
 import { BUILTIN_CATEGORIES, Category } from './categories';
@@ -59,4 +59,8 @@ export function useSyncStatus(): SyncStatus {
 export function useCategories(): Category[] {
   const { value } = useLive<CustomCategory[]>(['documents'], listCustomCategories, []);
   return [...BUILTIN_CATEGORIES, ...value.map((c) => ({ ...c, types: [], custom: true }))];
+}
+
+export function useTags() {
+  return useLive<{ tag: string; count: number }[]>(['documents'], listTags, []).value;
 }

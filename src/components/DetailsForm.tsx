@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 import { Chip, Field, T } from './ui';
+import { TagInput } from './Tags';
 import { space } from '../theme';
 import { useCategories } from '../lib/hooks';
 import { EXPIRING_TYPES } from '../lib/categories';
@@ -14,6 +15,7 @@ export interface FormState {
   expiry: string; // free text, validated
   fields: DocFields;
   notes: string;
+  tags: string[];
 }
 
 export const expiryValid = (s: string) => !s.trim() || parseDate(s.trim()) != null;
@@ -74,6 +76,7 @@ export function DetailsForm({ value, onChange }: { value: FormState; onChange: (
           <Field label="Country" value={value.fields.country ?? ''} onChangeText={(v) => setField('country', v)} />
         </View>
       </View>
+      <TagInput value={value.tags} onChange={(tags) => set({ tags })} />
       <Field label="Notes" value={value.notes} onChangeText={(notes) => set({ notes })} multiline placeholder="Optional" />
     </View>
   );

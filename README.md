@@ -18,6 +18,7 @@ Built with **Expo SDK 58 / React Native 0.88 / TypeScript / Expo Router**.
 | **Details** | Wallet card with a 3D front/back flip for ID-type documents, masked number with tap-to-reveal, expiry warnings, two-tap **Open** and **Share**, offline toggle, sync status, edit, save a copy, delete |
 | **Viewer** | PDFs open in the native viewer (QuickLook / system); images open full-screen with pinch-zoom, pan and double-tap |
 | **Add flow** | Camera scan, Photos, Files (incl. Google Drive / iCloud providers) → category and type suggestion → details → review → encrypt → success |
+| **#Tags** | Add hashtags to any document (suggested from type/country, autocomplete from existing tags). Filter by tag chips, search with `#tag`, tap a tag anywhere to see matching documents. Tags are encrypted and synced. |
 | **Favorites** | Stacked wallet layout, Apple-Wallet style, plus pinned files |
 | **Settings** | Google Drive connect, sync dashboard (retry failed, Wi-Fi only, auto-sync), offline storage manager (per-document), app lock (Face ID / fingerprint / 6-digit PIN, auto-lock timer), recovery key rotation, expiry reminders, appearance (system/light/dark), custom categories, privacy explainer, sign out & wipe |
 | **States** | Empty, loading, error, success; sync states *Synced · Offline · Syncing · Upload pending · Downloading · Sync failed · Cloud only · On this device* |
@@ -89,6 +90,12 @@ A **development build** is required (not Expo Go) for Google OAuth redirects, Ke
 2. OAuth consent screen: add scopes `openid`, `email`, `profile`, `.../auth/drive.appdata`.
 3. Create OAuth clients: **iOS** (bundle id `com.docvault.app`) and **Android** (package `com.docvault.app` + your signing SHA-1).
 4. Put the IDs in `.env`.
+
+### Download an APK (GitHub Actions)
+
+`.github/workflows/android-apk.yml` builds a release APK on every push to `main`, on pull requests, on manual runs (*Actions → Build Android APK → Run workflow*) and on `v*` tags (attached to a GitHub Release). Download it from the run's **Artifacts**.
+
+Optional secrets: `EXPO_PUBLIC_GOOGLE_*_CLIENT_ID` to enable Drive sign-in, and `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` to sign with your own key. Without them the APK is debug-signed: fine for sideloading, not for the Play Store. For Google sign-in on Android, register the SHA-1 of whichever key signs the APK.
 
 ### Scripts
 

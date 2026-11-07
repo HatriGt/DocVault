@@ -32,6 +32,7 @@ export interface Suggestion {
   docType: string | null;
   expiry: string | null;
   number: string | null;
+  tags: string[];
 }
 
 export function categoryForType(type: string | null): string {
@@ -85,5 +86,11 @@ export function suggest(fileName: string, ocrText = ''): Suggestion {
     ocrText.match(/\b(\d{4}\s\d{4}\s\d{4})\b/)?.[1] ?? // aadhaar
     ocrText.match(/\b([A-Z]{5}\d{4}[A-Z])\b/)?.[1] ?? // PAN
     null;
-  return { category: categoryForType(docType), docType, expiry: extractExpiry(ocrText), number };
+  const expiry = extractExpiry(ocrText);
+  const tags = [
+    ...(docType ? [docType.toLowerCase().replace(/\s+/g, '-')] : []),
+    ...(/(^|[^a-z])(uae|emirates|dubai)([^a-z]|$)/i.test(hay) ? ['uae'] : []),
+    ...(/(^|[^a-z])india([^a-z]|$)/i.test(hay) ? ['india'] : []),
+  ];
+  return { category: categoryForType(docType), docType, expiry, number, tags };
 }

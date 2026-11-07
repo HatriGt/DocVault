@@ -33,7 +33,19 @@ export interface NewDocDetails {
   favorite?: boolean;
   offlinePref?: OfflinePref;
   notes?: string | null;
+  tags?: string[];
 }
+
+import { normalizeTags } from './tags';
+export { normalizeTags };
+
+export const parseTags = (d: Pick<DocRecord, 'tags'>): string[] => {
+  try {
+    return JSON.parse(d.tags || '[]');
+  } catch {
+    return [];
+  }
+};
 
 export const isImage = (d: Pick<DocRecord, 'mime'>) => d.mime.startsWith('image/');
 export const isPdf = (d: Pick<DocRecord, 'mime'>) => d.mime === 'application/pdf';
@@ -99,6 +111,7 @@ export async function createDocument(plain: Uint8Array, src: { name: string; mim
     fields: JSON.stringify(d.fields ?? {}),
     back_id: null,
     notes: d.notes ?? null,
+    tags: JSON.stringify(normalizeTags(d.tags ?? [])),
   };
   await insertDoc(rec);
   if (prefs.expiryReminders) scheduleReminders(rec).catch(() => {});
@@ -184,14 +197,15 @@ export async function exportCopy(doc: DocRecord) {
   return 'shared';
 }
 
-export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, 'name' | 'category' | 'doc_type' | 'expiry' | 'notes' | 'favorite' | 'pinned'>> & { fields?: DocFields }) {
+export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, 'name' | 'category' | 'doc_type' | 'expiry' | 'notes' | 'favorite' | 'pinned'>> & { fields?: DocFields; tags?: string[] }) {
   const doc = await getDoc(id);
   if (!doc) return;
-  const { fields, ...rest } = patch;
+  const { fields, tags, ...rest } = patch;
   const cloud = doc.sync_state !== 'local_only';
   await updateDoc(id, {
     ...rest,
     ...(fields ? { fields: JSON.stringify(fields) } : {}),
+    ...(tags ? { tags: JSON.stringify(normalizeTags(tags)) } : {}),
     updated_at: Date.now(),
     ...(cloud ? { meta_dirty: 1, sync_state: doc.sync_state === 'synced' ? 'upload_pending' : doc.sync_state } : {}),
   });
@@ -254,6 +268,7 @@ export async function duplicateAsConflictCopy(doc: DocRecord) {
       fields: parseFields(doc),
       favorite: !!doc.favorite,
       notes: doc.notes,
+      tags: parseTags(doc),
     },
   );
 }

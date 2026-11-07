@@ -42,6 +42,7 @@ export interface DocRecord {
   fields: string; // JSON: holder, number, issuer, country...
   back_id: string | null; // optional linked doc id for card back side
   notes: string | null;
+  tags: string; // JSON string[] of lowercase hashtags (without #)
 }
 
 export interface CustomCategory {
@@ -92,6 +93,7 @@ const MIGRATIONS: string[] = [
   CREATE TABLE IF NOT EXISTS categories (
     id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, icon TEXT NOT NULL, hue TEXT NOT NULL
   );`,
+  `ALTER TABLE documents ADD COLUMN tags TEXT NOT NULL DEFAULT '[]';`,
 ];
 
 export function getDb() {
@@ -176,6 +178,15 @@ export async function docsNeedingDownload(): Promise<DocRecord[]> {
   return db.getAllAsync<DocRecord>(
     `SELECT * FROM documents WHERE deleted = 0 AND has_local = 0 AND offline_pref = 'keep'
      AND remote_bin_id IS NOT NULL`,
+  );
+}
+
+/** All tags with usage counts, most used first. */
+export async function listTags(): Promise<{ tag: string; count: number }[]> {
+  const db = await getDb();
+  return db.getAllAsync<{ tag: string; count: number }>(
+    `SELECT j.value AS tag, COUNT(*) AS count FROM documents d, json_each(d.tags) j
+     WHERE d.deleted = 0 GROUP BY j.value ORDER BY count DESC, tag ASC`,
   );
 }
 

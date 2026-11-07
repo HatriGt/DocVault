@@ -5,7 +5,7 @@ import { Button, IconButton, Screen, T } from '../../components/ui';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../../components/DetailsForm';
 import { space } from '../../theme';
 import { useDocument } from '../../lib/hooks';
-import { parseFields, updateDetails } from '../../lib/documents';
+import { parseFields, parseTags, updateDetails } from '../../lib/documents';
 import type { DocRecord } from '../../lib/db';
 
 export default function EditDocument() {
@@ -23,6 +23,7 @@ function EditForm({ doc }: { doc: DocRecord }) {
     expiry: doc.expiry ? doc.expiry.split('-').reverse().join('/') : '',
     fields: parseFields(doc),
     notes: doc.notes ?? '',
+    tags: parseTags(doc),
   }));
   const [saving, setSaving] = useState(false);
 
@@ -35,6 +36,7 @@ function EditForm({ doc }: { doc: DocRecord }) {
       expiry: normalizeExpiry(form.expiry),
       notes: form.notes.trim() || null,
       fields: form.fields,
+      tags: form.tags,
     });
     setSaving(false);
     router.back();

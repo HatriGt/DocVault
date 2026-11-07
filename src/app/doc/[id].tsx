@@ -8,11 +8,12 @@ import * as Haptics from 'expo-haptics';
 import { Banner, Button, Group, IconButton, Row, Screen, T, Tap } from '../../components/ui';
 import { categoryOf, DocThumb, SyncBadge, WalletCard } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
+import { TagPill } from '../../components/Tags';
 import { radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
-import { exportCopy, OfflineChangeError, parseFields, setOfflinePreference, toggleFavorite } from '../../lib/documents';
+import { exportCopy, OfflineChangeError, parseFields, parseTags, setOfflinePreference, toggleFavorite } from '../../lib/documents';
 import { confirmDelete, openDoc, shareDoc } from '../../lib/actions';
 import { retryFailed } from '../../lib/sync';
 
@@ -50,6 +51,7 @@ export default function DocumentDetail() {
 
   const isCard = CARD_TYPES.has(doc.doc_type ?? '');
   const f = parseFields(doc);
+  const tags = parseTags(doc);
   const cat = categoryOf(doc.category);
   const days = daysUntil(doc.expiry);
   const cardW = Math.min(width - space.xl * 2, 380);
@@ -90,7 +92,7 @@ export default function DocumentDetail() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         {/* Preview */}
         <View style={{ alignItems: 'center', paddingVertical: space.xl }}>
           {isCard ? (
@@ -151,11 +153,13 @@ export default function DocumentDetail() {
             </View>
           )}
 
-          {/* Primary actions: open & share are always ≤ 2 taps */}
-          <View style={{ flexDirection: 'row', gap: space.md, marginTop: space.xl }}>
-            <Button title="Open" icon="eye-outline" onPress={() => run('open')} loading={busy === 'open'} style={{ flex: 1 }} />
-            <Button title="Share" icon="share-outline" variant="secondary" onPress={() => run('share')} loading={busy === 'share'} style={{ flex: 1 }} />
-          </View>
+          {tags.length > 0 && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.lg }}>
+              {tags.map((t) => (
+                <TagPill key={t} tag={t} />
+              ))}
+            </View>
+          )}
 
           <View style={{ marginTop: space.xxl }}>
             <Group title="Details">
@@ -201,6 +205,29 @@ export default function DocumentDetail() {
         </View>
       </ScrollView>
 
+      {/* Sticky action bar: open & share are always one tap from here */}
+      <View
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: space.md,
+          paddingHorizontal: space.xl,
+          paddingTop: space.md,
+          paddingBottom: insets.bottom + space.md,
+          backgroundColor: c.bg,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: c.border,
+        }}
+      >
+        <BarButton icon="share-outline" label="Share" onPress={() => run('share')} loading={busy === 'share'} />
+        <Button title="Open" icon="eye-outline" onPress={() => run('open')} loading={busy === 'open'} style={{ flex: 1 }} />
+        <BarButton icon="ellipsis-horizontal" label="More" onPress={() => setMore(true)} />
+      </View>
+
       <ActionSheet
         visible={more}
         onClose={() => setMore(false)}
@@ -221,5 +248,17 @@ export default function DocumentDetail() {
         ]}
       />
     </Screen>
+  );
+}
+
+function BarButton({ icon, label, onPress, loading }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; loading?: boolean }) {
+  const { c } = useTheme();
+  return (
+    <Tap onPress={onPress} disabled={loading} accessibilityLabel={label} style={{ width: 64, height: 54, borderRadius: radius.lg, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+      <Ionicons name={icon} size={20} color={c.text} />
+      <T v="caption" style={{ fontSize: 11 }}>
+        {loading ? '…' : label}
+      </T>
+    </Tap>
   );
 }

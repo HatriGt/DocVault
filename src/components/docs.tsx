@@ -6,7 +6,7 @@ import { T, Tap } from './ui';
 import { radius, space, useTheme, elevation } from '../theme';
 import type { DocRecord } from '../lib/db';
 import { BUILTIN_CATEGORIES, CARD_TYPES } from '../lib/categories';
-import { parseFields } from '../lib/documents';
+import { parseFields, parseTags } from '../lib/documents';
 import { daysUntil, formatBytes, formatDate, maskNumber } from '../lib/format';
 
 export const categoryOf = (id: string) => BUILTIN_CATEGORIES.find((c) => c.id === id);
@@ -258,6 +258,7 @@ export function DocThumb({ doc, size = 56 }: { doc: DocRecord; size?: number }) 
 export function DocRow({ doc, onMore }: { doc: DocRecord; onMore?: (d: DocRecord) => void }) {
   const { c } = useTheme();
   const cat = categoryOf(doc.category);
+  const tags = parseTags(doc);
   return (
     <Tap
       onPress={() => router.push(`/doc/${doc.id}`)}
@@ -266,7 +267,10 @@ export function DocRow({ doc, onMore }: { doc: DocRecord; onMore?: (d: DocRecord
         flexDirection: 'row',
         alignItems: 'center',
         gap: space.md,
-        paddingVertical: space.md,
+        padding: space.md,
+        marginVertical: 5,
+        borderRadius: radius.lg,
+        backgroundColor: c.surface,
       }}
     >
       <DocThumb doc={doc} />
@@ -274,13 +278,16 @@ export function DocRow({ doc, onMore }: { doc: DocRecord; onMore?: (d: DocRecord
         <T v="bodyStrong" numberOfLines={1}>
           {doc.name}
         </T>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-          <T v="caption" color="muted">
-            {cat?.name ?? doc.category} · {formatBytes(doc.size)}
+        <T v="caption" color="muted" style={{ marginTop: 3 }}>
+          {cat?.name ?? doc.category} · {formatBytes(doc.size)}
+        </T>
+        {tags.length > 0 && (
+          <T v="caption" color="accent" numberOfLines={1} style={{ marginTop: 3 }}>
+            {tags.map((t) => `#${t}`).join('  ')}
           </T>
-          <SyncBadge doc={doc} compact />
-        </View>
+        )}
       </View>
+      <SyncBadge doc={doc} />
       {onMore && (
         <Tap onPress={() => onMore(doc)} hitSlop={12} accessibilityLabel={`More actions for ${doc.name}`}>
           <Ionicons name="ellipsis-horizontal" size={20} color={c.textMuted} />

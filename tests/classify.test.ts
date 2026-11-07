@@ -40,3 +40,12 @@ test('sample PDF has a valid header, xref and trailer', () => {
   assert.equal(pdf.slice(xref, xref + 4), 'xref');
   assert.ok(pdf.includes('Holder: Test \\(Sample\\)'));
 });
+
+import { normalizeTags } from '../src/lib/tags.ts';
+test('normalizeTags cleans, dedupes and lowercases hashtags', () => {
+  assert.deepEqual(normalizeTags('#Travel, visa  #UAE #travel ##x!'), ['travel', 'visa', 'uae', 'x']);
+  assert.deepEqual(normalizeTags(['  ', '#Ünïcode']), ['ünïcode']);
+});
+test('suggest returns tags', () => {
+  assert.deepEqual(suggest('emirates_id_dubai.pdf').tags, ['national-id', 'uae']);
+});

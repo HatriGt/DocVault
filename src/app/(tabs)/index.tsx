@@ -9,7 +9,8 @@ import { DocRow, WalletCard, DocThumb, categoryOf } from '../../components/docs'
 import { SyncPill } from '../../components/SyncPill';
 import { ActionSheet } from '../../components/Sheet';
 import { radius, space, useTheme, elevation } from '../../theme';
-import { useAccount, useCategories, useDocuments } from '../../lib/hooks';
+import { useAccount, useCategories, useDocuments, useTags } from '../../lib/hooks';
+import { TagPill } from '../../components/Tags';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, greeting } from '../../lib/format';
 import { syncNow } from '../../lib/sync';
@@ -25,6 +26,7 @@ export default function Home() {
   const { account } = useAccount();
   const { docs, loading } = useDocuments();
   const categories = useCategories();
+  const topTags = useTags().slice(0, 10);
   const [refreshing, setRefreshing] = useState(false);
   const [menuDoc, setMenuDoc] = useState<DocRecord | null>(null);
 
@@ -103,10 +105,15 @@ export default function Home() {
             { icon: 'scan' as const, label: 'Scan', source: 'camera' },
             { icon: 'document-attach-outline' as const, label: 'Import', source: 'files' },
             { icon: 'images-outline' as const, label: 'Photos', source: 'photos' },
+            { icon: 'pricetags-outline' as const, label: 'Tags', source: '' },
           ].map((a) => (
             <Tap
               key={a.label}
-              onPress={() => router.push({ pathname: '/add', params: { source: a.source } })}
+              onPress={() =>
+                a.source
+                  ? router.push({ pathname: '/add', params: { source: a.source } })
+                  : router.push({ pathname: '/(tabs)/documents', params: { focus: '1' } })
+              }
               style={{ flex: 1, height: 76, borderRadius: radius.lg, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: 6 }}
             >
               <Ionicons name={a.icon} size={24} color={c.accent} />
@@ -114,6 +121,14 @@ export default function Home() {
             </Tap>
           ))}
         </View>
+
+        {topTags.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingTop: space.lg }}>
+            {topTags.map((t) => (
+              <TagPill key={t.tag} tag={t.tag} />
+            ))}
+          </ScrollView>
+        )}
 
         {loading ? null : docs.length === 0 ? (
           <EmptyState
