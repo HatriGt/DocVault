@@ -45,7 +45,7 @@ else
   step "Dependencies unchanged"
 fi
 
-native_hash=$(cat package-lock.json app.json app.config.* plugins/* 2>/dev/null | sha256sum | cut -c1-16)
+native_hash=$( { cat package-lock.json app.json app.config.* plugins/* 2>/dev/null || true; } | sha256sum | cut -c1-16)
 if [ ! -d android ] || [ "$(cat $STAMP/native 2>/dev/null)" != "$native_hash" ]; then
   step "Generating native project (expo prebuild)"
   npx expo prebuild --platform android --no-install --clean
