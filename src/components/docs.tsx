@@ -18,19 +18,19 @@ type BadgeSpec = { label: string; icon: keyof typeof Ionicons.glyphMap; tone: 's
 export function syncSpec(doc: DocRecord): BadgeSpec {
   switch (doc.sync_state) {
     case 'syncing':
-      return { label: 'Syncing', icon: 'sync', tone: 'accent' };
+      return { label: 'Backing up', icon: 'sync', tone: 'accent' };
     case 'upload_pending':
-      return { label: 'Upload pending', icon: 'cloud-upload-outline', tone: 'warning' };
+      return { label: 'Waiting to back up', icon: 'cloud-upload-outline', tone: 'warning' };
     case 'download_pending':
       return { label: 'Downloading', icon: 'cloud-download-outline', tone: 'accent' };
     case 'failed':
-      return { label: 'Sync failed', icon: 'alert-circle', tone: 'danger' };
+      return { label: 'Backup failed', icon: 'alert-circle', tone: 'danger' };
     case 'local_only':
-      return { label: 'On this device', icon: 'phone-portrait-outline', tone: 'muted' };
+      return { label: 'This phone only', icon: 'phone-portrait-outline', tone: 'muted' };
     default:
       return doc.has_local
-        ? { label: 'Offline', icon: 'checkmark-circle', tone: 'success' }
-        : { label: 'Cloud only', icon: 'cloud-outline', tone: 'muted' };
+        ? { label: 'On this phone', icon: 'checkmark-circle', tone: 'success' }
+        : { label: 'Drive only', icon: 'cloud-outline', tone: 'muted' };
   }
 }
 

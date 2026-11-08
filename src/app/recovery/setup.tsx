@@ -112,7 +112,7 @@ export default function RecoverySetup() {
             >
               {key.split('-').map((g, i) => (
                 <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                  <T v="mono" selectable style={{ fontFamily: fonts.bold }}>
+                  <T v="mono" selectable testID={i === key.split('-').length - 1 ? 'recovery-key-last' : undefined} style={{ fontFamily: fonts.bold }}>
                     {g}
                   </T>
                 </View>
@@ -141,6 +141,7 @@ export default function RecoverySetup() {
             </T>
             <Field
               label="Last group"
+              testID="recovery-confirm-input"
               value={check}
               onChangeText={setCheck}
               autoCapitalize="characters"

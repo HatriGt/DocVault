@@ -1,0 +1,66 @@
+# End-to-end: first launch → local vault with samples → core screens.
+appId: com.hatrigt.docvault
+name: Onboarding and core navigation
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Skip"
+    timeout: 45000
+- takeScreenshot: 01-onboarding
+- tapOn: "Skip"
+- tapOn: "Use on this device only"
+- tapOn: "Create my recovery key"
+# scrypt key derivation runs on-device; give it time on a slow emulator
+- extendedWaitUntil:
+    visible:
+      id: "recovery-key-last"
+    timeout: 90000
+- takeScreenshot: 02-recovery-key
+- copyTextFrom:
+    id: "recovery-key-last"
+- tapOn: ".*saved it"
+- tapOn:
+    id: "recovery-confirm-input"
+- inputText: ${maestro.copiedText}
+- hideKeyboard
+- tapOn: "Confirm"
+- tapOn: "Your first name"
+- inputText: "Ajeeth"
+- hideKeyboard
+- tapOn: "Open my vault"
+# sample documents are generated and encrypted
+- extendedWaitUntil:
+    visible: ".*documents secured"
+    timeout: 90000
+- takeScreenshot: 03-home
+- assertVisible: "Needs attention"
+- scrollUntilVisible:
+    element: "Recent"
+    direction: DOWN
+- takeScreenshot: 04-home-scrolled
+
+# Library
+- tapOn: "Library"
+- extendedWaitUntil:
+    visible: "Passport"
+    timeout: 20000
+- takeScreenshot: 05-library
+- tapOn:
+    text: "Got it"
+    optional: true
+- tapOn: "Passport"
+- extendedWaitUntil:
+    visible: "Full screen"
+    timeout: 20000
+- takeScreenshot: 06-detail
+# open the document in the in-app PDF viewer
+- tapOn: "Open"
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: 07-viewer
+- back
+- waitForAnimationToEnd
+- back

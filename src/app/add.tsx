@@ -11,14 +11,15 @@ import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../compone
 import { radius, space, useTheme } from '../theme';
 import { SaveSuccess } from '../components/SaveSuccess';
 import { findDuplicate, importDocument, ImportSource, MAX_FILE_BYTES } from '../lib/documents';
-import { discardScan, scanWithDetection } from '../lib/scan';
+import { discardScan, ScanPage, scanPages } from '../lib/scan';
+import { ScanReview } from '../components/ScanReview';
 import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { recognizeText, ocrAvailable } from '../lib/ocr';
 import { useAccount } from '../lib/hooks';
 import { formatBytes } from '../lib/format';
 
-type Step = 'source' | 'details' | 'confirm' | 'saving' | 'done';
+type Step = 'source' | 'scan' | 'details' | 'confirm' | 'saving' | 'done';
 type Source = 'camera' | 'photos' | 'files';
 
 export default function AddDocument() {
@@ -29,6 +30,7 @@ export default function AddDocument() {
   const [src, setSrc] = useState<(ImportSource & { size?: number }) | null>(null);
   const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [], folderId: params.folder ?? null });
   const [newId, setNewId] = useState<string | null>(null);
+  const [scanned, setScanned] = useState<ScanPage[]>([]);
 
   const accept = async (s: ImportSource & { size?: number }) => {
     setSrc(s);
@@ -50,10 +52,13 @@ export default function AddDocument() {
   const pick = async (kind: Source) => {
     try {
       if (kind === 'camera') {
-        // Prefer the system document scanner (edge detection, multi-page → PDF).
+        // Prefer the system document scanner (edge detection), then review pages.
         try {
-          const scan = await scanWithDetection();
-          if (scan) accept({ uri: scan.uri, name: scan.name, mime: scan.mime });
+          const pages = await scanPages();
+          if (pages) {
+            setScanned(pages);
+            setStep('scan');
+          }
           return;
         } catch {
           // Scanner unavailable (e.g. no Google Play services) → plain camera.
@@ -126,7 +131,7 @@ export default function AddDocument() {
     }
   };
 
-  const title = { source: 'Add document', details: 'Details', confirm: 'Review', saving: '', done: '' }[step];
+  const title = { source: 'Add document', scan: 'Review scan', details: 'Details', confirm: 'Review', saving: '', done: '' }[step];
   const cloud = account?.mode === 'google';
 
   return (
@@ -141,15 +146,22 @@ export default function AddDocument() {
         {step !== 'saving' ? <IconButton icon="close" label="Close" onPress={() => router.back()} /> : <View style={{ width: 44 }} />}
       </View>
 
+      {step === 'scan' && (
+        <ScanReview
+          initial={scanned}
+          onCancel={() => setStep('source')}
+          onDone={(r) => accept({ uri: r.uri, name: r.name, mime: r.mime })}
+        />
+      )}
+
       {step === 'source' && (
         <Animated.View entering={FadeIn} style={{ padding: space.xl, gap: space.md }}>
           <T v="title" style={{ marginBottom: space.md }}>
             How would you like{'\n'}to add it?
           </T>
-          <SourceOption icon="scan" title="Smart scan" body="Auto edge detection · multi-page PDF" onPress={() => pick('camera')} />
-          <SourceOption icon="images-outline" title="Choose from Photos" body="Import an existing photo" onPress={() => pick('photos')} />
-          <SourceOption icon="document-attach-outline" title="Import a file" body="PDF, Word, Excel, photos, video — anything" onPress={() => pick('files')} />
-          <SourceOption icon="logo-google" title="From Google Drive" body="Pick a file using the Drive provider" onPress={() => pick('files')} />
+          <SourceOption icon="scan" title="Smart scan" body="Camera finds the edges · review pages · save as PDF" onPress={() => pick('camera')} />
+          <SourceOption icon="images-outline" title="Photos" body="A picture you already took of a document" onPress={() => pick('photos')} />
+          <SourceOption icon="folder-open-outline" title="Browse files" body="Phone storage, Downloads, Google Drive · any file type" onPress={() => pick('files')} />
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.lg }}>
             <Ionicons name="lock-closed" size={15} color={c.textMuted} />
             <T v="caption" color="muted" style={{ flex: 1 }}>

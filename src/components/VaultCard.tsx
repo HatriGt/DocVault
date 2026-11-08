@@ -20,7 +20,7 @@ export function VaultCard() {
   const size = docs.reduce((n, d) => n + d.size, 0);
   const pending = docs.filter((d) => d.sync_state === 'upload_pending' || d.sync_state === 'download_pending').length;
   const syncLabel =
-    account?.mode !== 'google' ? 'On device' : s.running ? 'Syncing…' : !s.online ? 'Offline' : pending ? `${pending} pending` : s.lastSyncAt ? relativeTime(s.lastSyncAt) : 'Ready';
+    account?.mode !== 'google' ? 'Phone only' : s.running ? 'Backing up…' : !s.online ? 'No internet' : pending ? `${pending} waiting` : s.lastSyncAt ? relativeTime(s.lastSyncAt) : 'Ready';
   return (
     <Tap onPress={() => router.push('/manage/sync')} scaleTo={0.985} accessibilityLabel={`Vault: ${docs.length} documents, ${syncLabel}`}>
       <LinearGradient
@@ -54,6 +54,12 @@ export function VaultCard() {
           </View>
         </View>
         <View>
+          <View style={{ position: 'absolute', right: 0, top: 6, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <T v="caption" color={c.heroMuted}>
+              Sync & storage
+            </T>
+            <Ionicons name="chevron-forward" size={14} color={c.heroMuted} />
+          </View>
           <T v="display" color={c.heroText} style={{ fontSize: 52, lineHeight: 58 }}>
             {count}
           </T>
@@ -63,8 +69,8 @@ export function VaultCard() {
         </View>
         <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.16)', paddingTop: space.md }}>
           {[
-            { k: 'Offline', v: `${offline}/${docs.length}` },
-            { k: 'Sync', v: syncLabel },
+            { k: 'On phone', v: `${offline}/${docs.length}` },
+            { k: 'Backup', v: syncLabel },
             { k: 'Size', v: formatBytes(size) },
           ].map((x, i) => (
             <View key={x.k} style={{ flex: 1, paddingLeft: i ? space.md : 0, borderLeftWidth: i ? 1 : 0, borderLeftColor: 'rgba(255,255,255,0.16)' }}>

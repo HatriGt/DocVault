@@ -154,36 +154,47 @@ jobs:
           files: ${{ steps.name.outputs.file }}
           generate_release_notes: true
 
-  smoke-test:
-    # Boots an emulator, installs the APK and checks the app survives startup.
+  e2e:
+    # Boots an emulator, installs the APK and drives the real app with Maestro
+    # (onboarding → recovery key → samples → library → viewer → feature screens),
+    # reporting app log errors, crashes and failed steps as annotations.
     needs: apk
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: DocVault-apk
           path: apk
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Launch on emulator
+      - name: Run e2e on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
+          ram-size: 4096M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: ./scripts/android-smoke.sh "$(ls apk/*.apk | head -1)"
+          script: bash ./scripts/android-e2e.sh "$(ls apk/*.apk | head -1)"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: smoke-test-logs
+          name: e2e-results
           path: |
-            logcat.txt
-            smoke.png
+            e2e-out
+            ~/.maestro/tests
           if-no-files-found: ignore

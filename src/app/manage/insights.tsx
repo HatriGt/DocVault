@@ -66,7 +66,7 @@ export default function Insights() {
         </T>
       </Animated.View>
       <View style={{ flexDirection: 'row', gap: space.md }}>
-        {stat('Offline', `${docs.filter((d) => d.has_local).length}`)}
+        {stat('On this phone', `${docs.filter((d) => d.has_local).length}`)}
         {stat('Expiring ≤ 90d', `${expiring}`)}
       </View>
       <View style={{ flexDirection: 'row', gap: space.md }}>

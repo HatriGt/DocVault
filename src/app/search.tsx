@@ -19,7 +19,7 @@ const FILTERS: { k: Filter; label: string; icon: string }[] = [
   { k: 'image', label: 'Images', icon: 'image-outline' },
   { k: 'expiring', label: 'Expiring', icon: 'time-outline' },
   { k: 'favorite', label: 'Favorites', icon: 'heart-outline' },
-  { k: 'offline', label: 'Offline', icon: 'cloud-done-outline' },
+  { k: 'offline', label: 'On this phone', icon: 'phone-portrait-outline' },
 ];
 
 /** Spotlight: full-screen search across names, numbers, holders, issuers, notes, #tags and folders. */

@@ -73,7 +73,7 @@ export default function Storage() {
                   {d.name}
                 </T>
                 <T v="caption" color="muted">
-                  {formatBytes(d.size)} · {d.has_local ? 'On device' : 'Cloud only'}
+                  {formatBytes(d.size)} · {d.has_local ? 'On this phone' : 'Drive only'}
                 </T>
               </View>
               <Switch value={d.offline_pref === 'keep'} onValueChange={(v) => toggle(d.id, v)} trackColor={{ true: c.accent }} accessibilityLabel={`Keep ${d.name} offline`} />

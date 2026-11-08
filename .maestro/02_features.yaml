@@ -1,0 +1,60 @@
+# Feature screens: search, wallet, renewals, recently deleted, tools, settings.
+appId: com.hatrigt.docvault
+name: Feature screens
+---
+- launchApp
+- extendedWaitUntil:
+    visible: ".*documents secured"
+    timeout: 45000
+
+# Spotlight search
+- tapOn: "Search"
+- inputText: "Pass"
+- extendedWaitUntil:
+    visible: "Passport"
+    timeout: 10000
+- takeScreenshot: 10-search
+- tapOn: "Cancel search"
+
+# Wallet tab
+- tapOn: "Wallet"
+- extendedWaitUntil:
+    visible: "Wallet"
+    timeout: 10000
+- takeScreenshot: 11-wallet
+
+# You tab → Renewals, insights, recently deleted
+- tapOn: "You"
+- tapOn: "Renewals"
+- extendedWaitUntil:
+    visible: "Renewals"
+    timeout: 10000
+- takeScreenshot: 12-renewals
+- back
+- tapOn: "Vault insights"
+- extendedWaitUntil:
+    visible: "TOTAL STORED"
+    timeout: 10000
+- takeScreenshot: 13-insights
+- back
+- tapOn: "Recently Deleted"
+- takeScreenshot: 14-trash
+- back
+
+# Tools hub
+- tapOn: "Home"
+- tapOn: "Tools"
+- extendedWaitUntil:
+    visible: "Images to PDF"
+    timeout: 10000
+- takeScreenshot: 15-tools
+- back
+
+# Add screen opens without launching a picker
+- tapOn: "Add document"
+- extendedWaitUntil:
+    visible: "Smart scan"
+    timeout: 10000
+- assertVisible: "Browse files"
+- takeScreenshot: 16-add
+- tapOn: "Close"

@@ -141,6 +141,9 @@ export default function Onboarding() {
                 <View style={{ marginTop: space.xxxl, gap: space.md }}>
                   <Button title="Continue with Google" icon="logo-google" onPress={signInGoogle} loading={busy} disabled={!request && isGoogleConfigured()} />
                   <Button title="Use on this device only" variant="secondary" onPress={localOnly} />
+                  <T v="caption" color="muted" style={{ textAlign: 'center' }}>
+                    No backup: if this phone is lost, its documents are gone. You can connect Drive later.
+                  </T>
                 </View>
                 <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.xl, alignItems: 'flex-start' }}>
                   <Ionicons name="information-circle-outline" size={18} color={c.textMuted} />

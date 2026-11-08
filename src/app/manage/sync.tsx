@@ -32,7 +32,7 @@ export default function SyncScreen() {
         <View style={{ marginVertical: space.xl, gap: space.xs }}>
           <T v="display">{s.running ? 'Syncing…' : failed.length ? 'Needs attention' : pending.length ? 'Waiting' : 'Up to date'}</T>
           <T v="callout" color="muted">
-            Last synced {relativeTime(s.lastSyncAt).toLowerCase()} · {s.online ? 'Online' : 'Offline'}
+            Last synced {relativeTime(s.lastSyncAt).toLowerCase()} · {s.online ? 'Online' : 'No internet'}
           </T>
           <Button title="Sync now" icon="sync" onPress={() => syncNow()} loading={s.running} disabled={!s.online} style={{ marginTop: space.lg }} />
         </View>

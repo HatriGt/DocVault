@@ -195,7 +195,7 @@ export default function DocumentDetail() {
           </Tap>
           {/* Quick tools */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: space.lg, marginHorizontal: -space.xl }} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl }}>
-            <Chip label="Present" icon="expand-outline" tint={c.accent} onPress={() => presentDoc(doc)} />
+            <Chip label="Full screen" icon="expand-outline" tint={c.accent} onPress={() => presentDoc(doc)} />
             {(isImage(doc)
               ? [
                   { label: 'Edit & crop', icon: 'crop', go: () => router.push({ pathname: '/edit-image/[id]', params: { id: doc.id } }) },

@@ -7,7 +7,7 @@ import { Backdrop } from '../../components/Backdrop';
 import { noTabSwipe, TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { Button, Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../../components/ui';
+import { Banner, Button, Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../../components/ui';
 import { DocRow, DocTile } from '../../components/docs';
 import { ActionSheet, BottomSheet } from '../../components/Sheet';
 import { TAB_BAR_HEIGHT } from '../../components/TabBar';
@@ -66,8 +66,10 @@ export default function Library() {
     if (params.tag) setTag(params.tag);
   }
 
+  const [showTip, setShowTip] = useState(false);
   useEffect(() => {
     kvGet<boolean>('ui.grid', false).then(setGrid);
+    kvGet<boolean>('tip.library', false).then((seen) => setShowTip(!seen));
   }, []);
 
   const filtered = useMemo(() => {
@@ -176,6 +178,20 @@ export default function Library() {
         </>
       )}
 
+      {showTip && !selecting && filtered.length > 0 && (
+        <View style={{ marginHorizontal: space.xl, marginTop: space.xl }}>
+          <Banner
+            tone="info"
+            icon="hand-left-outline"
+            text="Swipe a document right to favourite, left to delete. Long-press to select several."
+            action="Got it"
+            onAction={() => {
+              setShowTip(false);
+              kvSet('tip.library', true);
+            }}
+          />
+        </View>
+      )}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: space.xl, marginTop: space.xl, marginBottom: space.xs }}>
         <T v="overline" color="muted">
           {filtered.length} {filtered.length === 1 ? 'DOCUMENT' : 'DOCUMENTS'}
