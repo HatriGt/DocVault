@@ -11,7 +11,7 @@ name: Feature screens
 - tapOn: "Search"
 - inputText: "Pass"
 - extendedWaitUntil:
-    visible: "Passport"
+    visible: "Passport.*"
     timeout: 10000
 - takeScreenshot: 10-search
 - tapOn: "Cancel search"
@@ -31,13 +31,13 @@ name: Feature screens
     timeout: 10000
 - takeScreenshot: 12-renewals
 - back
-- tapOn: "Vault insights"
+- tapOn: "Insights"
 - extendedWaitUntil:
     visible: "TOTAL STORED"
     timeout: 10000
 - takeScreenshot: 13-insights
 - back
-- tapOn: "Recently Deleted"
+- tapOn: "Recently deleted"
 - takeScreenshot: 14-trash
 - back
 
