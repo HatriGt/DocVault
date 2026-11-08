@@ -62,15 +62,20 @@ name: Onboarding and core navigation
 # Library
 - tapOn: "Library"
 - extendedWaitUntil:
-    visible: "Passport"
+    visible: "Recently added.*"
     timeout: 20000
 - takeScreenshot: 05-library
 - tapOn:
     text: "Got it"
     optional: true
-- tapOn: "Passport"
+# Rows read out as one label ("Passport, Identity, …"), so match by prefix.
+- scrollUntilVisible:
+    element: "Passport,.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Passport,.*"
 - extendedWaitUntil:
-    visible: "Full screen"
+    visible: "Present"
     timeout: 20000
 - takeScreenshot: 06-detail
 # open the document in the in-app PDF viewer
