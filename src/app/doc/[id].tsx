@@ -154,7 +154,8 @@ export default function DocumentDetail() {
                 </T>
               </View>
             )}
-            {doc.has_local && doc.sync_state !== 'failed' ? (
+            {/* Offline/sync status only means something when there's a cloud copy. */}
+            {account?.mode !== 'google' ? null : doc.has_local && doc.sync_state !== 'failed' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.successSoft }}>
                 <Ionicons name="checkmark-circle" size={15} color={c.success} />
                 <T v="caption" color="success" style={{ fontFamily: fonts.semibold, fontSize: 13 }}>
