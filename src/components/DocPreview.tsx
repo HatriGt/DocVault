@@ -47,7 +47,7 @@ export function DocPreview({ doc, width }: { doc: DocRecord; width: number }) {
 
   if (!previewable || failed) return <DocThumb doc={doc} size={Math.min(width * 0.55, 220)} />;
 
-  const w = Math.min(width * 0.5, 210);
+  const w = Math.min(width * 0.42, 170);
   const h = w * 1.36;
   return (
     <View style={[{ width: w, height: h, borderRadius: radius.md, backgroundColor: c.surface, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }, elevation(c, 3)]}>
