@@ -196,7 +196,7 @@ export default function RecoverySetup() {
               </View>
               <Switch value={samples} onValueChange={setSamples} trackColor={{ true: c.accent }} />
             </View>
-            <View style={{ flex: 1 }} />
+            {/* Right under the content, not pinned to the bottom: on short screens the keyboard would cover it. */}
             <Button title="Open my vault" onPress={finish} loading={finishing} />
           </Animated.View>
         )}
