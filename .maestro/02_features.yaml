@@ -47,6 +47,10 @@ name: Feature screens
 
 # Tools hub
 - tapOn: "Home"
+- scrollUntilVisible:
+    element: "Tools"
+    direction: DOWN
+    timeout: 10000
 - tapOn: "Tools"
 - extendedWaitUntil:
     visible: "Images to PDF"
