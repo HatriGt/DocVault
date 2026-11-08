@@ -37,6 +37,10 @@ name: Feature screens
     timeout: 10000
 - takeScreenshot: 13-insights
 - back
+- scrollUntilVisible:
+    element: "Recently deleted"
+    direction: DOWN
+    timeout: 10000
 - tapOn: "Recently deleted"
 - takeScreenshot: 14-trash
 - back
