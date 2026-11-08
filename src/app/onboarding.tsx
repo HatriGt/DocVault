@@ -5,7 +5,6 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Button, Screen, T, Tap } from '../components/ui';
 import { radius, space, useTheme } from '../theme';
 import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../lib/google';
@@ -133,7 +132,9 @@ export default function Onboarding() {
             </View>
           ) : (
             <View style={{ width, paddingHorizontal: space.xxl, justifyContent: 'center' }}>
-              <Animated.View entering={FadeInDown.duration(400)}>
+              {/* No entering animation: this page mounts off-screen in the pager and the
+                  animation could stay stuck at opacity 0 on slow devices. The scroll is the transition. */}
+              <View>
                 <T v="display">Let’s set up{'\n'}your vault</T>
                 <T v="body" color="muted" style={{ marginTop: space.lg }}>
                   Sign in with Google to back up your encrypted vault to your own Google Drive and sync it across devices.
@@ -151,7 +152,7 @@ export default function Onboarding() {
                     DocVault can only access its own hidden folder in your Drive — never your other files. Your Google password never unlocks your documents; your recovery key does.
                   </T>
                 </View>
-              </Animated.View>
+              </View>
             </View>
           )
         }
