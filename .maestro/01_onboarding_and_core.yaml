@@ -36,8 +36,10 @@ name: Onboarding and core navigation
 - tapOn:
     id: "recovery-confirm-input"
 - inputText: ${maestro.copiedText}
-- hideKeyboard
-- tapOn: "Confirm"
+# The confirm step advances by itself once the last group matches; the button is a fallback.
+- tapOn:
+    text: "Confirm"
+    optional: true
 - extendedWaitUntil:
     visible: "Almost there"
     timeout: 15000
