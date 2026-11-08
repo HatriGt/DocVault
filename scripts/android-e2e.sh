@@ -10,8 +10,16 @@ adb install -r -g "$APK" || { echo "::error::adb install failed"; exit 1; }
 adb logcat -c
 
 mkdir -p e2e-out
-maestro test .maestro/ --format junit --output e2e-out/report.xml --test-output-dir e2e-out 2>&1 | tee e2e-out/maestro.log
-RC=${PIPESTATUS[0]}
+# Flows share app state (02 uses the vault 01 creates), and Maestro doesn't guarantee
+# directory order, so run them one by one and stop at the first failure.
+RC=0
+: > e2e-out/maestro.log
+for flow in .maestro/[0-9]*.yaml; do
+  name=$(basename "$flow" .yaml)
+  maestro test "$flow" --format junit --output "e2e-out/$name.xml" --test-output-dir e2e-out 2>&1 | tee -a e2e-out/maestro.log
+  RC=${PIPESTATUS[0]}
+  [ "$RC" -ne 0 ] && break
+done
 
 adb logcat -d -v threadtime > e2e-out/logcat.txt
 PID_LINES=$(grep -E " E ReactNativeJS| E AndroidRuntime|FATAL EXCEPTION|Fatal signal| E unknown:ReactNative" e2e-out/logcat.txt | grep -v "ReactNativeJS: Running" | head -40)

@@ -1,8 +1,0 @@
-# Flows share app state: 02 expects the vault that 01 creates, so run them in order.
-flows:
-  - "*.yaml"
-executionOrder:
-  continueOnFailure: false
-  flowsOrder:
-    - 01_onboarding_and_core
-    - 02_features
