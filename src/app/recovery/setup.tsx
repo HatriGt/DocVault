@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, Share, Switch, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, ScrollView, Share, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -24,6 +24,17 @@ export default function RecoverySetup() {
   const [name, setName] = useState(account?.displayName ?? '');
   const [samples, setSamples] = useState(true);
   const [finishing, setFinishing] = useState(false);
+
+  // Android back steps backwards through setup instead of closing the app halfway.
+  // The key is already created after 'intro', so going back past 'show' would orphan it.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === 'confirm') setStep('show');
+      else if (step === 'intro') return false;
+      return true;
+    });
+    return () => sub.remove();
+  }, [step]);
 
   if (!account) {
     router.replace('/onboarding');

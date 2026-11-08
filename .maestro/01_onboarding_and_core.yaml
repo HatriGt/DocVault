@@ -42,7 +42,6 @@ name: Onboarding and core navigation
     while:
       notVisible: "Almost there"
     commands:
-      - hideKeyboard
       - tapOn:
           text: "Confirm"
           optional: true
@@ -54,7 +53,6 @@ name: Onboarding and core navigation
 - tapOn:
     id: "profile-name-input"
 - inputText: "Ajeeth"
-- hideKeyboard
 - tapOn: "Open my vault"
 # sample documents are generated and encrypted
 - extendedWaitUntil:
