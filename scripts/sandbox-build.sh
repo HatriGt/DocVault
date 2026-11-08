@@ -68,9 +68,27 @@ else
   step "Native project unchanged"
 fi
 
-step "Gradle assembleRelease ($ABI)"
+# Java ignores HTTPS_PROXY; pass it to Gradle if the sandbox uses one.
+GRADLE_NET=()
+if [ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]; then
+  hp="${HTTPS_PROXY:-$https_proxy}"; hp="${hp#*://}"; hp="${hp##*@}"; hp="${hp%%/*}"
+  GRADLE_NET+=("-Dhttps.proxyHost=${hp%%:*}" "-Dhttps.proxyPort=${hp##*:}" "-Dhttp.proxyHost=${hp%%:*}" "-Dhttp.proxyPort=${hp##*:}")
+fi
+# Fewer parallel downloads and retries: the sandbox network drops handshakes under load.
+GRADLE_NET+=("-Dorg.gradle.internal.http.connectionTimeout=60000" "-Dorg.gradle.internal.http.socketTimeout=60000" "-Dorg.gradle.internal.repository.max.retries=5")
+
 cd android
-./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures="$ABI"
+for attempt in 1 2 3; do
+  step "Gradle assembleRelease ($ABI), attempt $attempt"
+  if ./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures="$ABI" "${GRADLE_NET[@]}" 2>&1 | tee /tmp/docvault-gradle.log; then
+    break
+  fi
+  if [ "$attempt" = 3 ] || ! grep -qE "Could not (resolve|GET|download)|handshake|Connection reset|timed out" /tmp/docvault-gradle.log; then
+    echo "BUILD FAILED"; exit 1
+  fi
+  step "Network error while downloading dependencies; retrying with fewer workers"
+  GRADLE_NET+=("--max-workers=2")
+done
 
 APK=app/build/outputs/apk/release/app-release.apk
 step "Installing $(du -h "$APK" | cut -f1) APK"
