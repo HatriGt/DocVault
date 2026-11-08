@@ -124,6 +124,12 @@
         {
           "microphonePermission": false
         }
+      ],
+      [
+        "react-native-document-scanner-plugin",
+        {
+          "cameraPermission": "Scan documents and ID cards with your camera."
+        }
       ]
     ],
     "scheme": "docvault",

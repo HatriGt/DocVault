@@ -1,11 +1,11 @@
 /** Multi-select batch operations used by the Library. */
-import { Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { PDFDocument, PageSizes } from 'pdf-lib';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { File } from 'expo-file-system';
 import type { DocRecord } from './db';
-import { decryptDocument, deleteDocument, normalizeTags, parseTags, updateDetails } from './documents';
+import { decryptDocument, deleteDocument, normalizeTags, parseTags, restoreDocument, updateDetails } from './documents';
+import { toast } from './toast';
 import { moveDocument } from './folders';
 import { purgeTempPlain, writeTempPlain } from './blobs';
 import { resolveType } from './filetype';
@@ -23,18 +23,13 @@ export async function favoriteMany(docs: DocRecord[], on: boolean) {
   for (const d of docs) await updateDetails(d.id, { favorite: on ? 1 : 0 });
 }
 
-export function confirmDeleteMany(docs: DocRecord[], after: () => void) {
-  Alert.alert(`Delete ${docs.length} documents?`, 'They’ll be removed from this device, your Drive vault and your other devices.', [
-    { text: 'Cancel', style: 'cancel' },
-    {
-      text: 'Delete',
-      style: 'destructive',
-      onPress: async () => {
-        for (const d of docs) await deleteDocument(d);
-        after();
-      },
-    },
-  ]);
+export async function confirmDeleteMany(docs: DocRecord[], after: () => void) {
+  for (const d of docs) await deleteDocument(d);
+  after();
+  toast(`${docs.length} moved to Recently Deleted`, {
+    icon: 'trash-outline',
+    action: { label: 'Undo', run: () => docs.forEach((d) => restoreDocument(d)) },
+  });
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { subscribe, Topic } from './events';
-import { DocRecord, getDoc, listCustomCategories, listDocs, CustomCategory, listTags } from './db';
+import { DocRecord, getDoc, listCustomCategories, listDocs, CustomCategory, listTags, listTrashed } from './db';
 import { Account, DEFAULT_PREFS, getAccount, getPrefs, Preferences } from './session';
 import { getSyncStatus, SyncStatus } from './sync';
 import { BUILTIN_CATEGORIES, Category } from './categories';
@@ -73,4 +73,8 @@ export function useFolders(): Folder[] {
 
 export function useActivity(docId: string | undefined) {
   return useLive<Activity[]>(['documents'], () => (docId ? listActivity(docId) : Promise.resolve([])), [], [docId]).value;
+}
+
+export function useTrash(): DocRecord[] {
+  return useLive<DocRecord[]>(['documents'], listTrashed, []).value;
 }

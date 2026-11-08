@@ -14,6 +14,7 @@ import { purgeTempPlain, writeTempPlain } from '../../lib/blobs';
 import { resolveType, viewKind, ViewKind } from '../../lib/filetype';
 import { textToHtml, wordToHtml } from '../../lib/officeRender';
 import { formatBytes } from '../../lib/format';
+import { unlockDoc } from '../../lib/guard';
 
 interface Loaded {
   kind: ViewKind;
@@ -40,6 +41,10 @@ export default function Viewer() {
     let alive = true;
     (async () => {
       try {
+        if (!(await unlockDoc(doc))) {
+          router.back();
+          return;
+        }
         const plain = await decryptDocument(doc);
         const t = resolveType(plain, `${doc.name}.${doc.ext}`, doc.mime);
         const kind = viewKind(t.mime, t.ext);

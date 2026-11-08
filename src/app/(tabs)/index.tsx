@@ -18,7 +18,9 @@ import { useAccount, useDocuments, useFolders } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatDate, greeting } from '../../lib/format';
 import { syncNow } from '../../lib/sync';
-import { docActions } from '../../lib/actions';
+import { confirmDelete, docActions } from '../../lib/actions';
+import { toggleFavorite } from '../../lib/documents';
+import { SkeletonRows, SwipeRow, WalletCarousel } from '../../components/motion';
 import type { DocRecord } from '../../lib/db';
 
 const ESSENTIAL_ORDER = ['Passport', 'National ID', 'Driving Licence', 'Residence Permit', 'Visa', 'Aadhaar', 'PAN Card'];
@@ -129,7 +131,11 @@ export default function Home() {
           ))}
         </Animated.View>
 
-        {loading ? null : docs.length === 0 ? (
+        {loading ? (
+          <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
+            <SkeletonRows count={4} />
+          </View>
+        ) : docs.length === 0 ? (
           <EmptyState
             icon="shield-checkmark-outline"
             title="Your vault is ready"
@@ -172,15 +178,18 @@ export default function Home() {
                 <View style={{ paddingHorizontal: pad }}>
                   <SectionHeader title="Wallet" action="Open" onAction={() => router.push('/(tabs)/favorites')} />
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + space.md} decelerationRate="fast" contentContainerStyle={{ paddingHorizontal: pad, gap: space.md, paddingBottom: space.lg }}>
-                  {wallet.map((d, i) => (
-                    <Animated.View key={d.id} entering={FadeInDown.delay(200 + i * 50).springify().damping(18)}>
-                      <Tap onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} scaleTo={0.98} accessibilityLabel={`Open ${d.name}`}>
-                        <EssentialCard doc={d} width={cardW} />
-                      </Tap>
-                    </Animated.View>
-                  ))}
-                </ScrollView>
+                <WalletCarousel
+                  data={wallet}
+                  itemWidth={cardW}
+                  gap={space.md}
+                  padding={pad}
+                  keyOf={(d) => d.id}
+                  render={(d) => (
+                    <Tap onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} scaleTo={0.98} accessibilityLabel={`Open ${d.name}`}>
+                      <EssentialCard doc={d} width={cardW} />
+                    </Tap>
+                  )}
+                />
               </View>
             )}
 
@@ -209,7 +218,9 @@ export default function Home() {
             <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
               <SectionHeader title="Recent" action="See all" onAction={() => router.push('/(tabs)/documents')} />
               {docs.slice(0, 5).map((d) => (
-                <DocRow key={d.id} doc={d} onMore={setMenuDoc} />
+                <SwipeRow key={d.id} favorite={!!d.favorite} onFavorite={() => toggleFavorite(d)} onDelete={() => confirmDelete(d)}>
+                  <DocRow doc={d} onMore={setMenuDoc} />
+                </SwipeRow>
               ))}
             </View>
           </>

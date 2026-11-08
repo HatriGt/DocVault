@@ -15,8 +15,9 @@ import { TagInput } from '../../components/Tags';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useCategories, useDocuments, useFolders, useTags } from '../../lib/hooks';
 import { DocRecord, kvGet, kvSet } from '../../lib/db';
-import { docActions } from '../../lib/actions';
-import { parseTags } from '../../lib/documents';
+import { confirmDelete, docActions } from '../../lib/actions';
+import { SkeletonRows, SwipeRow } from '../../components/motion';
+import { parseTags, toggleFavorite } from '../../lib/documents';
 import { confirmDeleteMany, favoriteMany, moveMany, shareAsOnePdf, tagMany } from '../../lib/batch';
 
 type Sort = 'added' | 'name' | 'accessed' | 'expiry';
@@ -189,7 +190,11 @@ export default function Library() {
         numColumns={grid && !selecting ? 2 : 1}
         ListHeaderComponent={header}
         ListEmptyComponent={
-          loading ? undefined : docs.length === 0 ? (
+          loading ? (
+            <View style={{ paddingHorizontal: space.xl }}>
+              <SkeletonRows count={6} />
+            </View>
+          ) : docs.length === 0 ? (
             <EmptyState icon="albums-outline" title="Nothing here yet" body="Scan or import a document with the + button." />
           ) : (
             <EmptyState icon="funnel-outline" title="No matches" body="Try another category or tag." />
@@ -202,13 +207,13 @@ export default function Library() {
             <DocTile doc={item} width={tileW} />
           ) : (
             <View style={{ paddingHorizontal: space.xl }}>
-              <DocRow
-                doc={item}
-                selected={selecting ? sel.includes(item.id) : undefined}
-                onPress={selecting ? () => toggle(item) : undefined}
-                onLongPress={selecting ? undefined : () => startSelect(item)}
-                onMore={setMenuDoc}
-              />
+              {selecting ? (
+                <DocRow doc={item} selected={sel.includes(item.id)} onPress={() => toggle(item)} onMore={setMenuDoc} />
+              ) : (
+                <SwipeRow favorite={!!item.favorite} onFavorite={() => toggleFavorite(item)} onDelete={() => confirmDelete(item)}>
+                  <DocRow doc={item} onLongPress={() => startSelect(item)} onMore={setMenuDoc} />
+                </SwipeRow>
+              )}
             </View>
           )
         }

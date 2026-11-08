@@ -8,6 +8,7 @@ import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSequen
 import { getPrefs } from '../lib/session';
 import { lockKeysInMemory, verifyPin } from '../lib/keys';
 import { purgeTempPlain } from '../lib/blobs';
+import { relockAll } from '../lib/guard';
 import { radius, space, useTheme } from '../theme';
 import { T, Tap } from './ui';
 
@@ -35,6 +36,7 @@ export function AppLock({ children }: { children: React.ReactNode }) {
         bgAt.current = null;
         if ((p.biometricLock || p.pinLock) && away >= p.lockAfterSeconds) {
           lockKeysInMemory();
+          relockAll();
           purgeTempPlain();
           setLocked(true);
         }

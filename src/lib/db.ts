@@ -44,6 +44,9 @@ export interface DocRecord {
   notes: string | null;
   tags: string; // JSON string[] of lowercase hashtags (without #)
   folder_id: string | null;
+  trashed_at: number | null; // in Recently Deleted since (ms)
+  locked: number; // requires biometrics to open
+  plain_hash: string | null; // sha256 of plaintext, local only (duplicate detection)
 }
 
 export interface CustomCategory {
@@ -116,6 +119,10 @@ const MIGRATIONS: string[] = [
     at INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_activity_doc ON activity(doc_id, at);`,
+  `ALTER TABLE documents ADD COLUMN trashed_at INTEGER;
+  ALTER TABLE documents ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE documents ADD COLUMN plain_hash TEXT;
+  CREATE INDEX IF NOT EXISTS idx_docs_hash ON documents(plain_hash);`,
 ];
 
 export function getDb() {
@@ -152,7 +159,17 @@ export async function kvSet(k: string, v: unknown) {
 // ---------- documents ----------
 export async function listDocs(): Promise<DocRecord[]> {
   const db = await getDb();
-  return db.getAllAsync<DocRecord>('SELECT * FROM documents WHERE deleted = 0 ORDER BY created_at DESC');
+  return db.getAllAsync<DocRecord>('SELECT * FROM documents WHERE deleted = 0 AND trashed_at IS NULL ORDER BY created_at DESC');
+}
+
+export async function listTrashed(): Promise<DocRecord[]> {
+  const db = await getDb();
+  return db.getAllAsync<DocRecord>('SELECT * FROM documents WHERE deleted = 0 AND trashed_at IS NOT NULL ORDER BY trashed_at DESC');
+}
+
+export async function findByPlainHash(hash: string): Promise<DocRecord | null> {
+  const db = await getDb();
+  return db.getFirstAsync<DocRecord>('SELECT * FROM documents WHERE plain_hash = ? AND deleted = 0 LIMIT 1', hash);
 }
 
 export async function getDoc(id: string): Promise<DocRecord | null> {

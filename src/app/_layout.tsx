@@ -12,6 +12,10 @@ import { registerBackgroundSync } from '../lib/backgroundSync';
 import { purgeTempPlain } from '../lib/blobs';
 import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
+import { ToastHost } from '../components/ToastHost';
+import * as ScreenCapture from 'expo-screen-capture';
+import { usePrefs } from '../lib/hooks';
+import { purgeExpiredTrash } from '../lib/documents';
 import {
   useFonts,
   PlusJakartaSans_400Regular,
@@ -23,6 +27,10 @@ import {
 
 function Navigator() {
   const { c, dark } = useTheme();
+  const prefs = usePrefs();
+  useEffect(() => {
+    (prefs.screenshotGuard ? ScreenCapture.preventScreenCaptureAsync('vault') : ScreenCapture.allowScreenCaptureAsync('vault')).catch(() => {});
+  }, [prefs.screenshotGuard]);
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(c.bg).catch(() => {});
   }, [c.bg]);
@@ -46,9 +54,11 @@ function Navigator() {
           <Stack.Screen name="move/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
           <Stack.Screen name="edit-image/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="search" options={{ animation: 'fade' }} />
+          <Stack.Screen name="present/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           <Stack.Screen name="oauthredirect" options={{ animation: 'none', presentation: 'transparentModal' }} />
           <Stack.Screen name="view/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         </Stack>
+        <ToastHost />
       </AppLock>
     </>
   );
@@ -68,6 +78,7 @@ export default function RootLayout() {
     (async () => {
       await getDb();
       purgeTempPlain(); // never leave decrypted files behind from a previous session
+      purgeExpiredTrash().catch(() => {});
       await initSyncStatus();
       unsub = startSyncListeners();
       setReady(true);

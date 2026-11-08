@@ -7,7 +7,8 @@ import { logActivity } from './activity';
 import { hashHex, open, seal, utf8, uuid } from './crypto';
 import { newWrappedDek, unwrapDek } from './keys';
 import { deleteBlob, hasBlob, purgeTempPlain, readBlob, writeBlob, writeTempPlain } from './blobs';
-import { DocRecord, getDoc, hardDeleteDoc, insertDoc, OfflinePref, updateDoc } from './db';
+import { DocRecord, findByPlainHash, getDoc, hardDeleteDoc, insertDoc, OfflinePref, updateDoc } from './db';
+import QuickCrypto from 'react-native-quick-crypto';
 import { getAccount, getPrefs } from './session';
 import { cancelReminders, scheduleReminders } from './notifications';
 import { download as driveDownload } from './drive';
@@ -119,6 +120,9 @@ export async function createDocument(plain: Uint8Array, src: { name: string; mim
     notes: d.notes ?? null,
     tags: JSON.stringify(normalizeTags(d.tags ?? [])),
     folder_id: d.folderId ?? null,
+    trashed_at: null,
+    locked: 0,
+    plain_hash: plainHash(plain),
   };
   await insertDoc(rec);
   logActivity(id, 'added');
@@ -264,7 +268,56 @@ export async function replaceContent(doc: DocRecord, plain: Uint8Array, mime: st
 export const toggleFavorite = (doc: DocRecord) => updateDetails(doc.id, { favorite: doc.favorite ? 0 : 1 });
 export const togglePinned = (doc: DocRecord) => updateDetails(doc.id, { pinned: doc.pinned ? 0 : 1 });
 
+/** Native SHA-256 of plaintext (local-only fingerprint for duplicate detection). */
+export function plainHash(plain: Uint8Array) {
+  return QuickCrypto.createHash('sha256').update(plain as never).digest('hex') as string;
+}
+
+/** Returns an existing document with identical content, if any. */
+export async function findDuplicate(plain: Uint8Array) {
+  return findByPlainHash(plainHash(plain));
+}
+
+const TRASH_DAYS = 30;
+
+/** Moves a document to Recently Deleted (restorable for 30 days; syncs to other devices). */
 export async function deleteDocument(doc: DocRecord) {
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, {
+    trashed_at: Date.now(),
+    updated_at: Date.now(),
+    ...(cloud ? { meta_dirty: 1, sync_state: 'upload_pending' } : {}),
+  });
+  cancelReminders(doc.id).catch(() => {});
+  requestSync();
+}
+
+export async function restoreDocument(doc: DocRecord) {
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, { trashed_at: null, updated_at: Date.now(), ...(cloud ? { meta_dirty: 1, sync_state: 'upload_pending' } : {}) });
+  if ((await getPrefs()).expiryReminders) scheduleReminders(doc).catch(() => {});
+  requestSync();
+}
+
+export async function emptyTrash(docs: DocRecord[]) {
+  for (const d of docs) await purgeDocument(d);
+}
+
+/** Permanently removes items that have been in Recently Deleted for 30+ days. */
+export async function purgeExpiredTrash() {
+  const { listTrashed } = await import('./db');
+  const cutoff = Date.now() - TRASH_DAYS * 86_400_000;
+  for (const d of await listTrashed()) if (d.trashed_at && d.trashed_at < cutoff) await purgeDocument(d);
+}
+
+export async function setLocked(doc: DocRecord, locked: boolean) {
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, { locked: locked ? 1 : 0, updated_at: Date.now(), ...(cloud ? { meta_dirty: 1, sync_state: doc.sync_state === 'synced' ? 'upload_pending' : doc.sync_state } : {}) });
+  requestSync();
+}
+
+/** Permanently deletes a document everywhere (device, Drive, other devices). */
+export async function purgeDocument(doc: DocRecord) {
   deleteBlob(doc.id);
   cancelReminders(doc.id).catch(() => {});
   if (!doc.remote_meta_id && !doc.remote_bin_id) {

@@ -82,6 +82,8 @@ interface RemoteMeta {
   notes: string | null;
   tags?: string; // optional for metas written before tags existed
   folder_id?: string | null;
+  trashed_at?: number | null;
+  locked?: number;
   wrapped_dek: string;
   content_hash: string | null;
   bin_id: string | null;
@@ -153,6 +155,8 @@ async function encodeMeta(d: DocRecord): Promise<Uint8Array> {
     notes: d.notes,
     tags: d.tags,
     folder_id: d.folder_id,
+    trashed_at: d.trashed_at,
+    locked: d.locked,
     wrapped_dek: d.wrapped_dek,
     content_hash: d.content_hash,
     bin_id: d.remote_bin_id,
@@ -205,6 +209,9 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
       notes: meta.notes,
       tags: meta.tags ?? '[]',
       folder_id: meta.folder_id ?? null,
+      trashed_at: meta.trashed_at ?? null,
+      locked: meta.locked ?? 0,
+      plain_hash: null,
     });
     if (prefs.expiryReminders && meta.expiry) scheduleReminders({ ...meta }).catch(() => {});
     return;
@@ -252,6 +259,8 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
     notes: meta.notes,
     tags: meta.tags ?? local.tags,
     folder_id: meta.folder_id !== undefined ? meta.folder_id : local.folder_id,
+    trashed_at: meta.trashed_at !== undefined ? meta.trashed_at : local.trashed_at,
+    locked: meta.locked ?? local.locked,
     wrapped_dek: meta.wrapped_dek,
     content_hash: meta.content_hash,
     remote_meta_id: metaFileId,

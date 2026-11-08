@@ -7,6 +7,7 @@ import { T, Tap } from './ui';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { useAccount, useDocuments, useSyncStatus } from '../lib/hooks';
 import { formatBytes, relativeTime } from '../lib/format';
+import { useCountUp } from './motion';
 
 /** Graphite "metal card" summarising the vault: count, offline, sync, size. */
 export function VaultCard() {
@@ -15,6 +16,7 @@ export function VaultCard() {
   const { account } = useAccount();
   const s = useSyncStatus();
   const offline = docs.filter((d) => d.has_local).length;
+  const count = useCountUp(docs.length);
   const size = docs.reduce((n, d) => n + d.size, 0);
   const pending = docs.filter((d) => d.sync_state === 'upload_pending' || d.sync_state === 'download_pending').length;
   const syncLabel =
@@ -52,8 +54,8 @@ export function VaultCard() {
           </View>
         </View>
         <View>
-          <T v="display" color={c.heroText} style={{ fontSize: 52, lineHeight: 54 }}>
-            {docs.length}
+          <T v="display" color={c.heroText} style={{ fontSize: 52, lineHeight: 58 }}>
+            {count}
           </T>
           <T v="callout" color={c.heroMuted}>
             {docs.length === 1 ? 'document secured' : 'documents secured'}

@@ -10,7 +10,9 @@ import { Button, IconButton, Screen, T, Tap } from '../components/ui';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../components/DetailsForm';
 import { radius, space, useTheme } from '../theme';
 import { SaveSuccess } from '../components/SaveSuccess';
-import { importDocument, ImportSource } from '../lib/documents';
+import { findDuplicate, importDocument, ImportSource } from '../lib/documents';
+import { scanWithDetection } from '../lib/scan';
+import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { recognizeText, ocrAvailable } from '../lib/ocr';
 import { useAccount } from '../lib/hooks';
@@ -49,6 +51,14 @@ export default function AddDocument() {
   const pick = async (kind: Source) => {
     try {
       if (kind === 'camera') {
+        // Prefer the system document scanner (edge detection, multi-page → PDF).
+        try {
+          const scan = await scanWithDetection();
+          if (scan) accept({ uri: scan.uri, name: scan.name, mime: scan.mime });
+          return;
+        } catch {
+          // Scanner unavailable (e.g. no Google Play services) → plain camera.
+        }
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) {
           Alert.alert('Camera access needed', 'Allow camera access in Settings to scan documents.');
@@ -85,6 +95,18 @@ export default function AddDocument() {
 
   const save = async () => {
     if (!src) return;
+    const dup = await findDuplicate(await new File(src.uri).bytes()).catch(() => null);
+    if (dup) {
+      const choice = await new Promise<'view' | 'save' | 'cancel'>((resolve) =>
+        Alert.alert('Already in your vault', `This file is identical to “${dup.name}”.`, [
+          { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
+          { text: 'View existing', onPress: () => resolve('view') },
+          { text: 'Save anyway', onPress: () => resolve('save') },
+        ]),
+      );
+      if (choice === 'view') return router.replace(`/doc/${dup.id}`);
+      if (choice === 'cancel') return;
+    }
     setStep('saving');
     try {
       const rec = await importDocument(src, {
@@ -125,7 +147,7 @@ export default function AddDocument() {
           <T v="title" style={{ marginBottom: space.md }}>
             How would you like{'\n'}to add it?
           </T>
-          <SourceOption icon="scan" title="Scan with camera" body="Capture a card or paper document" onPress={() => pick('camera')} />
+          <SourceOption icon="scan" title="Smart scan" body="Auto edge detection · multi-page PDF" onPress={() => pick('camera')} />
           <SourceOption icon="images-outline" title="Choose from Photos" body="Import an existing photo" onPress={() => pick('photos')} />
           <SourceOption icon="document-attach-outline" title="Import a file" body="PDF, Word, Excel, photos, video — anything" onPress={() => pick('files')} />
           <SourceOption icon="logo-google" title="From Google Drive" body="Pick a file using the Drive provider" onPress={() => pick('files')} />

@@ -2,21 +2,20 @@ import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import type { DocRecord } from './db';
-import { deleteDocument, exportCopy, shareDocument, toggleFavorite } from './documents';
+import { deleteDocument, exportCopy, restoreDocument, shareDocument, toggleFavorite } from './documents';
+import { unlockDoc } from './guard';
+import { toast } from './toast';
 import type { SheetAction } from '../components/Sheet';
 
 const fail = (e: unknown) => Alert.alert('Something went wrong', e instanceof Error ? e.message : String(e));
 
 export async function openDoc(doc: DocRecord) {
-  try {
-    // Everything opens in the in-app universal viewer (it offers "Open with…" too).
-    router.push(`/view/${doc.id}`);
-  } catch (e) {
-    fail(e);
-  }
+  if (!(await unlockDoc(doc))) return;
+  router.push(`/view/${doc.id}`);
 }
 
 export async function shareDoc(doc: DocRecord) {
+  if (!(await unlockDoc(doc))) return;
   try {
     await shareDocument(doc);
   } catch (e) {
@@ -24,25 +23,17 @@ export async function shareDoc(doc: DocRecord) {
   }
 }
 
-export function confirmDelete(doc: DocRecord, after?: () => void) {
-  Alert.alert(
-    `Delete “${doc.name}”?`,
-    doc.sync_state === 'local_only'
-      ? 'It will be permanently removed from this device.'
-      : 'It will be removed from this device, your Google Drive vault and your other devices.',
-    [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteDocument(doc);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-          after?.();
-        },
-      },
-    ],
-  );
+export async function presentDoc(doc: DocRecord) {
+  if (!(await unlockDoc(doc))) return;
+  router.push(`/present/${doc.id}`);
+}
+
+/** Moves to Recently Deleted immediately with an Undo toast (no blocking dialog). */
+export async function confirmDelete(doc: DocRecord, after?: () => void) {
+  await deleteDocument(doc);
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  toast(`“${doc.name}” moved to Recently Deleted`, { icon: 'trash-outline', action: { label: 'Undo', run: () => restoreDocument({ ...doc, trashed_at: Date.now() }) } });
+  after?.();
 }
 
 export function docActions(doc: DocRecord): SheetAction[] {
@@ -56,7 +47,11 @@ export function docActions(doc: DocRecord): SheetAction[] {
     },
     { label: 'Edit details', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
     { label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
-    { label: 'Save a copy', icon: 'download-outline', onPress: () => exportCopy(doc).catch(fail) },
+    { label: 'Present full screen', icon: 'expand-outline', onPress: () => presentDoc(doc) },
+    { label: 'Save a copy', icon: 'download-outline', onPress: async () => {
+        if (await unlockDoc(doc)) await exportCopy(doc).catch(fail);
+      },
+    },
     { label: 'Delete', icon: 'trash-outline', destructive: true, onPress: () => confirmDelete(doc) },
   ];
 }

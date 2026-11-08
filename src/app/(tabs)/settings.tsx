@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Image, ScrollView, View } from 'react-native';
+import { Alert, Image, ScrollView, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Group, Row, Screen, T } from '../../components/ui';
@@ -80,11 +80,18 @@ export default function Settings() {
           />
           <Row icon="pie-chart-outline" title="Vault insights" subtitle="Storage, formats and coverage" onPress={() => router.push('/manage/insights')} />
           <Row icon="calendar-outline" title="Renewals" subtitle="Expiry timeline and reminders" onPress={() => router.push('/renewals')} />
+          <Row icon="trash-outline" title="Recently Deleted" subtitle="Restore within 30 days" onPress={() => router.push('/trash')} />
           <Row icon="phone-portrait-outline" title="Offline storage" value={`${docs.filter((d) => d.has_local).length} of ${docs.length}`} onPress={() => router.push('/manage/storage')} />
         </Group>
 
         <Group title="Security">
           <Row icon="finger-print" title="App lock" value={prefs.biometricLock ? 'Biometrics' : prefs.pinLock ? 'PIN' : 'Off'} onPress={() => router.push('/manage/security')} />
+          <Row
+            icon="eye-off-outline"
+            title="Screenshot protection"
+            subtitle="Block screenshots and hide the app in recents"
+            right={<Switch value={prefs.screenshotGuard} onValueChange={(v) => setPrefs({ screenshotGuard: v })} trackColor={{ true: c.accent }} />}
+          />
           <Row icon="key-outline" title="Recovery key" subtitle="Restore your vault on a new device" onPress={() => router.push('/manage/recovery')} />
           <Row icon="shield-checkmark-outline" title="Encryption" value="AES-256-GCM" onPress={() => router.push('/manage/privacy')} />
         </Group>

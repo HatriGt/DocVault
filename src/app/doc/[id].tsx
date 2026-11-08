@@ -17,8 +17,10 @@ import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
-import { exportCopy, isImage, isPdf, OfflineChangeError, parseFields, parseTags, setOfflinePreference, toggleFavorite } from '../../lib/documents';
-import { confirmDelete, openDoc, shareDoc } from '../../lib/actions';
+import { exportCopy, isImage, isPdf, OfflineChangeError, parseFields, parseTags, setLocked, setOfflinePreference, toggleFavorite } from '../../lib/documents';
+import { confirmDelete, openDoc, presentDoc, shareDoc } from '../../lib/actions';
+import { unlockDoc } from '../../lib/guard';
+import { toast } from '../../lib/toast';
 import { retryFailed } from '../../lib/sync';
 
 export default function DocumentDetail() {
@@ -142,6 +144,14 @@ export default function DocumentDetail() {
             {doc.name}
           </T>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md, flexWrap: 'wrap' }}>
+            {!!doc.locked && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, height: 30, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.accentSoft }}>
+                <Ionicons name="lock-closed" size={13} color={c.accent} />
+                <T v="caption" color="accent" style={{ fontFamily: fonts.semibold, fontSize: 13 }}>
+                  Locked
+                </T>
+              </View>
+            )}
             {doc.has_local && doc.sync_state !== 'failed' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: c.successSoft }}>
                 <Ionicons name="checkmark-circle" size={15} color={c.success} />
@@ -185,6 +195,7 @@ export default function DocumentDetail() {
           </Tap>
           {/* Quick tools */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: space.lg, marginHorizontal: -space.xl }} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl }}>
+            <Chip label="Present" icon="expand-outline" tint={c.accent} onPress={() => presentDoc(doc)} />
             {(isImage(doc)
               ? [
                   { label: 'Edit & crop', icon: 'crop', go: () => router.push({ pathname: '/edit-image/[id]', params: { id: doc.id } }) },
@@ -244,7 +255,7 @@ export default function DocumentDetail() {
                   icon="keypad-outline"
                   title="Number"
                   value={revealed ? f.number : maskNumber(f.number)}
-                  onPress={() => setRevealed(!revealed)}
+                  onPress={async () => (revealed ? setRevealed(false) : (await unlockDoc(doc)) && setRevealed(true))}
                   chevron={false}
                   right={<Ionicons name={revealed ? 'eye-off-outline' : 'eye-outline'} size={18} color={c.textFaint} />}
                 />
@@ -307,6 +318,16 @@ export default function DocumentDetail() {
           { label: 'Edit details', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
           { label: 'Edit & convert tools', icon: 'color-wand-outline', onPress: () => router.push('/tools') },
           { label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
+          { label: 'Present full screen', icon: 'expand-outline', onPress: () => presentDoc(doc) },
+          {
+            label: doc.locked ? 'Remove biometric lock' : 'Lock with biometrics',
+            icon: doc.locked ? 'lock-open-outline' : 'lock-closed-outline',
+            onPress: async () => {
+              if (doc.locked && !(await unlockDoc(doc))) return;
+              await setLocked(doc, !doc.locked);
+              toast(doc.locked ? 'Lock removed' : 'Locked — biometrics needed to open', { icon: doc.locked ? 'lock-open' : 'lock-closed' });
+            },
+          },
           {
             label: 'Save a copy',
             icon: 'download-outline',

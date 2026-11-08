@@ -15,7 +15,8 @@ import { FolderPicker, useFolderLabel } from '../components/Folders';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { useAccount, useCategories } from '../lib/hooks';
 import { hasLocalVaultKey } from '../lib/keys';
-import { importDocument } from '../lib/documents';
+import { findDuplicate, importDocument } from '../lib/documents';
+import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { formatBytes } from '../lib/format';
 import { extForMime, extOf } from '../lib/filetype';
@@ -106,6 +107,12 @@ export default function ShareInto() {
     for (let i = 0; i < next.length; i++) {
       next[i] = { ...next[i], status: 'working' };
       setItems([...next]);
+      const dup = await findDuplicate(await new File(next[i].uri).bytes()).catch(() => null);
+      if (dup && !single) {
+        next[i] = { ...next[i], status: 'done', id: dup.id, error: 'duplicate' };
+        setItems([...next]);
+        continue;
+      }
       try {
         const rec = await importDocument(
           { uri: next[i].uri, name: next[i].name, mime: next[i].mime },
@@ -123,7 +130,8 @@ export default function ShareInto() {
     setTimeout(() => setPhase('done'), 450);
   };
 
-  const ok = items.filter((i) => i.status === 'done');
+  const ok = items.filter((i) => i.status === 'done' && i.error !== 'duplicate');
+  const dups = items.filter((i) => i.error === 'duplicate').length;
   const failed = items.filter((i) => i.status === 'error');
   const canSave = single ? !!form && !!form.name.trim() && expiryValid(form.expiry) : names.every((n) => n.trim());
 
@@ -268,7 +276,7 @@ export default function ShareInto() {
                 subtitle={
                   failed.length
                     ? `${failed.length} couldn’t be added: ${failed[0].error}`
-                    : `Encrypted and available offline${account?.mode === 'google' ? '. Backing up to Google Drive.' : '.'}`
+                    : `Encrypted and available offline${account?.mode === 'google' ? '. Backing up to Google Drive.' : '.'}${dups ? ` ${dups} already in your vault ${dups === 1 ? 'was' : 'were'} skipped.` : ''}`
                 }
               />
               <View style={{ gap: space.md, marginTop: space.xxxl }}>
