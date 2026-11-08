@@ -253,7 +253,7 @@ export function DocRow({ doc, onMore, selected, onPress, onLongPress }: { doc: D
       onPress={onPress ?? (() => router.push(`/doc/${doc.id}`))}
       onLongPress={onLongPress}
       scaleTo={0.985}
-      accessibilityLabel={`${doc.name}, ${cat?.name ?? doc.category}, ${syncSpec(doc).label}`}
+      accessibilityLabel={[doc.name, cat?.name ?? doc.category, doc.sync_state === 'local_only' ? null : syncSpec(doc).label].filter(Boolean).join(', ')}
       accessibilityState={{ selected }}
       style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.hairline }}
     >

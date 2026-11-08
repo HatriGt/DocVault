@@ -200,7 +200,7 @@ export default function Library() {
         <T v="overline" color="muted">
           {filtered.length} {filtered.length === 1 ? 'DOCUMENT' : 'DOCUMENTS'}
         </T>
-        <Tap onPress={() => setSortOpen(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <Tap onPress={() => setSortOpen(true)} accessibilityLabel={`Sort: ${SORT_LABEL[sort]}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <T v="caption" color="muted">
             {SORT_LABEL[sort]}
           </T>

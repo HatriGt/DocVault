@@ -213,6 +213,7 @@ export function Chip({
   return (
     <Tap
       onPress={onPress}
+      accessibilityLabel={label}
       accessibilityState={{ selected: active }}
       style={{
         height: 38,
