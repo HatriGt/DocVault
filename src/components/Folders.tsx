@@ -87,14 +87,14 @@ export function FolderEditor({
     onClose();
   };
   return (
-    <BottomSheet visible={visible} onClose={onClose} title={folder ? 'Edit folder' : 'New folder'}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.xl }} keyboardShouldPersistTaps="handled">
+    <BottomSheet visible={visible} onClose={onClose} title={folder ? 'Edit folder' : 'New folder'} action={{ label: folder ? 'Save' : 'Create', onPress: save, disabled: !name.trim() }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.lg, paddingBottom: space.lg }} keyboardShouldPersistTaps="handled">
         <View style={{ alignItems: 'center', paddingVertical: space.sm }}>
-          <Animated.View key={color + icon} entering={FadeIn.duration(200)} style={{ width: 96, height: 80, borderRadius: radius.lg, backgroundColor: color + '1C', alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="folder" size={60} color={color} />
+          <Animated.View key={color + icon} entering={FadeIn.duration(200)} style={{ width: 72, height: 60, borderRadius: radius.md, backgroundColor: color + '1C', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="folder" size={44} color={color} />
             {icon !== 'folder' && (
-              <View style={{ position: 'absolute', top: 32 }}>
-                <Ionicons name={icon as IconName} size={22} color="#fff" />
+              <View style={{ position: 'absolute', top: 23 }}>
+                <Ionicons name={icon as IconName} size={16} color="#fff" />
               </View>
             )}
           </Animated.View>
@@ -123,7 +123,6 @@ export function FolderEditor({
             </Tap>
           ))}
         </View>
-        <Button title={folder ? 'Save' : 'Create folder'} onPress={save} disabled={!name.trim()} />
       </ScrollView>
     </BottomSheet>
   );

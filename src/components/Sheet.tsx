@@ -116,13 +116,41 @@ export function ActionSheet({ visible, onClose, title, actions }: { visible: boo
 }
 
 /** Generic animated bottom sheet with drag handle; keyboard-aware without layout jumps. */
-export function BottomSheet({ visible, onClose, children, title }: { visible: boolean; onClose: () => void; children: React.ReactNode; title?: string }) {
+export function BottomSheet({
+  visible,
+  onClose,
+  children,
+  title,
+  action,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  title?: string;
+  /** Primary action in the header, so it stays visible above the keyboard. */
+  action?: { label: string; onPress: () => void; disabled?: boolean };
+}) {
+  const { c } = useTheme();
   return (
     <SheetFrame visible={visible} onClose={onClose}>
-      {title && (
-        <T v="heading" style={{ paddingHorizontal: space.xl, marginBottom: space.md }}>
-          {title}
-        </T>
+      {(title || action) && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.xl, marginBottom: space.md, minHeight: 40 }}>
+          <T v="heading" style={{ flex: 1 }} numberOfLines={1}>
+            {title}
+          </T>
+          {action && (
+            <Tap
+              onPress={action.onPress}
+              disabled={action.disabled}
+              accessibilityLabel={action.label}
+              style={{ height: 40, paddingHorizontal: space.lg, borderRadius: radius.pill, backgroundColor: action.disabled ? c.surfaceAlt : c.accent, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <T v="bodyStrong" color={action.disabled ? c.textFaint : '#fff'}>
+                {action.label}
+              </T>
+            </Tap>
+          )}
+        </View>
       )}
       {children}
     </SheetFrame>
