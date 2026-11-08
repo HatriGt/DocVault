@@ -15,7 +15,7 @@ import { Backdrop } from '../../components/Backdrop';
 import { ActivityList } from '../../components/ActivityList';
 import { DocPreview } from '../../components/DocPreview';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
-import { useDocument } from '../../lib/hooks';
+import { useAccount, useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
 import { exportCopy, isImage, isPdf, OfflineChangeError, parseFields, parseTags, setLocked, setOfflinePreference, toggleFavorite } from '../../lib/documents';
@@ -30,6 +30,7 @@ export default function DocumentDetail() {
   const { c } = useTheme();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { account } = useAccount();
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState<'open' | 'share' | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -105,11 +106,11 @@ export default function DocumentDetail() {
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
         {/* Preview */}
-        <View style={{ alignItems: 'center', paddingTop: insets.top + 72, paddingBottom: space.xxl, marginBottom: space.md, overflow: 'hidden' }}>
+        <View style={{ alignItems: 'center', paddingTop: insets.top + 64, paddingBottom: space.xl, overflow: 'hidden' }}>
           <Backdrop variant="detail" />
           {doc.doc_type === 'Passport' ? (
-            <View style={{ transform: [{ rotate: '-7deg' }], marginVertical: space.lg }}>
-              <PassportBook doc={doc} width={Math.min(width * 0.52, 230)} />
+            <View style={{ transform: [{ rotate: '-6deg' }], marginVertical: space.sm }}>
+              <PassportBook doc={doc} width={Math.min(width * 0.4, 180)} />
             </View>
           ) : isCard ? (
             <>
@@ -308,7 +309,7 @@ export default function DocumentDetail() {
       >
         <BarButton icon="share-outline" label="Share" onPress={() => run('share')} loading={busy === 'share'} />
         <Button title="Open" icon="eye-outline" onPress={() => run('open')} loading={busy === 'open'} style={{ flex: 1, height: 66 }} />
-        <BarButton icon="ellipsis-horizontal" label="More" onPress={() => setMore(true)} />
+        <BarButton icon="expand-outline" label="Present" onPress={() => presentDoc(doc)} />
       </View>
 
       <ActionSheet
@@ -316,12 +317,12 @@ export default function DocumentDetail() {
         onClose={() => setMore(false)}
         title={doc.name}
         actions={[
-          { label: 'Edit details', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
-          { label: 'Edit & convert tools', icon: 'color-wand-outline', onPress: () => router.push('/tools') },
-          { label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
-          { label: 'Present full screen', icon: 'expand-outline', onPress: () => presentDoc(doc) },
+          { section: 'Organise', label: 'Edit details', hint: 'Name, number, dates, tags', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
+          { section: 'Organise', label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
           {
+            section: 'Protect',
             label: doc.locked ? 'Remove biometric lock' : 'Lock with biometrics',
+            hint: doc.locked ? undefined : 'Fingerprint or face needed to open',
             icon: doc.locked ? 'lock-open-outline' : 'lock-closed-outline',
             onPress: async () => {
               if (doc.locked && !(await unlockDoc(doc))) return;
@@ -329,17 +330,23 @@ export default function DocumentDetail() {
               toast(doc.locked ? 'Lock removed' : 'Locked — biometrics needed to open', { icon: doc.locked ? 'lock-open' : 'lock-closed' });
             },
           },
+          ...(account?.mode === 'google'
+            ? [{
+                section: 'Protect',
+                label: doc.offline_pref === 'keep' ? 'Make cloud-only' : 'Keep offline',
+                hint: doc.offline_pref === 'keep' ? 'Free space; download when opened' : 'Always available without internet',
+                icon: (doc.offline_pref === 'keep' ? 'cloud-outline' : 'cloud-download-outline') as 'cloud-outline',
+                onPress: toggleOffline,
+              }]
+            : []),
           {
-            label: 'Save a copy',
+            section: 'Export',
+            label: 'Save a decrypted copy',
+            hint: 'To Downloads or another app',
             icon: 'download-outline',
             onPress: () => exportCopy(doc).catch((e) => Alert.alert('Couldn’t save', String(e?.message ?? e))),
           },
-          {
-            label: doc.offline_pref === 'keep' ? 'Make cloud-only' : 'Keep offline',
-            icon: doc.offline_pref === 'keep' ? 'cloud-outline' : 'cloud-download-outline',
-            onPress: toggleOffline,
-          },
-          { label: 'Delete document', icon: 'trash-outline', destructive: true, onPress: () => confirmDelete(doc, () => router.back()) },
+          { section: 'Export', label: 'Move to trash', hint: 'Restore within 30 days', icon: 'trash-outline', destructive: true, onPress: () => confirmDelete(doc, () => router.back()) },
         ]}
       />
     </Screen>

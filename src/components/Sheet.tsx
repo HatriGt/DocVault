@@ -3,7 +3,7 @@ import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-n
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
-import { radius, space, useTheme } from '../theme';
+import { fonts, radius, space, useTheme } from '../theme';
 import { DUR, EASE_OUT } from '../theme/motion';
 import { T, Tap } from './ui';
 
@@ -12,6 +12,10 @@ export interface SheetAction {
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   destructive?: boolean;
+  /** Optional group heading; consecutive actions with the same section share one header. */
+  section?: string;
+  /** Short secondary line under the label. */
+  hint?: string;
 }
 
 const ENTER = SlideInDown.duration(DUR.slow).easing(EASE_OUT);
@@ -76,22 +80,35 @@ export function ActionSheet({ visible, onClose, title, actions }: { visible: boo
             {title}
           </T>
         )}
-        {actions.map((a) => (
+        {actions.map((a, i) => (
+          <React.Fragment key={a.label}>
+          {a.section && a.section !== actions[i - 1]?.section && (
+            <T v="caption" color="faint" style={{ marginTop: i ? space.md : 0, marginBottom: 2, paddingHorizontal: space.sm, fontFamily: fonts.semibold, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+              {a.section}
+            </T>
+          )}
           <Tap
-            key={a.label}
             scaleTo={0.985}
             onPress={() => {
               onClose();
               // Run after the sheet has left so the next screen/sheet doesn't overlap it.
               setTimeout(a.onPress, DUR.fast + 40);
             }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, height: 54, paddingHorizontal: space.sm }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, minHeight: a.hint ? 60 : 52, paddingHorizontal: space.sm }}
           >
             <Ionicons name={a.icon} size={22} color={a.destructive ? c.danger : c.text} />
-            <T v="body" color={a.destructive ? 'danger' : 'text'}>
-              {a.label}
-            </T>
+            <View style={{ flex: 1 }}>
+              <T v="body" color={a.destructive ? 'danger' : 'text'}>
+                {a.label}
+              </T>
+              {!!a.hint && (
+                <T v="caption" color="muted" numberOfLines={1}>
+                  {a.hint}
+                </T>
+              )}
+            </View>
           </Tap>
+          </React.Fragment>
         ))}
       </View>
     </SheetFrame>
