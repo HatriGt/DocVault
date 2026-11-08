@@ -34,6 +34,13 @@ git checkout --quiet -B "$BRANCH" "origin/$BRANCH"
 git reset --quiet --hard "origin/$BRANCH"
 git log --oneline -1
 
+# Always run the branch's own copy of this script, so fixes to it apply without
+# re-downloading anything on the sandbox.
+if [ -z "${DOCVAULT_HANDED_OFF:-}" ] && ! cmp -s "$0" scripts/sandbox-build.sh; then
+  step "Using the branch's copy of sandbox-build.sh"
+  DOCVAULT_HANDED_OFF=1 exec bash scripts/sandbox-build.sh "$BRANCH"
+fi
+
 STAMP=.sandbox-build
 mkdir -p "$STAMP"
 deps_hash=$(sha256sum package-lock.json | cut -c1-16)
