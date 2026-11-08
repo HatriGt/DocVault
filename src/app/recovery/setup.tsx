@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, KeyboardAvoidingView, ScrollView, Share, Switch, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, BackHandler, ScrollView, Share, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeIn } from '../../theme/anim';
 import * as Haptics from 'expo-haptics';
 import { Button, Field, Screen, T } from '../../components/ui';
+import { KeyboardSpacer } from '../../components/KeyboardSpacer';
 import { radius, space, type, useTheme, fonts } from '../../theme';
 import { getPendingAccount } from '../../lib/pending';
 import { setUpNewVault } from '../../lib/vault';
@@ -25,6 +26,7 @@ export default function RecoverySetup() {
   const [name, setName] = useState(account?.displayName ?? '');
   const [samples, setSamples] = useState(true);
   const [finishing, setFinishing] = useState(false);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   // Android back steps backwards through setup instead of closing the app halfway.
   // The key is already created after 'intro', so going back past 'show' would orphan it.
@@ -78,8 +80,7 @@ export default function RecoverySetup() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: space.xxl, paddingBottom: space.xxl + space.lg, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroll} contentContainerStyle={{ padding: space.xxl, paddingBottom: space.xxl + space.lg, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {step === 'intro' && (
           <Animated.View entering={FadeIn} style={{ flex: 1 }}>
             <Badge icon="key" />
@@ -201,7 +202,7 @@ export default function RecoverySetup() {
           </Animated.View>
         )}
       </ScrollView>
-      </KeyboardAvoidingView>
+      <KeyboardSpacer scrollRef={scroll} />
     </Screen>
   );
 }

@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Alert, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Field, Screen, T } from '../../components/ui';
+import { KeyboardSpacer } from '../../components/KeyboardSpacer';
 import { space, type, useTheme } from '../../theme';
 import { getPendingAccount } from '../../lib/pending';
 import { lookupExistingVault, resetRemoteVault, restoreFromRecoveryKey } from '../../lib/vault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 
 export default function Restore() {
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const { c } = useTheme();
   const account = getPendingAccount();
   const [key, setKey] = useState('');
@@ -62,8 +64,7 @@ export default function Restore() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: space.xxl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} contentContainerStyle={{ padding: space.xxl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="cloud-download" size={28} color={c.accent} />
           </View>
@@ -91,7 +92,7 @@ export default function Restore() {
           <Button title="Unlock vault" onPress={restore} loading={busy} disabled={key.replace(/[^0-9a-z]/gi, '').length < 32} style={{ marginTop: space.xxl }} />
           <Button title="I lost my recovery key" variant="ghost" onPress={lost} style={{ marginTop: space.sm }} />
         </ScrollView>
-      </KeyboardAvoidingView>
+        <KeyboardSpacer scrollRef={scroll} />
     </Screen>
   );
 }
