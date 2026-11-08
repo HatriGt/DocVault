@@ -14,7 +14,7 @@ maestro test .maestro/ --format junit --output e2e-out/report.xml --test-output-
 RC=${PIPESTATUS[0]}
 
 adb logcat -d -v threadtime > e2e-out/logcat.txt
-PID_LINES=$(grep -E " E ReactNativeJS|FATAL EXCEPTION|AndroidRuntime: |Fatal signal| E unknown:ReactNative" e2e-out/logcat.txt | grep -v "ReactNativeJS: Running" | head -40)
+PID_LINES=$(grep -E " E ReactNativeJS| E AndroidRuntime|FATAL EXCEPTION|Fatal signal| E unknown:ReactNative" e2e-out/logcat.txt | grep -v "ReactNativeJS: Running" | head -40)
 if [ -n "$PID_LINES" ]; then
   echo "$PID_LINES" | while IFS= read -r line; do echo "::error title=App log::${line//%/%25}"; done
 fi

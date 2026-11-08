@@ -27,7 +27,11 @@ name: Onboarding and core navigation
 - inputText: ${maestro.copiedText}
 - hideKeyboard
 - tapOn: "Confirm"
-- tapOn: "Your first name"
+- extendedWaitUntil:
+    visible: "Almost there"
+    timeout: 15000
+- tapOn:
+    id: "profile-name-input"
 - inputText: "Ajeeth"
 - hideKeyboard
 - tapOn: "Open my vault"

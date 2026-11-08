@@ -169,7 +169,7 @@ export default function RecoverySetup() {
             <Badge icon="sparkles" />
             <T v="title">Almost there</T>
             {account.mode === 'local' && (
-              <Field label="What should we call you?" value={name} onChangeText={setName} placeholder="Your first name" autoFocus />
+              <Field label="What should we call you?" testID="profile-name-input" value={name} onChangeText={setName} placeholder="Your first name" autoFocus />
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, gap: space.md }}>
               <View style={{ flex: 1 }}>
