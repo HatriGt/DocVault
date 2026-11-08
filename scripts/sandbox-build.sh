@@ -98,16 +98,16 @@ fi
 GRADLE_NET+=("-Dorg.gradle.internal.http.connectionTimeout=60000" "-Dorg.gradle.internal.http.socketTimeout=60000" "-Dorg.gradle.internal.repository.max.retries=5")
 
 cd android
-for attempt in 1 2 3; do
+for attempt in 1 2 3 4 5 6 7 8; do
   step "Gradle assembleRelease ($ABI), attempt $attempt"
   if ./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures="$ABI" "${GRADLE_NET[@]}" 2>&1 | tee /tmp/docvault-gradle.log; then
     break
   fi
-  if [ "$attempt" = 3 ] || ! grep -qE "Could not (resolve|GET|download)|handshake|Connection reset|timed out" /tmp/docvault-gradle.log; then
+  if [ "$attempt" = 8 ] || ! grep -qE "Could not (resolve|GET|download)|handshake|Connection reset|timed out" /tmp/docvault-gradle.log; then
     echo "BUILD FAILED"; exit 1
   fi
   step "Network error while downloading dependencies; retrying with fewer workers"
-  GRADLE_NET+=("--max-workers=2")
+  GRADLE_NET+=("--max-workers=1" "-Dorg.gradle.parallel=false")
 done
 
 APK=app/build/outputs/apk/release/app-release.apk
