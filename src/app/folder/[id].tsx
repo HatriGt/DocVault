@@ -71,7 +71,7 @@ export default function FolderScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: space.lg, gap: 4, alignItems: 'center' }}>
               <Tap onPress={() => router.dismissTo('/(tabs)/documents')}>
                 <T v="callout" color="muted" style={{ fontFamily: fonts.semibold }}>
-                  Documents
+                  Library
                 </T>
               </Tap>
               {crumbs.map((f, i) => (
@@ -107,16 +107,15 @@ export default function FolderScreen() {
                   <FolderTile folder={f} width={tileW} onPress={() => router.push(`/folder/${f.id}`)} />
                 </Animated.View>
               ))}
-              <Tap
-                onPress={() => setEditing('new')}
-                style={{ width: tileW, height: tileW * 0.48 + 64, borderRadius: radius.lg, borderWidth: 2, borderStyle: 'dashed', borderColor: c.accent + '55', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              >
-                <Ionicons name="add-circle" size={30} color={c.accent} />
-                <T v="callout" color="accent" style={{ fontFamily: fonts.semibold }}>
-                  New subfolder
-                </T>
-              </Tap>
             </View>
+            <Tap
+              onPress={() => setEditing('new')}
+              accessibilityLabel="New subfolder"
+              style={{ flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: space.sm, height: 44, paddingHorizontal: space.lg, marginHorizontal: space.xl, marginTop: subs.length ? space.md : 0, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint }}
+            >
+              <Ionicons name="add" size={18} color={c.textMuted} />
+              <T v="callout">New subfolder</T>
+            </Tap>
             {items.length > 0 && (
               <T v="heading" style={{ paddingHorizontal: space.xl, marginTop: space.xxl, marginBottom: space.sm }}>
                 Documents
@@ -125,7 +124,13 @@ export default function FolderScreen() {
           </View>
         }
         ListEmptyComponent={
-          <EmptyState icon="document-outline" title="No documents here yet" body="Add a document to this folder, or move one in from its menu." />
+          <EmptyState
+            icon="document-outline"
+            title="No documents here yet"
+            body="Add one here, or move an existing document in from its ••• menu."
+            action="Add a document"
+            onAction={() => router.push({ pathname: '/add', params: { folder: folder.id } })}
+          />
         }
         renderItem={({ item }) => (
           <View style={{ paddingHorizontal: space.xl }}>
@@ -134,7 +139,8 @@ export default function FolderScreen() {
         )}
       />
 
-      {/* Add into this folder */}
+      {/* Add into this folder (the empty state has its own button) */}
+      {items.length > 0 && (
       <View style={{ position: 'absolute', right: space.xl, bottom: insets.bottom + space.xl }}>
         <Tap
           onPress={() => router.push({ pathname: '/add', params: { folder: folder.id } })}
@@ -144,6 +150,7 @@ export default function FolderScreen() {
           <Ionicons name="add" size={32} color={c.onAccent} />
         </Tap>
       </View>
+      )}
 
       <ActionSheet
         visible={menu}
