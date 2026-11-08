@@ -6,6 +6,7 @@ import { Banner, Button, T } from '../../components/ui';
 import { radius, space, useTheme, fonts } from '../../theme';
 import { newRecoveryKey } from '../../lib/vault';
 import { useAccount } from '../../lib/hooks';
+import { kvSet } from '../../lib/db';
 
 export default function Recovery() {
   const { c } = useTheme();
@@ -24,6 +25,7 @@ export default function Recovery() {
           setBusy(true);
           try {
             setKey(await newRecoveryKey());
+            kvSet('recovery.unconfirmed', false);
           } catch (e) {
             Alert.alert('Couldn’t create key', e instanceof Error ? e.message : String(e));
           } finally {

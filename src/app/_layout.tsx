@@ -14,6 +14,7 @@ import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
 import { ToastHost } from '../components/ToastHost';
 import { purgeExpiredTrash } from '../lib/documents';
+import { purgeScanCache } from '../lib/scan';
 import {
   useFonts,
   PlusJakartaSans_400Regular,
@@ -74,6 +75,7 @@ export default function RootLayout() {
       await getDb();
       purgeTempPlain(); // never leave decrypted files behind from a previous session
       purgeExpiredTrash().catch(() => {});
+      purgeScanCache();
       await initSyncStatus();
       unsub = startSyncListeners();
       setReady(true);

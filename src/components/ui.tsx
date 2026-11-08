@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -66,9 +66,11 @@ export function Tap({
   haptic = true,
   scaleTo = 0.97,
   onPress,
+  debounce = true,
   ...rest
-}: PressableProps & { style?: StyleProp<ViewStyle>; haptic?: boolean; scaleTo?: number; children: React.ReactNode }) {
+}: PressableProps & { style?: StyleProp<ViewStyle>; haptic?: boolean; scaleTo?: number; debounce?: boolean; children: React.ReactNode }) {
   const s = useSharedValue(1);
+  const last = useRef(0);
   const a = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (
     <AnimatedPressable
@@ -83,6 +85,12 @@ export function Tap({
         rest.onPressOut?.(e);
       }}
       onPress={(e) => {
+        // Ignore rapid repeat taps so a double tap can't open a screen twice.
+        if (debounce) {
+          const now = e.nativeEvent.timestamp || 0;
+          if (now && now - last.current < 450) return;
+          last.current = now;
+        }
         if (haptic) Haptics.selectionAsync().catch(() => {});
         onPress?.(e);
       }}

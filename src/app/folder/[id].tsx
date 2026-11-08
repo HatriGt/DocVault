@@ -69,7 +69,7 @@ export default function FolderScreen() {
             </View>
             {/* Breadcrumbs */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: space.lg, gap: 4, alignItems: 'center' }}>
-              <Tap onPress={() => router.navigate('/(tabs)/documents')}>
+              <Tap onPress={() => router.dismissTo('/(tabs)/documents')}>
                 <T v="callout" color="muted" style={{ fontFamily: fonts.semibold }}>
                   Documents
                 </T>
@@ -77,7 +77,7 @@ export default function FolderScreen() {
               {crumbs.map((f, i) => (
                 <View key={f.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Ionicons name="chevron-forward" size={14} color={c.textFaint} />
-                  <Tap onPress={() => i < crumbs.length - 1 && router.push(`/folder/${f.id}`)}>
+                  <Tap onPress={() => i < crumbs.length - 1 && router.dismissTo(`/folder/${f.id}`)}>
                     <T v="callout" color={i === crumbs.length - 1 ? 'accent' : 'muted'} style={{ fontFamily: fonts.semibold }}>
                       {f.name}
                     </T>

@@ -101,8 +101,15 @@ export async function deleteFolder(id: string) {
   if (!f) return;
   const now = Date.now();
   await db.runAsync('UPDATE folders SET parent_id = ?, updated_at = ? WHERE parent_id = ? AND deleted = 0', f.parent_id, now, id);
-  const docs = await db.getAllAsync<{ id: string }>('SELECT id FROM documents WHERE folder_id = ? AND deleted = 0', id);
-  for (const d of docs) await moveDocument(d.id, f.parent_id, true);
+  await db.runAsync(
+    `UPDATE documents SET folder_id = ?, updated_at = ?,
+       meta_dirty = CASE WHEN sync_state = 'local_only' THEN meta_dirty ELSE 1 END,
+       sync_state = CASE WHEN sync_state = 'synced' THEN 'upload_pending' ELSE sync_state END
+     WHERE folder_id = ? AND deleted = 0`,
+    f.parent_id,
+    now,
+    id,
+  );
   await db.runAsync('UPDATE folders SET deleted = 1, updated_at = ? WHERE id = ?', now, id);
   await markDirty();
 }

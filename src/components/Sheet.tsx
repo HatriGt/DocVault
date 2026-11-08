@@ -1,5 +1,5 @@
-import React from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle, Easing } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,10 +25,19 @@ const EXIT = SlideOutDown.duration(DUR.fast).easing(Easing.in(Easing.quad));
 function SheetFrame({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  // Keep the Modal mounted until the exit animation has played.
+  const [mounted, setMounted] = useState(visible);
+  if (visible && !mounted) setMounted(true);
+  useEffect(() => {
+    if (visible || !mounted) return;
+    const t = setTimeout(() => setMounted(false), DUR.fast + 40);
+    return () => clearTimeout(t);
+  }, [visible, mounted]);
   const kb = useAnimatedKeyboard({ isStatusBarTranslucentAndroid: true, isNavigationBarTranslucentAndroid: true });
   const lift = useAnimatedStyle(() => ({ transform: [{ translateY: -kb.height.get() }] }));
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
+    <Modal visible={mounted} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       {visible && (
         <View style={{ flex: 1, justifyContent: 'flex-end' }}>
           <Animated.View entering={FadeIn.duration(DUR.base)} exiting={FadeOut.duration(DUR.fast)} style={StyleSheet.absoluteFill}>
@@ -44,7 +53,7 @@ function SheetFrame({ visible, onClose, children }: { visible: boolean; onClose:
                 borderTopRightRadius: radius.xl,
                 paddingTop: space.md,
                 paddingBottom: insets.bottom + space.lg,
-                maxHeight: 640,
+                maxHeight: height - insets.top - 24,
               }}
             >
               <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: c.hairline, marginBottom: space.md }} />

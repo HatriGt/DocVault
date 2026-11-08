@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -9,7 +9,10 @@ import { moveDocument } from '../../lib/folders';
 /** Transparent route that hosts the folder picker for "Move to folder". */
 export default function MoveDocument() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { doc } = useDocument(id);
+  const { doc, loading } = useDocument(id);
+  useEffect(() => {
+    if (!loading && !doc) router.back();
+  }, [loading, doc]);
   return (
     <View style={{ flex: 1 }}>
       {doc && (

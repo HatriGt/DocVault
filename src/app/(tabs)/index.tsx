@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -7,7 +7,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Backdrop } from '../../components/Backdrop';
 import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
+import { Banner, EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
+import { kvGet } from '../../lib/db';
 import { DocRow, EssentialCard } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { VaultCard } from '../../components/VaultCard';
@@ -36,6 +37,10 @@ export default function Home() {
   const [refreshing, setRefreshing] = useState(false);
   const [menuDoc, setMenuDoc] = useState<DocRecord | null>(null);
   const [newFolder, setNewFolder] = useState(false);
+  const [unconfirmedKey, setUnconfirmedKey] = useState(false);
+  useEffect(() => {
+    kvGet<boolean>('recovery.unconfirmed', false).then(setUnconfirmedKey);
+  }, []);
   const pad = space.xl;
 
   const wallet = useMemo(
@@ -133,6 +138,11 @@ export default function Home() {
           ))}
         </Animated.View>
 
+        {unconfirmedKey && (
+          <View style={{ paddingHorizontal: pad, marginTop: space.xl }}>
+            <Banner tone="danger" icon="key-outline" text="Your recovery key was never confirmed. Create a new one so you can't lose your vault." action="Fix" onAction={() => router.push('/manage/recovery')} />
+          </View>
+        )}
         {loading ? (
           <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
             <SkeletonRows count={4} />

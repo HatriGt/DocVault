@@ -6,7 +6,6 @@ import { T } from '../../components/ui';
 import { radius, space, useTheme } from '../../theme';
 import { useCategories, useDocuments, useFolders, useTags } from '../../lib/hooks';
 import { formatBytes, daysUntil } from '../../lib/format';
-import { localVaultBytes } from '../../lib/blobs';
 
 const kindOf = (mime: string) =>
   mime === 'application/pdf' ? 'PDF' : mime.startsWith('image/') ? 'Images' : mime.startsWith('video/') ? 'Video' : mime.startsWith('audio/') ? 'Audio' : /word|excel|spreadsheet|presentation|officedocument|msword/.test(mime) ? 'Office' : 'Other';
@@ -30,8 +29,8 @@ export default function Insights() {
   const folders = useFolders();
   const tags = useTags();
   const total = docs.reduce((n, d) => n + d.size, 0) || 1;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const onDevice = useMemo(() => localVaultBytes(), [docs]);
+   
+  const onDevice = useMemo(() => docs.reduce((n, d) => n + (d.has_local ? d.size : 0), 0), [docs]);
   const byKind = Object.entries(
     docs.reduce<Record<string, number>>((m, d) => ((m[kindOf(d.mime)] = (m[kindOf(d.mime)] ?? 0) + d.size), m), {}),
   ).sort((a, b) => b[1] - a[1]);

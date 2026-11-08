@@ -11,6 +11,7 @@ import { setUpNewVault } from '../../lib/vault';
 import { seedSampleVault } from '../../lib/sampleVault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 import { normalizeRecoveryKey } from '../../lib/crypto';
+import { kvSet } from '../../lib/db';
 
 type Step = 'intro' | 'working' | 'show' | 'confirm' | 'profile';
 
@@ -155,6 +156,7 @@ export default function RecoverySetup() {
               disabled={!confirmOk}
               onPress={() => {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                kvSet('recovery.unconfirmed', false);
                 setStep('profile');
               }}
             />

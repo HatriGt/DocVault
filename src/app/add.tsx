@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,8 +10,8 @@ import { Button, IconButton, Screen, T, Tap } from '../components/ui';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../components/DetailsForm';
 import { radius, space, useTheme } from '../theme';
 import { SaveSuccess } from '../components/SaveSuccess';
-import { findDuplicate, importDocument, ImportSource } from '../lib/documents';
-import { scanWithDetection } from '../lib/scan';
+import { findDuplicate, importDocument, ImportSource, MAX_FILE_BYTES } from '../lib/documents';
+import { discardScan, scanWithDetection } from '../lib/scan';
 import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { recognizeText, ocrAvailable } from '../lib/ocr';
@@ -87,7 +87,13 @@ export default function AddDocument() {
 
   const save = async () => {
     if (!src) return;
-    const dup = await findDuplicate(await new File(src.uri).bytes()).catch(() => null);
+    const size = new File(src.uri).size ?? 0;
+    if (size > MAX_FILE_BYTES) {
+      Alert.alert('File too large', 'DocVault can store files up to 200 MB on this phone.');
+      return;
+    }
+    const bytes = await new File(src.uri).bytes(); // read once: used for duplicate check and saving
+    const dup = await findDuplicate(bytes).catch(() => null);
     if (dup) {
       const choice = await new Promise<'view' | 'save' | 'cancel'>((resolve) =>
         Alert.alert('Already in your vault', `This file is identical to “${dup.name}”.`, [
@@ -110,7 +116,8 @@ export default function AddDocument() {
         notes: form.notes.trim() || null,
         tags: form.tags,
         folderId: form.folderId ?? null,
-      });
+      }, bytes);
+      if (src.uri.includes('/scans/')) discardScan(src.uri); // remove the scanner's plaintext output
       setNewId(rec.id);
       setStep('done');
     } catch (e) {
@@ -153,7 +160,7 @@ export default function AddDocument() {
       )}
 
       {step === 'details' && src && (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
             <SourcePreview src={src} />
             {!ocrAvailable() && form.docType && (

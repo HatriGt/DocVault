@@ -79,7 +79,7 @@ export default function Search() {
         <View style={{ flex: 1 }}>
           <SearchField ref={input} value={q} onChangeText={setQ} placeholder="Search everything" onSubmitEditing={() => remember(q)} />
         </View>
-        <Tap onPress={() => router.back()} hitSlop={10}>
+        <Tap onPress={() => router.back()} hitSlop={10} accessibilityLabel="Cancel search">
           <T v="callout" style={{ fontFamily: fonts.semibold }}>
             Cancel
           </T>

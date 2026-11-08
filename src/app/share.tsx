@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { useIncomingShare } from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +15,7 @@ import { FolderPicker, useFolderLabel } from '../components/Folders';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { useAccount, useCategories } from '../lib/hooks';
 import { hasLocalVaultKey } from '../lib/keys';
-import { findDuplicate, importDocument } from '../lib/documents';
+import { findDuplicate, importDocument, MAX_FILE_BYTES } from '../lib/documents';
 import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { formatBytes } from '../lib/format';
@@ -108,7 +108,13 @@ export default function ShareInto() {
     for (let i = 0; i < next.length; i++) {
       next[i] = { ...next[i], status: 'working' };
       setItems([...next]);
-      const dup = await findDuplicate(await new File(next[i].uri).bytes()).catch(() => null);
+      if ((next[i].size ?? new File(next[i].uri).size ?? 0) > MAX_FILE_BYTES) {
+        next[i] = { ...next[i], status: 'error', error: 'larger than 200 MB' };
+        setItems([...next]);
+        continue;
+      }
+      const bytes = await new File(next[i].uri).bytes(); // read once
+      const dup = await findDuplicate(bytes).catch(() => null);
       if (dup && !single) {
         next[i] = { ...next[i], status: 'done', id: dup.id, error: 'duplicate' };
         setItems([...next]);
@@ -120,6 +126,7 @@ export default function ShareInto() {
           single && form
             ? { name: form.name, category: form.category, docType: form.docType, expiry: normalizeExpiry(form.expiry), fields: form.fields, notes: form.notes.trim() || null, tags: form.tags, folderId: form.folderId ?? null }
             : { name: names[i] || prettifyName(next[i].name), category, docType: suggest(next[i].name).docType, expiry: null, fields: {}, tags, folderId: multiFolder },
+          bytes,
         );
         next[i] = { ...next[i], status: 'done', id: rec.id };
       } catch (e) {
@@ -186,7 +193,7 @@ export default function ShareInto() {
       </LinearGradient>
 
       {/* Sheet */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, marginTop: -space.xxxl }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, marginTop: -space.xxxl }}>
         <Animated.View
           entering={FadeInUp.duration(DUR.slow).easing(EASE_OUT)}
           style={[{ flex: 1, backgroundColor: c.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }, elevation(c, 2)]}

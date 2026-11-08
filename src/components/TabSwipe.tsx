@@ -4,7 +4,20 @@ import { router, usePathname } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
-import Animated from 'react-native-reanimated';
+import Animated, { makeMutable, useSharedValue } from 'react-native-reanimated';
+
+/**
+ * Set to 1 while a touch is on a horizontal scroller (carousel, chip row, folder strip), so a
+ * horizontal fling there scrolls that list instead of switching tabs. Read on the UI thread.
+ */
+export const tabSwipeVeto = makeMutable(0);
+const vetoProps = {
+  onTouchStart: () => tabSwipeVeto.set(1),
+  onTouchEnd: () => tabSwipeVeto.set(0),
+  onTouchCancel: () => tabSwipeVeto.set(0),
+};
+/** Spread onto any horizontal ScrollView inside a tab screen. */
+export const noTabSwipe = vetoProps;
 
 /** Tab order — must match the Tabs layout. */
 export const TAB_ROUTES = ['/', '/documents', '/favorites', '/settings'] as const;
@@ -27,10 +40,15 @@ export function TabSwipe({ children }: { children: React.ReactNode }) {
     router.navigate(HREF[next]);
   };
 
+  const vetoed = useSharedValue(0);
   const pan = Gesture.Pan()
     .activeOffsetX([-28, 28])
     .failOffsetY([-14, 14])
+    .onStart(() => {
+      vetoed.set(tabSwipeVeto.get()); // touch began on a horizontal scroller
+    })
     .onEnd((e) => {
+      if (vetoed.get()) return;
       const far = Math.abs(e.translationX) > width * 0.26;
       const fast = Math.abs(e.velocityX) > 650;
       if (!far && !fast) return;

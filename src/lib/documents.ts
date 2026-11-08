@@ -131,8 +131,15 @@ export async function createDocument(plain: Uint8Array, src: { name: string; mim
   return rec;
 }
 
-export async function importDocument(src: ImportSource, d: NewDocDetails) {
-  const plain = await new File(src.uri).bytes();
+/** Files larger than this are refused (they would be held in memory while encrypting). */
+export const MAX_FILE_BYTES = 200 * 1024 * 1024;
+
+export class FileTooLargeError extends Error {}
+
+export async function importDocument(src: ImportSource, d: NewDocDetails, preRead?: Uint8Array) {
+  const size = preRead?.length ?? new File(src.uri).size ?? 0;
+  if (size > MAX_FILE_BYTES) throw new FileTooLargeError('This file is larger than 200 MB, which DocVault can’t store safely on this phone.');
+  const plain = preRead ?? (await new File(src.uri).bytes());
   return createDocument(plain, src, d);
 }
 
@@ -257,6 +264,7 @@ export async function replaceContent(doc: DocRecord, plain: Uint8Array, mime: st
     ext,
     size: plain.length,
     content_hash: hashHex(ct),
+    plain_hash: plainHash(plain),
     has_local: 1,
     updated_at: Date.now(),
     ...(cloud ? { content_dirty: 1, meta_dirty: 1, sync_state: 'upload_pending' } : {}),
@@ -313,6 +321,8 @@ export async function purgeExpiredTrash() {
 export async function setLocked(doc: DocRecord, locked: boolean) {
   const cloud = doc.sync_state !== 'local_only';
   await updateDoc(doc.id, { locked: locked ? 1 : 0, updated_at: Date.now(), ...(cloud ? { meta_dirty: 1, sync_state: doc.sync_state === 'synced' ? 'upload_pending' : doc.sync_state } : {}) });
+  // Reminders show the document name on the lock screen; use a neutral title for locked docs.
+  if ((await getPrefs()).expiryReminders) scheduleReminders({ ...doc, locked: locked ? 1 : 0 }).catch(() => {});
   requestSync();
 }
 

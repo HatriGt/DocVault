@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Alert, FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Backdrop } from '../../components/Backdrop';
-import { TabSwipe } from '../../components/TabSwipe';
+import { noTabSwipe, TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Button, Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../../components/ui';
@@ -14,7 +14,8 @@ import { TAB_BAR_HEIGHT } from '../../components/TabBar';
 import { FolderEditor, FolderPicker, FolderTile } from '../../components/Folders';
 import { TagInput } from '../../components/Tags';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
-import { useCategories, useDocuments, useFolders, useTags } from '../../lib/hooks';
+import { useAccount, useCategories, useDocuments, useFolders, useTags } from '../../lib/hooks';
+import { syncNow } from '../../lib/sync';
 import { DocRecord, kvGet, kvSet } from '../../lib/db';
 import { confirmDelete, docActions } from '../../lib/actions';
 import { SkeletonRows, SwipeRow } from '../../components/motion';
@@ -35,6 +36,13 @@ export default function Library() {
   const allTags = useTags();
   const folders = useFolders();
   const rootFolders = folders.filter((f) => !f.parent_id);
+  const { account } = useAccount();
+  const [refreshing, setRefreshing] = useState(false);
+  const refresh = async () => {
+    setRefreshing(true);
+    await syncNow();
+    setRefreshing(false);
+  };
 
   const [category, setCategory] = useState<string>(params.category ?? 'all');
   const [tag, setTag] = useState<string | null>(params.tag ?? null);
@@ -139,7 +147,7 @@ export default function Library() {
                 </T>
               </Tap>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.md, paddingHorizontal: space.xl }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} {...noTabSwipe} contentContainerStyle={{ gap: space.md, paddingHorizontal: space.xl }}>
               {rootFolders.map((f) => (
                 <FolderTile key={f.id} folder={f} width={132} onPress={() => router.push(`/folder/${f.id}`)} />
               ))}
@@ -156,7 +164,7 @@ export default function Library() {
           </View>
 
           {/* Filters */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingTop: space.xl }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} {...noTabSwipe} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl, paddingTop: space.xl }}>
             <Chip label="All" active={category === 'all' && !tag} onPress={() => (setCategory('all'), setTag(null))} />
             {categories.map((cat) => (
               <Chip key={cat.id} label={cat.name} icon={cat.icon as never} active={category === cat.id} onPress={() => setCategory(category === cat.id ? 'all' : cat.id)} />
@@ -203,6 +211,7 @@ export default function Library() {
             <EmptyState icon="funnel-outline" title="No matches" body="Try another category or tag." />
           )
         }
+        refreshControl={account?.mode === 'google' ? <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={c.accent} /> : undefined}
         contentContainerStyle={{ paddingBottom: insets.bottom + TAB_BAR_HEIGHT + (selecting ? 150 : 60) }}
         columnWrapperStyle={grid && !selecting ? { gap: space.lg, paddingHorizontal: space.xl, marginTop: space.lg } : undefined}
         renderItem={({ item }) =>

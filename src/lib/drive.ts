@@ -54,11 +54,12 @@ export async function findByName(name: string): Promise<DriveFile | null> {
   return j.files?.[0] ?? null;
 }
 
-export async function listAll(prefix?: string): Promise<DriveFile[]> {
+/** Lists appDataFolder files; `query` is a Drive q-expression (e.g. appProperties filter). */
+export async function listAll(query?: string): Promise<DriveFile[]> {
   const out: DriveFile[] = [];
   let pageToken: string | undefined;
   do {
-    const q = prefix ? `&q=${encodeURIComponent(`name contains '${prefix}' and trashed = false`)}` : '';
+    const q = query ? `&q=${encodeURIComponent(query)}` : '';
     const res = await req(
       `${API}/files?spaces=appDataFolder&pageSize=1000&fields=nextPageToken,files(${FIELDS})${q}${pageToken ? `&pageToken=${pageToken}` : ''}`,
     );

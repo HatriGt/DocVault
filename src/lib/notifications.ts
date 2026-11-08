@@ -27,7 +27,7 @@ export async function cancelReminders(docId: string) {
 }
 
 /** Schedules local reminders. Content never includes document numbers. */
-export async function scheduleReminders(doc: Pick<DocRecord, 'id' | 'name' | 'expiry' | 'doc_type'>) {
+export async function scheduleReminders(doc: Pick<DocRecord, 'id' | 'name' | 'expiry' | 'doc_type'> & { locked?: number }) {
   await cancelReminders(doc.id);
   if (!doc.expiry) return;
   if (doc.doc_type && !EXPIRING_TYPES.has(doc.doc_type) && !doc.expiry) return;
@@ -39,7 +39,8 @@ export async function scheduleReminders(doc: Pick<DocRecord, 'id' | 'name' | 'ex
     await Notifications.scheduleNotificationAsync({
       identifier: `exp:${doc.id}:${days}`,
       content: {
-        title: `${doc.name} expires in ${days} days`,
+        // Locked documents never reveal their name on the lock screen.
+        title: doc.locked ? `A locked document expires in ${days} days` : `${doc.name} expires in ${days} days`,
         body: 'Renew early to avoid travel or service disruptions.',
         data: { docId: doc.id },
       },

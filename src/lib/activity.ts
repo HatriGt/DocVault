@@ -29,7 +29,7 @@ export async function logActivity(docId: string, kind: ActivityKind, detail?: st
       docId,
       docId,
     );
-    emit('documents');
+    emit('activity');
   } catch {
     // history is best-effort
   }

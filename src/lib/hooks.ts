@@ -17,12 +17,19 @@ function useLive<T>(topics: Topic[], load: () => Promise<T>, initial: T, deps: u
   const key = JSON.stringify([topics, deps]);
   useEffect(() => {
     let alive = true;
-    const reload = () =>
-      loadRef.current().then((v) => {
-        if (!alive) return;
-        setValue(v);
-        setLoading(false);
-      });
+    let seq = 0;
+    const reload = () => {
+      const mine = ++seq;
+      loadRef.current()
+        .then((v) => {
+          if (!alive || mine !== seq) return; // ignore out-of-order results
+          setValue(v);
+          setLoading(false);
+        })
+        .catch(() => {
+          if (alive && mine === seq) setLoading(false);
+        });
+    };
     reload();
     const unsubs = (JSON.parse(key)[0] as Topic[]).map((t) => subscribe(t, reload));
     return () => {
@@ -72,7 +79,7 @@ export function useFolders(): Folder[] {
 }
 
 export function useActivity(docId: string | undefined) {
-  return useLive<Activity[]>(['documents'], () => (docId ? listActivity(docId) : Promise.resolve([])), [], [docId]).value;
+  return useLive<Activity[]>(['activity'], () => (docId ? listActivity(docId) : Promise.resolve([])), [], [docId]).value;
 }
 
 export function useTrash(): DocRecord[] {

@@ -28,7 +28,12 @@ export async function confirmDeleteMany(docs: DocRecord[], after: () => void) {
   after();
   toast(`${docs.length} moved to Recently Deleted`, {
     icon: 'trash-outline',
-    action: { label: 'Undo', run: () => docs.forEach((d) => restoreDocument(d)) },
+    action: {
+      label: 'Undo',
+      run: async () => {
+        for (const d of docs) await restoreDocument(d);
+      },
+    },
   });
 }
 

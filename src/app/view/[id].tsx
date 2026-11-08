@@ -10,7 +10,7 @@ import { AudioViewer, HtmlView, ImageView, Message, PdfView, SheetView, VideoVie
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { decryptDocument, markAccessed, openNative, shareDocument } from '../../lib/documents';
-import { purgeTempPlain, writeTempPlain } from '../../lib/blobs';
+import { deleteTemp, writeTempPlain } from '../../lib/blobs';
 import { resolveType, viewKind, ViewKind } from '../../lib/filetype';
 import { textToHtml, wordToHtml } from '../../lib/officeRender';
 import { formatBytes } from '../../lib/format';
@@ -31,7 +31,7 @@ const DARK_KINDS: ViewKind[] = ['image', 'video'];
 /** Universal in-app viewer: PDF, images, video, audio, Word, spreadsheets, text — or a graceful fallback. */
 export default function Viewer() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { doc } = useDocument(id);
+  const { doc, loading } = useDocument(id);
   const { c, dark } = useTheme();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<Loaded | null>(null);
@@ -40,6 +40,7 @@ export default function Viewer() {
   useEffect(() => {
     if (!doc) return;
     let alive = true;
+    let ownUri: string | null = null;
     (async () => {
       try {
         if (!(await unlockDoc(doc))) {
@@ -52,7 +53,7 @@ export default function Viewer() {
         const base = doc.name.replace(/\.[a-z0-9]{1,5}$/i, '') || 'document';
         let out: Loaded = { kind, ext: t.ext, mime: t.mime };
         if (kind === 'pdf' || kind === 'image' || kind === 'video' || kind === 'audio') {
-          out.uri = writeTempPlain(`${base}.${t.ext}`, plain).uri;
+          out.uri = ownUri = writeTempPlain(`${base}.${t.ext}`, plain).uri;
         } else if (kind === 'word') {
           out.html = await wordToHtml(plain, dark);
         } else if (kind === 'text') {
@@ -68,11 +69,28 @@ export default function Viewer() {
     })();
     return () => {
       alive = false;
-      purgeTempPlain(); // never leave plaintext behind
+      // Delete only this viewer's plaintext file (a share elsewhere may still be using others).
+      if (ownUri) deleteTemp(ownUri);
     };
   }, [doc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!doc) return <View style={{ flex: 1, backgroundColor: c.bg }} />;
+  if (!doc) {
+    return (
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
+        {loading ? (
+          <Message loading text="Opening…" />
+        ) : (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.lg }}>
+            <T v="heading">This document isn’t available</T>
+            <T v="callout" color="muted" style={{ textAlign: 'center' }}>
+              It may have been deleted on another device.
+            </T>
+            <Button title="Close" variant="secondary" onPress={() => router.back()} />
+          </View>
+        )}
+      </View>
+    );
+  }
   const darkChrome = data ? DARK_KINDS.includes(data.kind) : false;
   const fg = darkChrome ? '#fff' : c.text;
   const btnBg = darkChrome ? 'rgba(255,255,255,0.16)' : undefined;

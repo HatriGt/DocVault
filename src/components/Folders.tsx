@@ -10,6 +10,7 @@ import { useDocuments, useFolders } from '../lib/hooks';
 import { createFolder, Folder, FOLDER_COLORS, FOLDER_ICONS, isWithin, pathTo, updateFolder } from '../lib/folders';
 
 type IconName = keyof typeof Ionicons.glyphMap;
+const COLOR_NAMES: Record<string, string> = { '#5B45F2': 'Violet', '#2F80ED': 'Blue', '#F2B23A': 'Amber', '#E5484D': 'Red', '#15A06A': 'Green', '#F2784B': 'Orange', '#B04CE0': 'Purple', '#16132D': 'Ink' };
 
 /** Folder tile: tinted rounded square with icon, name and item count. */
 export function FolderTile({ folder, width, onPress, onLongPress }: { folder: Folder; width: number; onPress: () => void; onLongPress?: () => void }) {
@@ -110,14 +111,14 @@ export function FolderEditor({
         />
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md, justifyContent: 'center' }}>
           {FOLDER_COLORS.map((h) => (
-            <Tap key={h} onPress={() => setColor(h)} accessibilityLabel={`Colour ${h}`} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: h, borderWidth: color === h ? 3 : 0, borderColor: c.surface, ...(color === h ? elevation(c, 2) : {}) }}>
+            <Tap key={h} onPress={() => setColor(h)} accessibilityLabel={`${COLOR_NAMES[h] ?? 'Colour'}`} accessibilityState={{ selected: color === h }} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: h, borderWidth: color === h ? 3 : 0, borderColor: c.surface, ...(color === h ? elevation(c, 2) : {}) }}>
               <View />
             </Tap>
           ))}
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, justifyContent: 'center' }}>
           {FOLDER_ICONS.map((i) => (
-            <Tap key={i} onPress={() => setIcon(i)} accessibilityLabel={`Icon ${i}`} style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: icon === i ? color + '22' : c.surface, alignItems: 'center', justifyContent: 'center' }}>
+            <Tap key={i} onPress={() => setIcon(i)} accessibilityLabel={`Icon ${i.replace(/-/g, ' ')}`} accessibilityState={{ selected: icon === i }} style={{ width: 48, height: 48, borderRadius: radius.md, backgroundColor: icon === i ? color + '22' : c.surface, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name={i as IconName} size={22} color={icon === i ? color : c.textMuted} />
             </Tap>
           ))}

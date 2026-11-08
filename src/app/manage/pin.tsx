@@ -52,6 +52,7 @@ export default function PinSetup() {
         {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((k, i) => (
           <Tap
             key={i}
+            debounce={false}
             disabled={!k}
             accessibilityLabel={k === 'del' ? 'Delete' : k}
             onPress={() => (k === 'del' ? setPinValue(pin.slice(0, -1)) : press(k))}

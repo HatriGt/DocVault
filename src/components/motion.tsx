@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { T } from './ui';
 import { radius, space, useTheme } from '../theme';
+import { noTabSwipe } from './TabSwipe';
 
 // ---------- Swipe actions ----------
 function Action({ progress, icon, color, label, side }: { progress: SharedValue<number>; icon: keyof typeof Ionicons.glyphMap; color: string; label: string; side: 'left' | 'right' }) {
@@ -48,8 +49,8 @@ export function SwipeRow({ children, favorite, onFavorite, onDelete }: { childre
       leftThreshold={70}
       rightThreshold={70}
       overshootFriction={6}
-      renderLeftActions={(p, t) => (translation.current = t) && <Action progress={p} icon={favorite ? 'heart-dislike' : 'heart'} color={c.danger} label={favorite ? 'Unfavorite' : 'Favorite'} side="left" />}
-      renderRightActions={(p, t) => (translation.current = t) && <Action progress={p} icon="trash" color={c.textMuted} label="Delete" side="right" />}
+      renderLeftActions={(p, t) => (translation.current = t) && <Action progress={p} icon={favorite ? 'heart-dislike' : 'heart'} color={c.accent} label={favorite ? 'Unfavorite' : 'Favorite'} side="left" />}
+      renderRightActions={(p, t) => (translation.current = t) && <Action progress={p} icon="trash" color={c.danger} label="Delete" side="right" />}
       onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})}
       onSwipeableOpen={() => {
         // Decide by the actual drag direction (robust across library versions):
@@ -96,6 +97,7 @@ export function WalletCarousel<T>({ data, itemWidth, gap, padding, keyOf, render
       decelerationRate="fast"
       onScroll={onScroll}
       scrollEventThrottle={16}
+      {...noTabSwipe}
       contentContainerStyle={{ paddingHorizontal: padding, gap, paddingVertical: space.md }}
     >
       {data.map((d, i) => (

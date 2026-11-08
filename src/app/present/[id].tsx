@@ -14,7 +14,7 @@ import { fonts, space } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { decryptDocument, parseFields } from '../../lib/documents';
-import { purgeTempPlain, writeTempPlain } from '../../lib/blobs';
+import { deleteTemp, writeTempPlain } from '../../lib/blobs';
 import { resolveType } from '../../lib/filetype';
 import { formatDate } from '../../lib/format';
 import { DUR, EASE_OUT } from '../../theme/motion';
@@ -42,13 +42,13 @@ export default function Present() {
       .catch(() => {});
     return () => {
       if (prev != null) Brightness.setBrightnessAsync(prev).catch(() => {});
-      purgeTempPlain();
     };
   }, []);
 
   useEffect(() => {
     if (!doc) return;
     let alive = true;
+    let ownUri: string | null = null;
     (async () => {
       let next: { uri: string; kind: 'image' | 'pdf' | 'card' } = { uri: '', kind: 'card' };
       if (!(CARD_TYPES.has(doc.doc_type ?? '') && !doc.mime.startsWith('image/'))) {
@@ -56,13 +56,14 @@ export default function Present() {
           const plain = await decryptDocument(doc);
           const t = resolveType(plain, `${doc.name}.${doc.ext}`, doc.mime);
           const kind = t.mime === 'application/pdf' ? 'pdf' : t.mime.startsWith('image/') ? 'image' : 'card';
-          next = { uri: kind === 'card' ? '' : writeTempPlain(`present.${t.ext}`, plain).uri, kind };
+          next = { uri: kind === 'card' ? '' : (ownUri = writeTempPlain(`present-${doc.id}.${t.ext}`, plain).uri), kind };
         } catch {}
       }
       if (alive) setFile(next);
     })();
     return () => {
       alive = false;
+      if (ownUri) deleteTemp(ownUri);
     };
     // Depend on the id only: decrypting a cloud-only doc updates the row, which would re-run this effect.
   }, [doc?.id]); // eslint-disable-line react-hooks/exhaustive-deps

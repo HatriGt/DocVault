@@ -12,9 +12,12 @@ import { relockAll } from '../lib/guard';
 import { radius, space, useTheme } from '../theme';
 import { T, Tap } from './ui';
 
+const clock = () => Date.now();
+
 /** Full-screen privacy shield + biometric / PIN lock. */
 export function AppLock({ children }: { children: React.ReactNode }) {
-  const [locked, setLocked] = useState(false);
+  // null = prefs not loaded yet → show the shield, so vault content never flashes on cold start.
+  const [locked, setLocked] = useState<boolean | null>(null);
   const [shield, setShield] = useState(false);
   const bgAt = useRef<number | null>(null);
 
@@ -34,6 +37,7 @@ export function AppLock({ children }: { children: React.ReactNode }) {
         const p = await getPrefs();
         const away = bgAt.current ? (Date.now() - bgAt.current) / 1000 : 0;
         bgAt.current = null;
+        if (away >= 60) purgeTempPlain(); // drop decrypted leftovers after a real absence
         if ((p.biometricLock || p.pinLock) && away >= p.lockAfterSeconds) {
           lockKeysInMemory();
           relockAll();
@@ -48,9 +52,9 @@ export function AppLock({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1 }}>
       {children}
-      {(locked || shield) && (
+      {(locked !== false || shield) && (
         <Animated.View entering={FadeIn.duration(120)} exiting={FadeOut.duration(200)} style={StyleSheet.absoluteFill}>
-          <LockScreen showControls={locked} onUnlock={() => setLocked(false)} />
+          <LockScreen showControls={locked === true} onUnlock={() => setLocked(false)} />
         </Animated.View>
       )}
     </View>
@@ -63,6 +67,24 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
   const [pin, setPin] = useState('');
   const [hasBio, setHasBio] = useState(false);
   const [pinEnabled, setPinEnabled] = useState(false);
+  const [fails, setFails] = useState(0);
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [remaining, setRemaining] = useState(0); // seconds left in the PIN back-off
+  useEffect(() => {
+    if (!waitUntil) return;
+    const tick = () => {
+      const left = Math.ceil((waitUntil - Date.now()) / 1000);
+      setRemaining(Math.max(0, left));
+      if (left <= 0) setWaitUntil(0);
+    };
+    const t = setInterval(tick, 500);
+    const first = setTimeout(tick, 0);
+    return () => {
+      clearInterval(t);
+      clearTimeout(first);
+    };
+  }, [waitUntil]);
+  const waiting = waitUntil !== 0 && remaining > 0;
   const shake = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
 
@@ -88,12 +110,23 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
   }, [showControls, tryBiometric]);
 
   const press = async (d: string) => {
+    if (waiting) return;
     Haptics.selectionAsync().catch(() => {});
     const next = (pin + d).slice(0, 6);
     setPin(next);
     if (next.length === 6) {
-      if (await verifyPin(next)) onUnlock();
-      else {
+      if (await verifyPin(next)) {
+        setFails(0);
+        onUnlock();
+      } else {
+        const n = fails + 1;
+        setFails(n);
+        // After 5 wrong PINs: 30s, 60s, 120s… between attempts.
+        if (n >= 5) {
+          const ms = 30_000 * 2 ** Math.min(n - 5, 5);
+          setRemaining(Math.ceil(ms / 1000));
+          setWaitUntil(clock() + ms);
+        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         shake.set(withSequence(...[-10, 10, -8, 8, 0].map((x) => withTiming(x, { duration: 50 }))));
         setPin('');
@@ -111,6 +144,11 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
         <>
           {pinMode && pinEnabled ? (
             <>
+              {waiting && (
+                <T v="callout" color="danger" style={{ marginTop: space.lg }}>
+                  Too many attempts. Try again in {remaining}s
+                </T>
+              )}
               <Animated.View style={[{ flexDirection: 'row', gap: space.md, marginVertical: space.xxl }, shakeStyle]}>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <View
@@ -123,6 +161,7 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bio', '0', 'del'].map((k) => (
                   <Tap
                     key={k}
+                    debounce={false}
                     accessibilityLabel={k === 'bio' ? 'Use biometrics' : k === 'del' ? 'Delete' : k}
                     onPress={() => (k === 'del' ? setPin(pin.slice(0, -1)) : k === 'bio' ? hasBio && tryBiometric() : press(k))}
                     style={{

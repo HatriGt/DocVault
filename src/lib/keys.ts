@@ -19,6 +19,7 @@ import {
   toB64,
   utf8,
   randomBytes,
+  hashHex,
 } from './crypto';
 
 const VMK_KEY = 'dv.vmk.v1';
@@ -35,6 +36,7 @@ export interface VaultKeyFile {
   kdf: KdfParams;
   wrappedVmk: string; // b64 envelope
   createdAt: number;
+  vaultId?: string; // non-secret fingerprint of the VMK, identifies which vault this key file belongs to
 }
 
 export async function hasLocalVaultKey() {
@@ -70,7 +72,7 @@ export async function createVault(): Promise<{ recoveryKey: string; keyFile: Vau
 export async function wrapForRecovery(vmk: Uint8Array, recoveryKey: string): Promise<VaultKeyFile> {
   const kdf = newKdfParams();
   const kek = await deriveKek(normalizeRecoveryKey(recoveryKey), kdf);
-  return { v: 1, kdf, wrappedVmk: toB64(seal(kek, vmk, 'vmk')), createdAt: Date.now() };
+  return { v: 1, kdf, wrappedVmk: toB64(seal(kek, vmk, 'vmk')), createdAt: Date.now(), vaultId: vaultIdOf(vmk) };
 }
 
 /** Re-key recovery: generates a new recovery key for the existing VMK. */
@@ -90,6 +92,15 @@ export async function restoreVault(keyFile: VaultKeyFile, recoveryKey: string) {
     throw new Error('That recovery key doesn’t match this vault.');
   }
   await persistVmk(vmk);
+}
+
+/** Short non-secret fingerprint of the VMK (truncated SHA-256 of a domain-separated hash). */
+export function vaultIdOf(vmk: Uint8Array) {
+  return hashHex(new Uint8Array([...utf8('docvault-vault-id:'), ...vmk])).slice(0, 16);
+}
+
+export async function currentVaultId() {
+  return vaultIdOf(await getVmk());
 }
 
 // ---------- per-document keys ----------

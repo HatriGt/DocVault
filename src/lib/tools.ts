@@ -107,12 +107,17 @@ async function embeddable(doc: DocRecord): Promise<{ bytes: Uint8Array; png: boo
   const f = writeTempPlain(`conv-${doc.id}.${t?.ext ?? 'img'}`, plain);
   const ref = await ImageManipulator.manipulate(f.uri).renderAsync();
   const saved = await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.9 });
-  const bytes = await new File(saved.uri).bytes();
-  new File(saved.uri).delete();
-  return { bytes, png: false };
+  try {
+    return { bytes: await new File(saved.uri).bytes(), png: false };
+  } finally {
+    try {
+      new File(saved.uri).delete();
+    } catch {}
+  }
 }
 
 export async function imagesToPdf(docs: DocRecord[], opts: { page: 'fit' | 'a4'; margin: number }, name: string) {
+  needDocs(docs);
   try {
     const pdf = await PDFDocument.create();
     for (const d of docs) {
@@ -137,7 +142,13 @@ export async function imagesToPdf(docs: DocRecord[], opts: { page: 'fit' | 'a4';
 }
 
 async function loadPdf(doc: DocRecord) {
-  return PDFDocument.load(await decryptDocument(doc), { ignoreEncryption: true });
+  const pdf = await PDFDocument.load(await decryptDocument(doc), { ignoreEncryption: true });
+  if (pdf.isEncrypted) throw new Error(`“${doc.name}” is password-protected, so its pages can’t be edited.`);
+  return pdf;
+}
+
+function needDocs(docs: DocRecord[], min = 1) {
+  if (docs.length < min) throw new Error(min > 1 ? `Select at least ${min} documents.` : 'Select a document first.');
 }
 
 export async function pdfPageCount(doc: DocRecord) {
@@ -145,17 +156,25 @@ export async function pdfPageCount(doc: DocRecord) {
 }
 
 export async function mergePdfs(docs: DocRecord[], name: string) {
-  const out = await PDFDocument.create();
-  for (const d of docs) {
-    const src = await loadPdf(d);
-    const pages = await out.copyPages(src, src.getPageIndices());
-    pages.forEach((p) => out.addPage(p));
+  needDocs(docs, 2);
+  const total = docs.reduce((n, d) => n + d.size, 0);
+  if (total > 300 * 1024 * 1024) throw new Error('These PDFs are too large to merge on this phone (over 300 MB combined).');
+  try {
+    const out = await PDFDocument.create();
+    for (const d of docs) {
+      const src = await loadPdf(d);
+      const pages = await out.copyPages(src, src.getPageIndices());
+      pages.forEach((p) => out.addPage(p));
+    }
+    return await output(docs[0], await out.save(), 'application/pdf', 'pdf', 'new', name);
+  } finally {
+    purgeTempPlain();
   }
-  return output(docs[0], await out.save(), 'application/pdf', 'pdf', 'new', name);
 }
 
 /** Extracts the given 0-based pages into one new PDF. */
 export async function extractPages(doc: DocRecord, pages: number[], name: string) {
+  if (!pages.length) throw new Error('Choose at least one page to extract.');
   const src = await loadPdf(doc);
   const out = await PDFDocument.create();
   (await out.copyPages(src, pages)).forEach((p) => out.addPage(p));
