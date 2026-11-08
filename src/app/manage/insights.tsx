@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
-import Animated, { FadeInDown, useAnimatedStyle, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withDelay, withTiming } from 'react-native-reanimated';
+import { FadeInDown } from '../../theme/anim';
 import { T } from '../../components/ui';
 import { radius, space, useTheme } from '../../theme';
 import { useCategories, useDocuments, useFolders, useTags } from '../../lib/hooks';

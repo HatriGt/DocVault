@@ -3,7 +3,8 @@ import { RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } fro
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { FadeInDown } from '../../theme/anim';
 import { Backdrop } from '../../components/Backdrop';
 import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

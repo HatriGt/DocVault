@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeOutDown, SlideInDown } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { FadeOutDown, SlideInDown } from '../theme/anim';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { T, Tap } from './ui';
 import { elevation, fonts, radius, space, useTheme } from '../theme';

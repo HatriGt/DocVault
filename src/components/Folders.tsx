@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { FadeIn, FadeInDown, LinearTransition } from '../theme/anim';
 import { Button, T, Tap } from './ui';
 import { BottomSheet } from './Sheet';
 import { elevation, fonts, radius, space, type, useTheme } from '../theme';

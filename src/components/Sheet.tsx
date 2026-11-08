@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, useAnimatedKeyboard, useAnimatedStyle, Easing } from 'react-native-reanimated';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle, Easing } from 'react-native-reanimated';
+import { FadeIn, FadeOut, SlideInDown, SlideOutDown } from '../theme/anim';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts, radius, space, useTheme } from '../theme';
 import { DUR, EASE_OUT } from '../theme/motion';
