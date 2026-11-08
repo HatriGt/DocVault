@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -43,7 +44,16 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const items = state.routes.map((route, i) => (
     <TabItem key={route.key} name={route.name} focused={state.index === i} onPress={() => state.index !== i && navigateToTab(route.key)} />
   ));
+  const bottom = Math.max(insets.bottom, space.md);
   return (
+    <>
+      {/* Soft fade so scrolling content doesn't show beneath/around the floating dock */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[c.bg + '00', c.bg + 'E6', c.bg]}
+        locations={[0, 0.45, 1]}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: bottom + TAB_BAR_HEIGHT + 36 }}
+      />
     <View style={[{ position: 'absolute', left: space.lg, right: space.lg, bottom: Math.max(insets.bottom, space.md), height: TAB_BAR_HEIGHT, borderRadius: radius.xl, backgroundColor: c.surface, flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.sm }, elevation(c, 3)]}>
       {items.slice(0, 2)}
       <View style={{ width: 72, alignItems: 'center' }}>
@@ -57,5 +67,6 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
       </View>
       {items.slice(2)}
     </View>
+    </>
   );
 }

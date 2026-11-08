@@ -7,12 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
 import { Banner, Button, Chip, Group, IconButton, Row, Screen, T, Tap } from '../../components/ui';
-import { categoryOf, DocThumb, PassportBook, SyncBadge, WalletCard } from '../../components/docs';
+import { categoryOf, PassportBook, SyncBadge, WalletCard } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { TagPill } from '../../components/Tags';
 import { useFolderLabel } from '../../components/Folders';
 import { Backdrop } from '../../components/Backdrop';
 import { ActivityList } from '../../components/ActivityList';
+import { DocPreview } from '../../components/DocPreview';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
@@ -133,8 +134,8 @@ export default function DocumentDetail() {
               </View>
             </>
           ) : (
-            <Tap onPress={() => run('open')} accessibilityLabel="Open document">
-              <DocThumb doc={doc} size={Math.min(width * 0.5, 220)} />
+            <Tap onPress={() => run('open')} accessibilityLabel="Open document" scaleTo={0.98}>
+              <DocPreview doc={doc} width={width} />
             </Tap>
           )}
         </View>

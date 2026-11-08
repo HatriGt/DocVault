@@ -88,3 +88,10 @@ test('large payloads round-trip', () => {
   const big = new Uint8Array(5 * 1024 * 1024).map((_, i) => i & 255);
   assert.deepEqual(open(key, seal(key, big, 'doc:big'), 'doc:big'), big);
 });
+
+import { deriveKekJs } from '../src/lib/crypto.ts';
+test('native scrypt is byte-identical to the previous pure-JS scrypt (recovery keys stay valid)', async () => {
+  const params = { ...newKdfParams(), N: 2 ** 14 };
+  const secret = normalizeRecoveryKey(generateRecoveryKey());
+  assert.deepEqual(await deriveKek(secret, params), await deriveKekJs(secret, params));
+});

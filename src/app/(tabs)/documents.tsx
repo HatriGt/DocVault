@@ -154,11 +154,15 @@ export default function Library() {
                 <FolderTile key={f.id} folder={f} width={132} onPress={() => router.push(`/folder/${f.id}`)} />
               ))}
               {rootFolders.length === 0 && (
-                <Tap onPress={() => setNewFolder(true)} style={{ width: 210, height: 120, borderRadius: radius.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint, alignItems: 'center', justifyContent: 'center', gap: 4, padding: space.md }}>
-                  <Ionicons name="folder-open-outline" size={24} color={c.textMuted} />
+                <Tap
+                  onPress={() => setNewFolder(true)}
+                  accessibilityLabel="Create a folder"
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 48, paddingHorizontal: space.lg, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint }}
+                >
+                  <Ionicons name="add" size={18} color={c.textMuted} />
                   <T v="callout">Create a folder</T>
                   <T v="caption" color="muted">
-                    e.g. Family › Kids › School
+                    e.g. Family › Kids
                   </T>
                 </Tap>
               )}

@@ -229,6 +229,8 @@ export function DocThumb({ doc, size = 56 }: { doc: DocRecord; size?: number }) 
 // ---------- List row ----------
 export function StatusDot({ doc }: { doc: DocRecord }) {
   const { c } = useTheme();
+  // In a phone-only vault every row would say the same thing; only show states that differ.
+  if (doc.sync_state === 'local_only') return null;
   const sp = syncSpec(doc);
   const color = { success: c.success, muted: c.textFaint, accent: c.gold, warning: c.warning, danger: c.danger }[sp.tone];
   return (

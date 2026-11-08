@@ -124,7 +124,7 @@ export default function Onboarding() {
           item ? (
             <View style={{ width, paddingHorizontal: space.xxl, justifyContent: 'center' }}>
               <Hero icon={item.icon} />
-              <T v="display" style={{ marginTop: space.xxxl }}>
+              <T v="display" style={{ marginTop: space.xl }}>
                 {item.title}
               </T>
               <T v="body" color="muted" style={{ marginTop: space.lg }}>
@@ -173,9 +173,12 @@ export default function Onboarding() {
 
 function Hero({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
   const { c } = useTheme();
+  const { height } = useWindowDimensions();
+  // Scale down on short screens so the slide text is never clipped.
+  const k = Math.max(0.6, Math.min(1, (height - 520) / 300));
   return (
-    <View style={{ height: 260, alignItems: 'center', justifyContent: 'center' }}>
-      {[220, 160, 100].map((s, i) => (
+    <View style={{ height: 260 * k, alignItems: 'center', justifyContent: 'center' }}>
+      {[220 * k, 160 * k, 100 * k].map((s, i) => (
         <View
           key={s}
           style={{
@@ -188,8 +191,8 @@ function Hero({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
           }}
         />
       ))}
-      <View style={{ width: 88, height: 88, borderRadius: radius.xl, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={42} color={c.onAccent} />
+      <View style={{ width: 88 * k, height: 88 * k, borderRadius: radius.xl * k, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={42 * k} color={c.onAccent} />
       </View>
     </View>
   );

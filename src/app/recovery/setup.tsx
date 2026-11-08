@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share, Switch, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, Share, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -44,6 +44,11 @@ export default function RecoverySetup() {
 
   const lastGroup = key.split('-').slice(-1)[0];
   const confirmOk = normalizeRecoveryKey(check) === lastGroup;
+  const confirmKey = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    kvSet('recovery.unconfirmed', false);
+    setStep('profile');
+  };
 
   const finish = async () => {
     setFinishing(true);
@@ -61,7 +66,8 @@ export default function RecoverySetup() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ padding: space.xxl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: space.xxl, paddingBottom: space.xxl + space.lg, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {step === 'intro' && (
           <Animated.View entering={FadeIn} style={{ flex: 1 }}>
             <Badge icon="key" />
@@ -143,7 +149,13 @@ export default function RecoverySetup() {
               label="Last group"
               testID="recovery-confirm-input"
               value={check}
-              onChangeText={setCheck}
+              onChangeText={(v) => {
+                setCheck(v);
+                // Continue automatically once the last group matches — no need to close the keyboard.
+                if (normalizeRecoveryKey(v) === lastGroup) setTimeout(confirmKey, 250);
+              }}
+              onSubmitEditing={() => confirmOk && confirmKey()}
+              returnKeyType="done"
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={4}
@@ -152,15 +164,7 @@ export default function RecoverySetup() {
             />
             <View style={{ flex: 1 }} />
             <Button title="Back" variant="ghost" onPress={() => setStep('show')} style={{ marginTop: space.xl }} />
-            <Button
-              title="Confirm"
-              disabled={!confirmOk}
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-                kvSet('recovery.unconfirmed', false);
-                setStep('profile');
-              }}
-            />
+            <Button title="Confirm" disabled={!confirmOk} onPress={confirmKey} />
           </Animated.View>
         )}
 
@@ -169,7 +173,7 @@ export default function RecoverySetup() {
             <Badge icon="sparkles" />
             <T v="title">Almost there</T>
             {account.mode === 'local' && (
-              <Field label="What should we call you?" testID="profile-name-input" value={name} onChangeText={setName} placeholder="Your first name" autoFocus />
+              <Field label="What should we call you?" testID="profile-name-input" value={name} onChangeText={setName} placeholder="Your first name" autoFocus returnKeyType="done" onSubmitEditing={finish} />
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, gap: space.md }}>
               <View style={{ flex: 1 }}>
@@ -185,6 +189,7 @@ export default function RecoverySetup() {
           </Animated.View>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

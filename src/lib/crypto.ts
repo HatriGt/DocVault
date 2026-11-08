@@ -142,14 +142,26 @@ export function newKdfParams(): KdfParams {
   return { alg: 'scrypt', salt: toB64(randomBytes(16)), N: 2 ** 15, r: 8, p: 1 };
 }
 
+/**
+ * scrypt via native OpenSSL (react-native-quick-crypto) — ~10-50x faster than the
+ * pure-JS implementation on phones. Output is standard scrypt, byte-identical to
+ * the previous @noble/hashes implementation, so existing recovery keys still work.
+ */
 export async function deriveKek(secret: string, params: KdfParams): Promise<Uint8Array> {
-  return scryptAsync(utf8(secret), fromB64(params.salt), {
-    N: params.N,
-    r: params.r,
-    p: params.p,
-    dkLen: 32,
+  return new Promise((resolve, reject) => {
+    QuickCrypto.scrypt(
+      utf8(secret) as never,
+      fromB64(params.salt) as never,
+      32,
+      { N: params.N, r: params.r, p: params.p, maxmem: 512 * 1024 * 1024 },
+      (err: Error | null, key?: Uint8Array) => (err || !key ? reject(err ?? new Error('scrypt failed')) : resolve(new Uint8Array(key))),
+    );
   });
 }
+
+/** Pure-JS fallback, kept for compatibility tests. */
+export const deriveKekJs = (secret: string, params: KdfParams) =>
+  scryptAsync(utf8(secret), fromB64(params.salt), { N: params.N, r: params.r, p: params.p, dkLen: 32 });
 
 /** Constant-time comparison for PIN verification hashes. */
 export function timingSafeEqual(a: Uint8Array, b: Uint8Array) {
