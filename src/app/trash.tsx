@@ -24,9 +24,9 @@ export default function Trash() {
   const daysLeft = (t: number | null) => Math.max(0, 30 - Math.floor((now - (t ?? now)) / 86_400_000));
 
   const confirmEmpty = () =>
-    Alert.alert('Empty Recently Deleted?', `${items.length} documents will be permanently deleted from this device, your Drive and your other devices. This can’t be undone.`, [
+    Alert.alert('Empty Recently deleted?', `${items.length} documents will be permanently deleted from this device, your Drive and your other devices. This can’t be undone.`, [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete forever', style: 'destructive', onPress: () => emptyTrash(items).then(() => toast('Recently Deleted emptied', { icon: 'checkmark-circle' })) },
+      { text: 'Delete forever', style: 'destructive', onPress: () => emptyTrash(items).then(() => toast('Recently deleted emptied', { icon: 'checkmark-circle' })) },
     ]);
 
   return (
@@ -40,7 +40,7 @@ export default function Trash() {
           <View style={{ paddingTop: space.sm, marginBottom: space.lg }}>
             <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} size={40} />
             <T v="title" style={{ marginTop: space.lg }}>
-              Recently Deleted
+              Recently deleted
             </T>
             <T v="callout" color="muted" style={{ marginTop: 4 }}>
               Documents are kept for 30 days, then removed for good.

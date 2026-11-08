@@ -77,7 +77,7 @@ export function VaultCard() {
               <T v="caption" color={c.heroMuted} style={{ fontSize: 11 }}>
                 {x.k}
               </T>
-              <T v="bodyStrong" color={c.heroText} numberOfLines={1} style={{ marginTop: 2 }}>
+              <T v="bodyStrong" color={c.heroText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ marginTop: 2 }}>
                 {x.v}
               </T>
             </View>

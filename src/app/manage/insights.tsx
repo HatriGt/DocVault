@@ -54,7 +54,7 @@ export default function Insights() {
 
   return (
     <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.xl, paddingBottom: 60 }}>
-      <Stack.Screen options={{ title: 'Vault insights' }} />
+      <Stack.Screen options={{ title: 'Insights' }} />
       <Animated.View entering={FadeInDown} style={{ backgroundColor: c.hero, borderRadius: radius.xl, padding: space.xl }}>
         <T v="overline" color={c.heroMuted}>
           TOTAL STORED

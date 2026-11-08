@@ -32,7 +32,7 @@ export async function presentDoc(doc: DocRecord) {
 export async function confirmDelete(doc: DocRecord, after?: () => void) {
   await deleteDocument(doc);
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-  toast(`“${doc.name}” moved to Recently Deleted`, { icon: 'trash-outline', action: { label: 'Undo', run: () => restoreDocument({ ...doc, trashed_at: Date.now() }) } });
+  toast(`“${doc.name}” moved to Recently deleted`, { icon: 'trash-outline', action: { label: 'Undo', run: () => restoreDocument({ ...doc, trashed_at: Date.now() }) } });
   after?.();
 }
 

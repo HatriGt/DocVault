@@ -130,8 +130,8 @@ export default function RecoverySetup() {
               accessibilityLabel={`Recovery key ${key.split('').join(' ')}`}
             >
               {key.split('-').map((g, i) => (
-                <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                  <T v="mono" selectable testID={i === key.split('-').length - 1 ? 'recovery-key-last' : undefined} style={{ fontFamily: fonts.bold }}>
+                <View key={i} style={{ width: '30%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
+                  <T v="mono" selectable numberOfLines={1} testID={i === key.split('-').length - 1 ? 'recovery-key-last' : undefined} style={{ fontFamily: fonts.bold }}>
                     {g}
                   </T>
                 </View>

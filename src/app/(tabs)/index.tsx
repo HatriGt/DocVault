@@ -132,7 +132,7 @@ export default function Home() {
               <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name={q.icon} size={23} color={c.text} />
               </View>
-              <T v="caption" color="muted">
+              <T v="caption" color="muted" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                 {q.label}
               </T>
             </Tap>
@@ -213,14 +213,16 @@ export default function Home() {
                 {rootFolders.map((f) => (
                   <FolderTile key={f.id} folder={f} width={(width - pad * 2 - space.md) / 2} onPress={() => router.push(`/folder/${f.id}`)} />
                 ))}
-                {rootFolders.length < 2 && (
+                {rootFolders.length === 0 && (
                   <Tap
                     onPress={() => setNewFolder(true)}
-                    style={{ width: (width - pad * 2 - space.md) / 2, height: 132, borderRadius: radius.lg, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint, alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    accessibilityLabel="Create a folder"
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 48, paddingHorizontal: space.lg, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint }}
                   >
-                    <Ionicons name="add" size={22} color={c.textMuted} />
-                    <T v="callout" color="muted">
-                      New folder
+                    <Ionicons name="add" size={18} color={c.textMuted} />
+                    <T v="callout">Create a folder</T>
+                    <T v="caption" color="muted">
+                      e.g. Family › Kids
                     </T>
                   </Tap>
                 )}
