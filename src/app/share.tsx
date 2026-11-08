@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { KeyboardSpacer } from '../components/KeyboardSpacer';
 import { router } from 'expo-router';
 import { useIncomingShare } from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -194,7 +195,7 @@ export default function ShareInto() {
       </LinearGradient>
 
       {/* Sheet */}
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, marginTop: -space.xxxl }}>
+      <View style={{ flex: 1, marginTop: -space.xxxl }}>
         <Animated.View
           entering={FadeInUp.duration(DUR.slow).easing(EASE_OUT)}
           style={[{ flex: 1, backgroundColor: c.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }, elevation(c, 2)]}
@@ -295,7 +296,8 @@ export default function ShareInto() {
             </Animated.View>
           )}
         </Animated.View>
-      </KeyboardAvoidingView>
+        <KeyboardSpacer />
+      </View>
     </View>
   );
 }

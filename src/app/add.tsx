@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { KeyboardSpacer } from '../components/KeyboardSpacer';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -173,7 +174,7 @@ export default function AddDocument() {
       )}
 
       {step === 'details' && src && (
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
             <SourcePreview src={src} />
             {!ocrAvailable() && form.docType && (
@@ -188,7 +189,8 @@ export default function AddDocument() {
           <View style={{ padding: space.xl, paddingTop: space.sm }}>
             <Button title="Continue" onPress={() => setStep('confirm')} disabled={!form.name.trim() || !expiryValid(form.expiry)} />
           </View>
-        </KeyboardAvoidingView>
+          <KeyboardSpacer />
+      </View>
       )}
 
       {step === 'confirm' && src && (

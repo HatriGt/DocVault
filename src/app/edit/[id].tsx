@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { KeyboardSpacer } from '../../components/KeyboardSpacer';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Button, IconButton, Screen, T } from '../../components/ui';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../../components/DetailsForm';
@@ -52,14 +53,15 @@ function EditForm({ doc }: { doc: DocRecord }) {
         <T v="bodyStrong">Edit details</T>
         <View style={{ width: 44 }} />
       </View>
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: space.xl }} keyboardShouldPersistTaps="handled">
           <DetailsForm value={form} onChange={setForm} />
         </ScrollView>
         <View style={{ padding: space.xl, paddingTop: space.sm }}>
           <Button title="Save changes" onPress={save} loading={saving} disabled={!form.name.trim() || !expiryValid(form.expiry)} />
         </View>
-      </KeyboardAvoidingView>
+        <KeyboardSpacer />
+      </View>
     </Screen>
   );
 }
