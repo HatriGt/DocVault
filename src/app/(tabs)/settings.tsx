@@ -68,22 +68,28 @@ export default function Settings() {
           </View>
         </View>
 
-        <Group title="Cloud & sync">
+        <Group title="Backup">
           {account?.mode === 'google' ? (
-            <Row icon="logo-google" title="Google Drive" subtitle="Encrypted backup in a private app folder" value="Connected" />
+            <>
+              <Row icon="logo-google" title="Google Drive" subtitle="Encrypted backup in a private app folder" value="Connected" />
+              <Row
+                icon="sync-outline"
+                title="Sync status"
+                value={sync.running ? 'Syncing…' : relativeTime(sync.lastSyncAt)}
+                onPress={() => router.push('/manage/sync')}
+              />
+              <Row icon="cloud-download-outline" title="Offline storage" subtitle="Choose what stays on this phone" value={`${docs.filter((d) => d.has_local).length} of ${docs.length}`} onPress={() => router.push('/manage/storage')} />
+            </>
           ) : (
-            <Row icon="logo-google" title="Connect Google Drive" subtitle="Back up and sync across devices" onPress={() => router.push('/manage/connect')} />
+            <Row icon="cloud-upload-outline" title="Back up to Google Drive" subtitle="Not backed up — a lost phone means lost documents" onPress={() => router.push('/manage/connect')} />
           )}
-          <Row
-            icon="sync-outline"
-            title="Sync status"
-            value={account?.mode === 'google' ? (sync.running ? 'Syncing…' : relativeTime(sync.lastSyncAt)) : 'Off'}
-            onPress={() => router.push('/manage/sync')}
-          />
-          <Row icon="pie-chart-outline" title="Vault insights" subtitle="Storage, formats and coverage" onPress={() => router.push('/manage/insights')} />
+        </Group>
+
+        <Group title="Your vault">
           <Row icon="calendar-outline" title="Renewals" subtitle="Expiry timeline and reminders" onPress={() => router.push('/renewals')} />
-          <Row icon="trash-outline" title="Recently Deleted" subtitle="Restore within 30 days" onPress={() => router.push('/trash')} />
-          <Row icon="phone-portrait-outline" title="Offline storage" value={`${docs.filter((d) => d.has_local).length} of ${docs.length}`} onPress={() => router.push('/manage/storage')} />
+          <Row icon="pie-chart-outline" title="Insights" subtitle="Storage, formats and coverage" onPress={() => router.push('/manage/insights')} />
+          <Row icon="pricetags-outline" title="Categories" onPress={() => router.push('/manage/categories')} />
+          <Row icon="trash-outline" title="Recently deleted" subtitle="Restore within 30 days" onPress={() => router.push('/trash')} />
         </Group>
 
         <Group title="Security">
@@ -95,7 +101,6 @@ export default function Settings() {
         <Group title="Preferences">
           <Row icon="notifications-outline" title="Expiry reminders" value={prefs.expiryReminders ? 'On' : 'Off'} onPress={() => setPrefs({ expiryReminders: !prefs.expiryReminders })} />
           <Row icon="contrast-outline" title="Appearance" value={{ system: 'System', light: 'Light', dark: 'Dark' }[prefs.theme]} onPress={cycleTheme} />
-          <Row icon="folder-open-outline" title="Categories" onPress={() => router.push('/manage/categories')} />
         </Group>
 
         <Group title="About">
