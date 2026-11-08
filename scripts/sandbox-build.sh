@@ -68,6 +68,26 @@ else
   step "Native project unchanged"
 fi
 
+# TLS-inspecting sandbox proxies: curl/npm trust their CA via the system store or
+# NODE_EXTRA_CA_CERTS, but Java has its own store. Build one that includes it.
+EXTRA_CA="${DOCVAULT_EXTRA_CA:-${NODE_EXTRA_CA_CERTS:-}}"
+if [ -z "$EXTRA_CA" ]; then
+  for f in /usr/local/share/ca-certificates/*proxy*.crt; do [ -f "$f" ] && EXTRA_CA="$f" && break; done
+fi
+if [ -n "$EXTRA_CA" ] && [ -f "$EXTRA_CA" ]; then
+  JHOME="$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")"
+  STORE="$HOME/.docvault-cacerts"
+  if [ ! -f "$STORE" ] || [ "$EXTRA_CA" -nt "$STORE" ]; then
+    step "Adding $(basename "$EXTRA_CA") to a Java trust store"
+    cp "$JHOME/lib/security/cacerts" "$STORE"
+    chmod u+w "$STORE"
+    keytool -importcert -noprompt -trustcacerts -alias sandbox-proxy -file "$EXTRA_CA" -keystore "$STORE" -storepass changeit >/dev/null
+  fi
+  # Applies to the Gradle wrapper, daemon and Kotlin compiler JVMs alike.
+  export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS:-} -Djavax.net.ssl.trustStore=$STORE -Djavax.net.ssl.trustStorePassword=changeit"
+  ./android/gradlew --stop >/dev/null 2>&1 || true   # daemons started without the store must not be reused
+fi
+
 # Java ignores HTTPS_PROXY; pass it to Gradle if the sandbox uses one.
 GRADLE_NET=()
 if [ -n "${HTTPS_PROXY:-${https_proxy:-}}" ]; then
