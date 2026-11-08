@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
@@ -7,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { EmptyState, Screen, SectionHeader, T, Tap } from '../../components/ui';
 import { DocRow, WalletCard } from '../../components/docs';
-import { space } from '../../theme';
+import { space, useTheme } from '../../theme';
 import { useDocuments } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { DUR, EASE_OUT } from '../../theme/motion';
@@ -16,6 +17,7 @@ import { DUR, EASE_OUT } from '../../theme/motion';
 export default function Favorites() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const { c } = useTheme();
   const { docs, loading } = useDocuments();
   const favs = useMemo(() => docs.filter((d) => d.favorite).sort((a, b) => b.pinned - a.pinned), [docs]);
   const cards = favs.filter((d) => CARD_TYPES.has(d.doc_type ?? ''));
@@ -68,6 +70,12 @@ export default function Favorites() {
                 ))}
               </View>
             )}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: space.xxl, paddingHorizontal: space.xl }}>
+              <Ionicons name="heart-outline" size={14} color={c.textFaint} />
+              <T v="caption" color="faint" style={{ textAlign: 'center' }}>
+                Tap the heart on any document to add it here
+              </T>
+            </View>
           </>
         )}
       </ScrollView>
