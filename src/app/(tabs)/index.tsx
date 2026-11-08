@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Backdrop } from '../../components/Backdrop';
+import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
 import { DocRow, EssentialCard } from '../../components/docs';
@@ -63,8 +64,8 @@ export default function Home() {
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   const cardW = Math.min(width * 0.78, 330);
   const QUICK: { icon: keyof typeof Ionicons.glyphMap; label: string; go: () => void }[] = [
-    { icon: 'scan-outline', label: 'Scan', go: () => router.push({ pathname: '/add', params: { source: 'camera' } }) },
-    { icon: 'arrow-down-circle-outline', label: 'Import', go: () => router.push({ pathname: '/add', params: { source: 'files' } }) },
+    { icon: 'scan-outline', label: 'Scan', go: () => router.push('/add') },
+    { icon: 'arrow-down-circle-outline', label: 'Import', go: () => router.push('/add') },
     { icon: 'folder-open-outline', label: 'Folder', go: () => setNewFolder(true) },
     { icon: 'color-wand-outline', label: 'Tools', go: () => router.push('/tools') },
   ];
@@ -76,6 +77,7 @@ export default function Home() {
   };
 
   return (
+    <TabSwipe>
     <Screen>
       <Backdrop variant="home" />
       <ScrollView
@@ -229,6 +231,7 @@ export default function Home() {
       <FolderEditor visible={newFolder} onClose={() => setNewFolder(false)} parentId={null} onSaved={(f) => router.push(`/folder/${f.id}`)} />
       <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc) : []} />
     </Screen>
+    </TabSwipe>
   );
 }
 

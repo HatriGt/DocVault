@@ -1,6 +1,7 @@
 import React from 'react';
-import { Alert, Image, ScrollView, Switch, View } from 'react-native';
+import { Alert, Image, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
+import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Group, Row, Screen, T } from '../../components/ui';
 import { radius, space, useTheme } from '../../theme';
@@ -39,6 +40,7 @@ export default function Settings() {
   const cycleTheme = () => setPrefs({ theme: prefs.theme === 'system' ? 'light' : prefs.theme === 'light' ? 'dark' : 'system' });
 
   return (
+    <TabSwipe>
     <Screen>
       <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + 140 }}>
         <T v="title" style={{ marginBottom: space.xl }}>
@@ -86,12 +88,6 @@ export default function Settings() {
 
         <Group title="Security">
           <Row icon="finger-print" title="App lock" value={prefs.biometricLock ? 'Biometrics' : prefs.pinLock ? 'PIN' : 'Off'} onPress={() => router.push('/manage/security')} />
-          <Row
-            icon="eye-off-outline"
-            title="Screenshot protection"
-            subtitle="Block screenshots and hide the app in recents"
-            right={<Switch value={prefs.screenshotGuard} onValueChange={(v) => setPrefs({ screenshotGuard: v })} trackColor={{ true: c.accent }} />}
-          />
           <Row icon="key-outline" title="Recovery key" subtitle="Restore your vault on a new device" onPress={() => router.push('/manage/recovery')} />
           <Row icon="shield-checkmark-outline" title="Encryption" value="AES-256-GCM" onPress={() => router.push('/manage/privacy')} />
         </Group>
@@ -112,5 +108,6 @@ export default function Settings() {
         </Group>
       </ScrollView>
     </Screen>
+    </TabSwipe>
   );
 }

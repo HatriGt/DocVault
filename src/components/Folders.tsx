@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, TextInput, TextInputInstance, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { Button, T, Tap } from './ui';
 import { BottomSheet } from './Sheet';
 import { elevation, fonts, radius, space, type, useTheme } from '../theme';
+import { DUR } from '../theme/motion';
 import { useDocuments, useFolders } from '../lib/hooks';
 import { createFolder, Folder, FOLDER_COLORS, FOLDER_ICONS, isWithin, pathTo, updateFolder } from '../lib/folders';
 
@@ -59,6 +60,13 @@ export function FolderEditor({
   const [color, setColor] = useState(folder?.color ?? FOLDER_COLORS[0]);
   const [icon, setIcon] = useState<string>(folder?.icon ?? 'folder');
   const [openedFor, setOpenedFor] = useState<string | null>(null);
+  const input = useRef<TextInputInstance | null>(null);
+  useEffect(() => {
+    if (!visible || folder) return;
+    // Focus only after the sheet has settled, so the keyboard doesn't fight the entrance animation.
+    const t = setTimeout(() => input.current?.focus(), DUR.slow + 60);
+    return () => clearTimeout(t);
+  }, [visible, folder]);
   const key = visible ? folder?.id ?? `new:${parentId ?? ''}` : null;
   if (key !== openedFor) {
     setOpenedFor(key);
@@ -95,7 +103,7 @@ export function FolderEditor({
           onChangeText={setName}
           placeholder="Folder name"
           placeholderTextColor={c.textFaint}
-          autoFocus={!folder}
+          ref={input}
           returnKeyType="done"
           onSubmitEditing={save}
           style={[type.heading, { color: c.text, backgroundColor: c.surface, borderRadius: radius.md, height: 56, paddingHorizontal: space.lg, textAlign: 'center' }]}
@@ -142,7 +150,16 @@ export function FolderPicker({
   const folders = useFolders();
   const [cwd, setCwd] = useState<string | null>(value);
   const [creating, setCreating] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [opened, setOpened] = useState(false);
+  const startCreate = () => {
+    setCreating(true); // picker leaves first…
+    setTimeout(() => setEditorOpen(true), DUR.fast + 60); // …then the editor arrives
+  };
+  const endCreate = () => {
+    setEditorOpen(false);
+    setTimeout(() => setCreating(false), DUR.fast + 60);
+  };
   if (visible !== opened) {
     setOpened(visible);
     if (visible) setCwd(value);
@@ -194,7 +211,7 @@ export function FolderPicker({
           ))}
         </ScrollView>
         <View style={{ flexDirection: 'row', gap: space.md, paddingHorizontal: space.xl, marginTop: space.lg }}>
-          <Button title="New folder" icon="add" variant="secondary" onPress={() => setCreating(true)} style={{ flex: 1 }} />
+          <Button title="New folder" icon="add" variant="secondary" onPress={startCreate} style={{ flex: 1 }} />
           <Button
             title={action}
             onPress={() => {
@@ -205,7 +222,7 @@ export function FolderPicker({
           />
         </View>
       </BottomSheet>
-      <FolderEditor visible={visible && creating} onClose={() => setCreating(false)} parentId={cwd} onSaved={(f) => setCwd(f.id)} />
+      <FolderEditor visible={visible && editorOpen} onClose={endCreate} parentId={cwd} onSaved={(f) => setCwd(f.id)} />
     </>
   );
 }

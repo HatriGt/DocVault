@@ -14,6 +14,7 @@ import { formatBytes } from '../../lib/format';
 import { toolById } from '../../lib/toolCatalog';
 import { extractPages, imagesToPdf, mergePdfs, parsePageRanges, pdfPageCount, rotatePdf, splitPdf } from '../../lib/tools';
 import type { DocRecord } from '../../lib/db';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 type Step = 'pick' | 'options' | 'running' | 'done';
 
@@ -161,7 +162,7 @@ export default function RunTool() {
               <View style={{ gap: space.sm }}>
                 <T v="heading">Order</T>
                 {chosen.map((d, i) => (
-                  <Animated.View key={d.id} layout={LinearTransition.springify()} style={[{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.md, padding: space.sm }, elevation(c, 1)]}>
+                  <Animated.View key={d.id} layout={LinearTransition.duration(DUR.base).easing(EASE_OUT)} style={[{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.md, padding: space.sm }, elevation(c, 1)]}>
                     <T v="bodyStrong" color="accent" style={{ width: 22, textAlign: 'center' }}>
                       {i + 1}
                     </T>

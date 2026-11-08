@@ -4,7 +4,8 @@ import { router } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { DUR, EASE_OUT } from '../theme/motion';
 import { T, Tap } from './ui';
 import { elevation, radius, space, useTheme } from '../theme';
 
@@ -20,7 +21,10 @@ export const TAB_BAR_HEIGHT = 68;
 function TabItem({ name, focused, onPress }: { name: string; focused: boolean; onPress: () => void }) {
   const { c } = useTheme();
   const [on, off, label] = ICONS[name] ?? ['ellipse', 'ellipse-outline', name];
-  const dot = useAnimatedStyle(() => ({ opacity: withSpring(focused ? 1 : 0), transform: [{ scale: withSpring(focused ? 1 : 0.4) }] }));
+  const dot = useAnimatedStyle(() => ({
+    opacity: withTiming(focused ? 1 : 0, { duration: DUR.base, easing: EASE_OUT }),
+    transform: [{ scale: withTiming(focused ? 1 : 0.4, { duration: DUR.base, easing: EASE_OUT }) }],
+  }));
   return (
     <Tap accessibilityRole="tab" accessibilityState={{ selected: focused }} accessibilityLabel={label} onPress={onPress} style={{ flex: 1, height: TAB_BAR_HEIGHT, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
       <Ionicons name={focused ? on : off} size={22} color={focused ? c.accent : c.textFaint} />

@@ -20,6 +20,7 @@ import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { formatBytes } from '../lib/format';
 import { extForMime, extOf } from '../lib/filetype';
+import { DUR, EASE_OUT } from '../theme/motion';
 
 type Phase = 'form' | 'saving' | 'done';
 type Item = StackFile & { size: number | null; status: 'pending' | 'working' | 'done' | 'error'; id?: string; error?: string };
@@ -187,7 +188,7 @@ export default function ShareInto() {
       {/* Sheet */}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, marginTop: -space.xxxl }}>
         <Animated.View
-          entering={FadeInUp.springify().damping(18)}
+          entering={FadeInUp.duration(DUR.slow).easing(EASE_OUT)}
           style={[{ flex: 1, backgroundColor: c.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl }, elevation(c, 2)]}
         >
           {loading ? (
@@ -211,7 +212,7 @@ export default function ShareInto() {
             <>
               <ScrollView contentContainerStyle={{ padding: space.xl, paddingTop: space.xxl, gap: space.xl }} keyboardShouldPersistTaps="handled">
                 {single && form ? (
-                  <Animated.View entering={FadeInDown.delay(120).springify()}>
+                  <Animated.View entering={FadeInDown.delay(120).duration(DUR.slow).easing(EASE_OUT)}>
                     <FileChip f={items[0]} />
                     {form.docType && (
                       <Animated.View entering={FadeIn.delay(300)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.md }}>
@@ -227,10 +228,10 @@ export default function ShareInto() {
                   </Animated.View>
                 ) : (
                   <>
-                    <Animated.View entering={FadeInDown.delay(80).springify()} style={{ gap: space.md }}>
+                    <Animated.View entering={FadeInDown.delay(80).duration(DUR.slow).easing(EASE_OUT)} style={{ gap: space.md }}>
                       <T v="heading">Names</T>
                       {items.map((f, i) => (
-                        <Animated.View key={f.uri} entering={FadeInDown.delay(120 + i * 60).springify()}>
+                        <Animated.View key={f.uri} entering={FadeInDown.delay(120 + i * 60).duration(DUR.slow).easing(EASE_OUT)}>
                           <Field
                             label={`${kindLabel(f.mime, f.name)}${f.size ? ` · ${formatBytes(f.size)}` : ''}`}
                             value={names[i]}
@@ -239,7 +240,7 @@ export default function ShareInto() {
                         </Animated.View>
                       ))}
                     </Animated.View>
-                    <Animated.View entering={FadeInDown.delay(200).springify()} style={{ gap: space.sm }}>
+                    <Animated.View entering={FadeInDown.delay(200).duration(DUR.slow).easing(EASE_OUT)} style={{ gap: space.sm }}>
                       <T v="heading">Category for all</T>
                       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
                         {categories.map((cat) => (
@@ -247,12 +248,12 @@ export default function ShareInto() {
                         ))}
                       </ScrollView>
                     </Animated.View>
-                    <Animated.View entering={FadeInDown.delay(230).springify()} style={{ gap: space.sm }}>
+                    <Animated.View entering={FadeInDown.delay(230).duration(DUR.slow).easing(EASE_OUT)} style={{ gap: space.sm }}>
                       <T v="heading">Folder for all</T>
                       <Button title={multiFolderLabel} icon="folder-open-outline" variant="secondary" onPress={() => setPickFolder(true)} />
                       <FolderPicker visible={pickFolder} onClose={() => setPickFolder(false)} value={multiFolder} onPick={setMultiFolder} />
                     </Animated.View>
-                    <Animated.View entering={FadeInDown.delay(260).springify()}>
+                    <Animated.View entering={FadeInDown.delay(260).duration(DUR.slow).easing(EASE_OUT)}>
                       <TagInput value={tags} onChange={setTags} />
                     </Animated.View>
                   </>

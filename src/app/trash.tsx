@@ -12,6 +12,7 @@ import { useTrash } from '../lib/hooks';
 import { emptyTrash, purgeDocument, restoreDocument } from '../lib/documents';
 import { formatBytes } from '../lib/format';
 import { toast } from '../lib/toast';
+import { DUR, EASE_OUT } from '../theme/motion';
 
 /** Recently Deleted: restore within 30 days, or delete permanently. */
 export default function Trash() {
@@ -47,7 +48,7 @@ export default function Trash() {
         }
         ListEmptyComponent={<EmptyState icon="trash-outline" title="Nothing here" body="Deleted documents appear here for 30 days so you can restore them." />}
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 35)} exiting={FadeOutLeft} layout={LinearTransition.springify()}>
+          <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 35)} exiting={FadeOutLeft} layout={LinearTransition.duration(DUR.base).easing(EASE_OUT)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
               <DocThumb doc={item} size={44} />
               <View style={{ flex: 1 }}>

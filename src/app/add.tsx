@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -23,13 +23,12 @@ type Source = 'camera' | 'photos' | 'files';
 
 export default function AddDocument() {
   const { c } = useTheme();
-  const params = useLocalSearchParams<{ source?: Source; folder?: string }>();
+  const params = useLocalSearchParams<{ folder?: string }>();
   const { account } = useAccount();
   const [step, setStep] = useState<Step>('source');
   const [src, setSrc] = useState<(ImportSource & { size?: number }) | null>(null);
   const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [], folderId: params.folder ?? null });
   const [newId, setNewId] = useState<string | null>(null);
-  const autoStarted = useRef(false);
 
   const accept = async (s: ImportSource & { size?: number }) => {
     setSrc(s);
@@ -85,13 +84,6 @@ export default function AddDocument() {
     }
   };
 
-  useEffect(() => {
-    if (params.source && !autoStarted.current) {
-      autoStarted.current = true;
-      setTimeout(() => pick(params.source!), 350);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.source]);
 
   const save = async () => {
     if (!src) return;

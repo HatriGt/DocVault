@@ -4,13 +4,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Button, Chip, IconButton, T, Tap } from '../../components/ui';
 import { fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { discardWorking, ImageFormat, openWorking, saveWorking, transformWorking, Working } from '../../lib/tools';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 const ASPECTS = [
   { k: 'free', label: 'Free', r: 0 },
@@ -80,10 +81,10 @@ export default function ImageEditor() {
       if (cw / ch > ratio) cw = ch * ratio;
       else ch = cw / ratio;
     }
-    x.set(withSpring((dw - cw) / 2, { damping: 18 }));
-    y.set(withSpring((dh - ch) / 2, { damping: 18 }));
-    w.set(withSpring(cw, { damping: 18 }));
-    h.set(withSpring(ch, { damping: 18 }));
+    x.set(withTiming((dw - cw) / 2, { duration: DUR.base, easing: EASE_OUT }));
+    y.set(withTiming((dh - ch) / 2, { duration: DUR.base, easing: EASE_OUT }));
+    w.set(withTiming(cw, { duration: DUR.base, easing: EASE_OUT }));
+    h.set(withTiming(ch, { duration: DUR.base, easing: EASE_OUT }));
   };
 
   useEffect(() => {
@@ -254,7 +255,7 @@ export default function ImageEditor() {
       </View>
 
       {/* Controls sheet */}
-      <Animated.View entering={FadeInDown.springify().damping(18)} style={{ backgroundColor: c.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingTop: space.lg, paddingBottom: insets.bottom + space.lg, gap: space.lg }}>
+      <Animated.View entering={FadeInDown.duration(DUR.slow).easing(EASE_OUT)} style={{ backgroundColor: c.bg, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingTop: space.lg, paddingBottom: insets.bottom + space.lg, gap: space.lg }}>
         <View style={{ flexDirection: 'row', alignSelf: 'center', backgroundColor: c.surfaceAlt, borderRadius: radius.pill, padding: 4 }}>
           {(['crop', 'export'] as const).map((t) => (
             <Tap key={t} onPress={() => setTab(t)} style={{ paddingHorizontal: space.xl, height: 36, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: tab === t ? c.surface : 'transparent' }}>

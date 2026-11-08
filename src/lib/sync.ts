@@ -213,7 +213,7 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
       locked: meta.locked ?? 0,
       plain_hash: null,
     });
-    if (prefs.expiryReminders && meta.expiry) scheduleReminders({ ...meta }).catch(() => {});
+    if (prefs.expiryReminders && meta.expiry && !meta.trashed_at) scheduleReminders({ ...meta }).catch(() => {});
     return;
   }
 
@@ -273,6 +273,12 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
     last_synced_at: Date.now(),
     last_error: null,
   });
+  const nowTrashed = meta.trashed_at !== undefined ? meta.trashed_at : local.trashed_at;
+  if (nowTrashed) {
+    cancelReminders(local.id).catch(() => {});
+  } else if (prefs.expiryReminders && (local.trashed_at || meta.expiry !== local.expiry || meta.name !== local.name)) {
+    scheduleReminders({ id: local.id, name: meta.name, expiry: meta.expiry, doc_type: meta.doc_type }).catch(() => {});
+  }
 }
 
 async function pullMetaFile(fileId: string, name: string) {

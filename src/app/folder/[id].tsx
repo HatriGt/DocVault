@@ -14,6 +14,7 @@ import { useDocuments, useFolders } from '../../lib/hooks';
 import { deleteFolder, moveFolder, pathTo } from '../../lib/folders';
 import { docActions } from '../../lib/actions';
 import type { DocRecord } from '../../lib/db';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -84,7 +85,7 @@ export default function FolderScreen() {
                 </View>
               ))}
             </ScrollView>
-            <Animated.View entering={FadeInDown.springify()} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.xl, marginTop: space.md }}>
+            <Animated.View entering={FadeInDown.duration(DUR.slow).easing(EASE_OUT)} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.xl, marginTop: space.md }}>
               <View style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: folder.color + '1C', alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name={(folder.icon === 'folder' ? 'folder' : folder.icon) as keyof typeof Ionicons.glyphMap} size={28} color={folder.color} />
               </View>
@@ -102,7 +103,7 @@ export default function FolderScreen() {
             {/* Subfolders */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md, paddingHorizontal: space.xl, marginTop: space.xl }}>
               {subs.map((f, i) => (
-                <Animated.View key={f.id} entering={FadeInRight.delay(i * 50).springify()}>
+                <Animated.View key={f.id} entering={FadeInRight.delay(i * 50).duration(DUR.slow).easing(EASE_OUT)}>
                   <FolderTile folder={f} width={tileW} onPress={() => router.push(`/folder/${f.id}`)} />
                 </Animated.View>
               ))}

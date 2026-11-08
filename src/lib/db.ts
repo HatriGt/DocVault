@@ -169,7 +169,7 @@ export async function listTrashed(): Promise<DocRecord[]> {
 
 export async function findByPlainHash(hash: string): Promise<DocRecord | null> {
   const db = await getDb();
-  return db.getFirstAsync<DocRecord>('SELECT * FROM documents WHERE plain_hash = ? AND deleted = 0 LIMIT 1', hash);
+  return db.getFirstAsync<DocRecord>('SELECT * FROM documents WHERE plain_hash = ? AND deleted = 0 AND trashed_at IS NULL LIMIT 1', hash);
 }
 
 export async function getDoc(id: string): Promise<DocRecord | null> {
@@ -215,7 +215,7 @@ export async function docsNeedingPush(): Promise<DocRecord[]> {
 export async function docsNeedingDownload(): Promise<DocRecord[]> {
   const db = await getDb();
   return db.getAllAsync<DocRecord>(
-    `SELECT * FROM documents WHERE deleted = 0 AND has_local = 0 AND offline_pref = 'keep'
+    `SELECT * FROM documents WHERE deleted = 0 AND trashed_at IS NULL AND has_local = 0 AND offline_pref = 'keep'
      AND remote_bin_id IS NOT NULL`,
   );
 }
@@ -225,7 +225,7 @@ export async function listTags(): Promise<{ tag: string; count: number }[]> {
   const db = await getDb();
   return db.getAllAsync<{ tag: string; count: number }>(
     `SELECT j.value AS tag, COUNT(*) AS count FROM documents d, json_each(d.tags) j
-     WHERE d.deleted = 0 GROUP BY j.value ORDER BY count DESC, tag ASC`,
+     WHERE d.deleted = 0 AND d.trashed_at IS NULL GROUP BY j.value ORDER BY count DESC, tag ASC`,
   );
 }
 

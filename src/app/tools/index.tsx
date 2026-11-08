@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconButton, T, Tap } from '../../components/ui';
 import { elevation, radius, space, useTheme } from '../../theme';
 import { TOOLS, ToolDef } from '../../lib/toolCatalog';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 /** Tools hub: image editing and PDF conversion, all on-device. */
 export default function ToolsHub() {
@@ -22,7 +23,7 @@ export default function ToolsHub() {
       </T>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md, paddingHorizontal: space.xl }}>
         {list.map((t, i) => (
-          <Animated.View key={t.id} entering={FadeInDown.delay((offset + i) * 45).springify().damping(16)}>
+          <Animated.View key={t.id} entering={FadeInDown.delay((offset + i) * 45).duration(DUR.slow).easing(EASE_OUT)}>
             <Tap
               onPress={() => router.push({ pathname: '/tools/run', params: { tool: t.id } })}
               accessibilityLabel={t.title}

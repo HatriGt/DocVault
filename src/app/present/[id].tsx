@@ -17,6 +17,7 @@ import { decryptDocument, parseFields } from '../../lib/documents';
 import { purgeTempPlain, writeTempPlain } from '../../lib/blobs';
 import { resolveType } from '../../lib/filetype';
 import { formatDate } from '../../lib/format';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 /**
  * Present mode: show a document at a counter or checkpoint — full brightness,
@@ -63,7 +64,8 @@ export default function Present() {
     return () => {
       alive = false;
     };
-  }, [doc]);
+    // Depend on the id only: decrypting a cloud-only doc updates the row, which would re-run this effect.
+  }, [doc?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const front = useAnimatedStyle(() => ({ transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flip.get(), [0, 1], [0, 180])}deg` }], backfaceVisibility: 'hidden' }));
   const back = useAnimatedStyle(() => ({ transform: [{ perspective: 1200 }, { rotateY: `${interpolate(flip.get(), [0, 1], [180, 360])}deg` }], backfaceVisibility: 'hidden' }));
@@ -100,12 +102,12 @@ export default function Present() {
       ) : (
         <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xxl, paddingHorizontal: space.xl }}>
           {doc.doc_type === 'Passport' ? (
-            <Animated.View entering={ZoomIn.springify().damping(14)}>
+            <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)}>
               <PassportBook doc={doc} width={Math.min(width * 0.62, 280)} />
             </Animated.View>
           ) : (
             <Tap onPress={() => flip.set(withTiming(flip.get() > 0.5 ? 0 : 1, { duration: 450 }))} scaleTo={0.98} style={{ width: cardW, height: cardW / 1.586 }}>
-              <Animated.View entering={ZoomIn.springify().damping(14)} style={[StyleSheet.absoluteFill, front]}>
+              <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)} style={[StyleSheet.absoluteFill, front]}>
                 <WalletCard doc={doc} width={cardW} />
               </Animated.View>
               <Animated.View style={[StyleSheet.absoluteFill, back]}>

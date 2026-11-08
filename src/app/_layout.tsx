@@ -13,8 +13,6 @@ import { purgeTempPlain } from '../lib/blobs';
 import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
 import { ToastHost } from '../components/ToastHost';
-import * as ScreenCapture from 'expo-screen-capture';
-import { usePrefs } from '../lib/hooks';
 import { purgeExpiredTrash } from '../lib/documents';
 import {
   useFonts,
@@ -27,10 +25,7 @@ import {
 
 function Navigator() {
   const { c, dark } = useTheme();
-  const prefs = usePrefs();
-  useEffect(() => {
-    (prefs.screenshotGuard ? ScreenCapture.preventScreenCaptureAsync('vault') : ScreenCapture.allowScreenCaptureAsync('vault')).catch(() => {});
-  }, [prefs.screenshotGuard]);
+
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(c.bg).catch(() => {});
   }, [c.bg]);

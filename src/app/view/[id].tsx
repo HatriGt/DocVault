@@ -15,6 +15,7 @@ import { resolveType, viewKind, ViewKind } from '../../lib/filetype';
 import { textToHtml, wordToHtml } from '../../lib/officeRender';
 import { formatBytes } from '../../lib/format';
 import { unlockDoc } from '../../lib/guard';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 interface Loaded {
   kind: ViewKind;
@@ -127,7 +128,7 @@ function Fallback({ ext, onOpen, onShare }: { ext: string; onOpen: () => void; o
   const icon: keyof typeof Ionicons.glyphMap = ['ppt', 'pptx', 'key', 'odp'].includes(ext) ? 'easel' : ['zip', 'rar', '7z'].includes(ext) ? 'archive' : 'document';
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.lg }}>
-      <Animated.View entering={FadeInDown.springify()} style={[{ width: 132, height: 160, borderRadius: radius.lg, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: space.sm }, elevation(c, 2)]}>
+      <Animated.View entering={FadeInDown.duration(DUR.slow).easing(EASE_OUT)} style={[{ width: 132, height: 160, borderRadius: radius.lg, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', gap: space.sm }, elevation(c, 2)]}>
         <Ionicons name={icon} size={52} color={c.accent} />
         <T v="overline" color="accent" style={{ fontFamily: fonts.extrabold }}>
           {ext.toUpperCase() || 'FILE'}

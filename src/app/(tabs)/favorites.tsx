@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ScrollView, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import { Backdrop } from '../../components/Backdrop';
+import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { EmptyState, Screen, SectionHeader, T, Tap } from '../../components/ui';
@@ -9,6 +10,7 @@ import { DocRow, WalletCard } from '../../components/docs';
 import { space } from '../../theme';
 import { useDocuments } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 /** Apple Wallet-style stacked cards for favorites. */
 export default function Favorites() {
@@ -23,6 +25,7 @@ export default function Favorites() {
   const peek = 64;
 
   return (
+    <TabSwipe>
     <Screen>
       <Backdrop variant="list" />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 140 }} showsVerticalScrollIndicator={false}>
@@ -47,7 +50,7 @@ export default function Favorites() {
                 {cards.map((d, i) => (
                   <Animated.View
                     key={d.id}
-                    entering={FadeInDown.delay(i * 70).springify().damping(16)}
+                    entering={FadeInDown.delay(i * 70).duration(DUR.slow).easing(EASE_OUT)}
                     style={{ position: 'absolute', top: i * peek, left: space.xl }}
                   >
                     <Tap onPress={() => router.push(`/doc/${d.id}`)} scaleTo={0.98} accessibilityLabel={`Open ${d.name}`}>
@@ -69,5 +72,6 @@ export default function Favorites() {
         )}
       </ScrollView>
     </Screen>
+    </TabSwipe>
   );
 }

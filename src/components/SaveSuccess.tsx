@@ -14,6 +14,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { T } from './ui';
 import { space, useTheme } from '../theme';
+import { DUR, EASE_OUT } from '../theme/motion';
 
 const PARTICLES = 14;
 const COLORS = ['#5B45F2', '#F2C14E', '#2F80ED', '#E5484D', '#15A06A', '#B04CE0'];
@@ -68,7 +69,7 @@ export function SaveSuccess({ title, subtitle }: { title: string; subtitle: stri
           </Animated.View>
         </Animated.View>
       </View>
-      <Animated.View entering={FadeInDown.delay(250).springify()} style={{ alignItems: 'center', gap: space.sm }}>
+      <Animated.View entering={FadeInDown.delay(250).duration(DUR.slow).easing(EASE_OUT)} style={{ alignItems: 'center', gap: space.sm }}>
         <T v="title" style={{ textAlign: 'center' }}>
           {title}
         </T>

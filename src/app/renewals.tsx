@@ -12,6 +12,7 @@ import { radius, space, useTheme } from '../theme';
 import { useDocuments, usePrefs } from '../lib/hooks';
 import { daysUntil, formatDate } from '../lib/format';
 import { setPrefs } from '../lib/session';
+import { DUR, EASE_OUT } from '../theme/motion';
 
 const GROUPS = [
   { key: 'expired', title: 'Expired', test: (d: number) => d < 0 },
@@ -71,7 +72,7 @@ export default function Renewals() {
                 {/* timeline */}
                 <View style={{ borderLeftWidth: 1, borderLeftColor: c.hairline, marginLeft: 23, paddingLeft: 0 }}>
                   {items.map(({ d, days }, i) => (
-                    <Animated.View key={d.id} entering={FadeInDown.delay(i * 40).springify().damping(18)}>
+                    <Animated.View key={d.id} entering={FadeInDown.delay(i * 40).duration(DUR.slow).easing(EASE_OUT)}>
                       <Tap onPress={() => router.push(`/doc/${d.id}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, marginLeft: -23, paddingVertical: space.sm }}>
                         <CountdownRing days={days} size={46} />
                         <View style={{ flex: 1, backgroundColor: c.surface, borderRadius: radius.md, padding: space.md, flexDirection: 'row', alignItems: 'center', gap: space.md, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { T, Tap } from './ui';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { onToast, ToastMsg } from '../lib/toast';
+import { DUR, EASE_OUT } from '../theme/motion';
 
 /** Bottom toast with optional action (e.g. Undo); auto-dismisses after 4s. */
 export function ToastHost() {
@@ -23,7 +24,7 @@ export function ToastHost() {
     <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 100, alignItems: 'center' }}>
       <Animated.View
         key={msg.id}
-        entering={SlideInDown.springify().damping(16)}
+        entering={SlideInDown.duration(DUR.slow).easing(EASE_OUT)}
         exiting={FadeOutDown.duration(180)}
         style={[{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.text, borderRadius: radius.pill, paddingLeft: space.lg, paddingRight: msg.action ? space.sm : space.lg, height: 50, maxWidth: '92%' }, elevation(c, 3)]}
       >

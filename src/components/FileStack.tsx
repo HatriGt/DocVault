@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import { DUR, EASE_OUT } from '../theme/motion';
 import { T } from './ui';
 import { elevation, fonts, radius, useTheme } from '../theme';
 
@@ -26,7 +27,7 @@ function Card({ f, i, n, size }: { f: StackFile; i: number; n: number; size: num
   const { c } = useTheme();
   const v = useSharedValue(0);
   useEffect(() => {
-    v.set(withDelay(i * 90, withSpring(1, { damping: 13, stiffness: 120 })));
+    v.set(withDelay(i * 80, withTiming(1, { duration: DUR.slow + 60, easing: EASE_OUT })));
   }, [v, i]);
   // Fan: centre card upright, others rotated outwards.
   const mid = (n - 1) / 2;

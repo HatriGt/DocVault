@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { Backdrop } from '../../components/Backdrop';
+import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Button, Chip, EmptyState, IconButton, Screen, SearchField, T, Tap } from '../../components/ui';
@@ -19,6 +20,7 @@ import { confirmDelete, docActions } from '../../lib/actions';
 import { SkeletonRows, SwipeRow } from '../../components/motion';
 import { parseTags, toggleFavorite } from '../../lib/documents';
 import { confirmDeleteMany, favoriteMany, moveMany, shareAsOnePdf, tagMany } from '../../lib/batch';
+import { DUR, EASE_OUT } from '../../theme/motion';
 
 type Sort = 'added' | 'name' | 'accessed' | 'expiry';
 const SORT_LABEL: Record<Sort, string> = { added: 'Recently added', name: 'Name', accessed: 'Recently opened', expiry: 'Expiring soonest' };
@@ -181,6 +183,7 @@ export default function Library() {
   );
 
   return (
+    <TabSwipe>
     <Screen>
       <Backdrop variant="list" />
       <FlatList
@@ -222,7 +225,7 @@ export default function Library() {
       {/* Batch bar */}
       {selecting && (
         <Animated.View
-          entering={SlideInDown.springify().damping(18)}
+          entering={SlideInDown.duration(DUR.slow).easing(EASE_OUT)}
           exiting={SlideOutDown.duration(160)}
           style={[
             { position: 'absolute', left: space.lg, right: space.lg, bottom: Math.max(insets.bottom, space.md) + TAB_BAR_HEIGHT + space.md, backgroundColor: c.surface, borderRadius: radius.xl, paddingVertical: space.md, flexDirection: 'row', justifyContent: 'space-around', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
@@ -264,5 +267,6 @@ export default function Library() {
         </Animated.View>
       </BottomSheet>
     </Screen>
+    </TabSwipe>
   );
 }

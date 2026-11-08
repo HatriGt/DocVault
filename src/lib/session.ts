@@ -19,7 +19,6 @@ export interface Preferences {
   lockAfterSeconds: number;
   expiryReminders: boolean;
   theme: 'system' | 'light' | 'dark';
-  screenshotGuard: boolean;
 }
 
 export const DEFAULT_PREFS: Preferences = {
@@ -31,7 +30,6 @@ export const DEFAULT_PREFS: Preferences = {
   lockAfterSeconds: 30,
   expiryReminders: true,
   theme: 'light',
-  screenshotGuard: false,
 };
 
 export const getAccount = () => kvGet<Account | null>('account', null);
