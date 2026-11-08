@@ -9,6 +9,7 @@ adb and the emulator/device:
 Endpoints (all require header  X-Token: <BRIDGE_TOKEN>):
     GET  /health                    -> "ok" + `adb devices`
     POST /install   (body = APK)    -> adb install -r -g
+    POST /install-url (body = URL)  -> downloads an .apk (or .zip with one) and installs it
     POST /adb       (body = args)   -> runs `adb <args>` (shell-split), returns output
     GET  /screenshot                -> PNG of the current screen
     GET  /logcat?lines=500          -> recent logcat (threadtime)
@@ -21,6 +22,8 @@ import shlex
 import subprocess
 import tempfile
 import urllib.parse
+import urllib.request
+import zipfile
 
 TOKEN = os.environ.get("BRIDGE_TOKEN")
 PORT = int(os.environ.get("PORT", "3000"))
@@ -86,6 +89,24 @@ class H(http.server.BaseHTTPRequestHandler):
                     f.write(self._body())
                 code, out = run(["install", "-r", "-g", f.name], 300)
                 os.unlink(f.name)
+                self._send(200 if code == 0 else 500, out)
+            elif url.path == "/install-url":
+                # Body = URL of an .apk or a .zip containing one (e.g. a nightly.link artifact).
+                # The sandbox downloads it itself, avoiding large uploads through the gateway.
+                src = self._body().decode().strip()
+                if not src.startswith("https://"):
+                    return self._send(400, "https URL required")
+                with tempfile.TemporaryDirectory() as d:
+                    path = os.path.join(d, "download")
+                    urllib.request.urlretrieve(src, path)
+                    apk = path
+                    if zipfile.is_zipfile(path):
+                        with zipfile.ZipFile(path) as z:
+                            names = [n for n in z.namelist() if n.endswith(".apk")]
+                            if not names:
+                                return self._send(400, "zip contains no .apk")
+                            apk = z.extract(names[0], d)
+                    code, out = run(["install", "-r", "-g", apk], 300)
                 self._send(200 if code == 0 else 500, out)
             elif url.path == "/adb":
                 args = shlex.split(self._body().decode())
