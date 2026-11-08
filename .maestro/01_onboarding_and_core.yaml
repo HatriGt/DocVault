@@ -10,10 +10,18 @@ name: Onboarding and core navigation
     visible: "Skip"
     timeout: 45000
 - takeScreenshot: 01-onboarding
-- tapOn: "Skip"
-- extendedWaitUntil:
-    visible: "Use on this device only"
-    timeout: 20000
+# The slow CI emulator sometimes drops the first tap while the intro animates in:
+# keep advancing until the account step shows.
+- repeat:
+    times: 6
+    while:
+      notVisible: "Use on this device only"
+    commands:
+      - tapOn:
+          text: "Skip|Continue"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 3000
 - tapOn: "Use on this device only"
 - tapOn: "Create my recovery key"
 # scrypt key derivation runs on-device; give it time on a slow emulator

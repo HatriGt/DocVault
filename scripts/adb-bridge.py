@@ -13,10 +13,14 @@ Endpoints (all require header  X-Token: <BRIDGE_TOKEN>):
     POST /adb       (body = args)   -> runs `adb <args>` (shell-split), returns output
     GET  /screenshot                -> PNG of the current screen
     GET  /logcat?lines=500          -> recent logcat (threadtime)
+    POST /build     (body = branch) -> starts scripts/sandbox-build.sh in the background
+    GET  /build?lines=80            -> build state (idle/running/ok/failed) + log tail
 
 Only run this in a disposable sandbox. Anyone with the token can control the device.
 """
 import http.server
+import threading
+import time
 import os
 import shlex
 import subprocess
@@ -29,6 +33,27 @@ TOKEN = os.environ.get("BRIDGE_TOKEN")
 PORT = int(os.environ.get("PORT", "3000"))
 if not TOKEN or len(TOKEN) < 16:
     raise SystemExit("Set BRIDGE_TOKEN to a random secret of 16+ characters.")
+
+
+BUILD_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sandbox-build.sh")
+BUILD_LOG = os.path.join(tempfile.gettempdir(), "docvault-build.log")
+build = {"state": "idle", "branch": None, "started": None, "finished": None}
+build_lock = threading.Lock()
+
+
+def start_build(branch):
+    with build_lock:
+        if build["state"] == "running":
+            return False
+        build.update(state="running", branch=branch, started=time.time(), finished=None)
+
+    def work():
+        with open(BUILD_LOG, "w") as log:
+            code = subprocess.call(["bash", BUILD_SCRIPT, branch], stdout=log, stderr=subprocess.STDOUT)
+        build.update(state="ok" if code == 0 else "failed", finished=time.time())
+
+    threading.Thread(target=work, daemon=True).start()
+    return True
 
 
 def run(args, timeout=180, binary=False):
@@ -70,6 +95,15 @@ class H(http.server.BaseHTTPRequestHandler):
             elif url.path == "/screenshot":
                 code, png = run(["exec-out", "screencap", "-p"], 30, binary=True)
                 self._send(200 if code == 0 else 500, png, "image/png")
+            elif url.path == "/build":
+                lines = int(q.get("lines", ["80"])[0])
+                tail = ""
+                if os.path.exists(BUILD_LOG):
+                    with open(BUILD_LOG, errors="replace") as f:
+                        tail = "".join(f.readlines()[-lines:])
+                end = build["finished"] or time.time()
+                secs = int(end - build["started"]) if build["started"] else 0
+                self._send(200, f"state={build['state']} branch={build['branch']} seconds={secs}\n{tail}")
             elif url.path == "/logcat":
                 lines = q.get("lines", ["500"])[0]
                 _, out = run(["logcat", "-d", "-v", "threadtime", "-t", str(int(lines))], 30)
@@ -108,6 +142,13 @@ class H(http.server.BaseHTTPRequestHandler):
                             apk = z.extract(names[0], d)
                     code, out = run(["install", "-r", "-g", apk], 300)
                 self._send(200 if code == 0 else 500, out)
+            elif url.path == "/build":
+                branch = self._body().decode().strip() or "main"
+                if not all(ch.isalnum() or ch in "-_./" for ch in branch) or branch.startswith("-"):
+                    return self._send(400, "bad branch name")
+                if not start_build(branch):
+                    return self._send(409, "a build is already running")
+                self._send(202, f"build started for {branch}; poll GET /build")
             elif url.path == "/adb":
                 args = shlex.split(self._body().decode())
                 code, out = run(args, 180)
