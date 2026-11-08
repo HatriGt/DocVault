@@ -202,7 +202,7 @@ export default function RecoverySetup() {
           </Animated.View>
         )}
       </ScrollView>
-      <KeyboardSpacer scrollRef={scroll} />
+      <KeyboardSpacer scrollRef={scroll} revealKey={step} />
     </Screen>
   );
 }
