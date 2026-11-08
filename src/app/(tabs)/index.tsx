@@ -71,7 +71,7 @@ export default function Home() {
   const QUICK: { icon: keyof typeof Ionicons.glyphMap; label: string; go: () => void }[] = [
     { icon: 'scan-outline', label: 'Scan', go: () => router.push('/add') },
     { icon: 'arrow-down-circle-outline', label: 'Import', go: () => router.push('/add') },
-    { icon: 'folder-open-outline', label: 'Folder', go: () => setNewFolder(true) },
+    { icon: 'folder-open-outline', label: 'New folder', go: () => setNewFolder(true) },
     { icon: 'color-wand-outline', label: 'Tools', go: () => router.push('/tools') },
   ];
 
