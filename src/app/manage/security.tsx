@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Switch } from 'react-native';
+import { AppState, Linking, Platform, ScrollView, Switch } from 'react-native';
 import { router, Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Group, Row, T } from '../../components/ui';
@@ -11,6 +11,15 @@ import { clearPin, hasPin } from '../../lib/keys';
 const TIMEOUTS = [0, 30, 60, 300, 900];
 const label = (s: number) => (s === 0 ? 'Immediately' : s < 60 ? `${s} seconds` : `${s / 60} minute${s > 60 ? 's' : ''}`);
 
+/** Takes the user to where fingerprint/face unlock is enrolled; app settings if the phone has no such screen. */
+function openBiometricSettings() {
+  if (Platform.OS === 'android') {
+    Linking.sendIntent('android.settings.BIOMETRIC_ENROLL').catch(() => Linking.sendIntent('android.settings.SECURITY_SETTINGS').catch(() => Linking.openSettings()));
+  } else {
+    Linking.openSettings();
+  }
+}
+
 export default function Security() {
   const { c } = useTheme();
   const prefs = usePrefs();
@@ -18,7 +27,7 @@ export default function Security() {
   const [bioAvailable, setBioAvailable] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    const check = async () => {
       const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
       setBioLabel(
         types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
@@ -28,7 +37,11 @@ export default function Security() {
             : 'Biometrics',
       );
       setBioAvailable((await LocalAuthentication.hasHardwareAsync()) && (await LocalAuthentication.isEnrolledAsync()));
-    })();
+    };
+    check();
+    // Re-check when returning from the phone's settings, so a newly enrolled fingerprint shows up.
+    const sub = AppState.addEventListener('change', (st) => st === 'active' && check());
+    return () => sub.remove();
   }, []);
 
   const toggleBio = async (v: boolean) => {
@@ -66,7 +79,8 @@ export default function Security() {
         <Row
           icon="finger-print"
           title={bioLabel}
-          subtitle={bioAvailable ? undefined : 'Set up biometrics in your device settings'}
+          subtitle={bioAvailable ? undefined : 'Not set up on this phone — tap to set it up'}
+          onPress={bioAvailable ? undefined : openBiometricSettings}
           right={<Switch value={prefs.biometricLock} disabled={!bioAvailable} onValueChange={toggleBio} trackColor={{ true: c.accent }} />}
         />
         <Row icon="keypad-outline" title="6-digit PIN" right={<Switch value={prefs.pinLock} onValueChange={togglePin} trackColor={{ true: c.accent }} />} />
@@ -78,7 +92,9 @@ export default function Security() {
         </Group>
       )}
       <T v="caption" color="faint" style={{ marginHorizontal: space.xs }}>
-        Your vault key is stored in the {`iOS Keychain / Android Keystore`} and is bound to this device. It never syncs to iCloud or Google backups.
+        {Platform.OS === 'ios'
+          ? 'Your vault key is stored in the iOS Keychain and is bound to this device. It never syncs to iCloud backups.'
+          : 'Your vault key is stored in the Android Keystore and is bound to this device. It never syncs to Google backups.'}
       </T>
     </ScrollView>
   );
