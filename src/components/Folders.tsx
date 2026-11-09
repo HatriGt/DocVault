@@ -16,7 +16,7 @@ const COLOR_NAMES: Record<string, string> = { '#5B45F2': 'Violet', '#2F80ED': 'B
 /** Folder tile: tinted rounded square with icon, name and item count. */
 export function FolderTile({ folder, width, onPress, onLongPress }: { folder: Folder; width: number; onPress: () => void; onLongPress?: () => void }) {
   const { c } = useTheme();
-  const folders = useFolders();
+  const { folders } = useFolders();
   const { docs } = useDocuments();
   const subs = folders.filter((f) => f.parent_id === folder.id).length;
   const items = docs.filter((d) => d.folder_id === folder.id).length;
@@ -148,7 +148,7 @@ export function FolderPicker({
   excludeId?: string;
 }) {
   const { c } = useTheme();
-  const folders = useFolders();
+  const { folders } = useFolders();
   const [cwd, setCwd] = useState<string | null>(value);
   const [creating, setCreating] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
@@ -230,7 +230,7 @@ export function FolderPicker({
 
 /** "Folder › Sub" label for a folder id. */
 export function useFolderLabel(id: string | null | undefined) {
-  const folders = useFolders();
+  const { folders } = useFolders();
   if (!id) return 'All documents';
   return pathTo(folders, id).map((f) => f.name).join(' › ') || 'All documents';
 }

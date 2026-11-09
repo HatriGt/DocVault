@@ -36,7 +36,7 @@ export default function Library() {
   const { docs, loading } = useDocuments();
   const categories = useCategories();
   const allTags = useTags();
-  const folders = useFolders();
+  const { folders } = useFolders();
   const rootFolders = folders.filter((f) => !f.parent_id);
   const { account } = useAccount();
   const [refreshing, setRefreshing] = useState(false);

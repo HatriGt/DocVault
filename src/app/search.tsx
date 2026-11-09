@@ -28,7 +28,7 @@ export default function Search() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { docs } = useDocuments();
-  const folders = useFolders();
+  const { folders } = useFolders();
   const tags = useTags();
   const [q, setQ] = useState('');
   const [filters, setFilters] = useState<Filter[]>([]);

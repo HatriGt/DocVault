@@ -7,6 +7,7 @@ import { FadeInDown } from '../theme/anim';
 import { Backdrop } from '../components/Backdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState, T, Tap } from '../components/ui';
+import { ListState } from '../components/ListState';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { CountdownRing } from '../components/CountdownRing';
 import { DocThumb } from '../components/docs';
@@ -27,7 +28,7 @@ const GROUPS = [
 export default function Renewals() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
-  const { docs } = useDocuments();
+  const { docs, loading, error, retry } = useDocuments();
   const prefs = usePrefs();
   const dated = useMemo(
     () => docs.map((d) => ({ d, days: daysUntil(d.expiry)! })).filter((x) => x.d.expiry).sort((a, b) => a.days - b.days),
@@ -40,7 +41,7 @@ export default function Renewals() {
       <Backdrop variant="list" />
       <ScreenHeader
         title="Renewals"
-        subtitle={dated.length === 0 ? 'Add expiry dates to get reminded in time.' : urgent ? `${urgent} ${urgent === 1 ? 'document needs' : 'documents need'} attention soon.` : 'Everything is up to date.'}
+        subtitle={loading ? undefined : dated.length === 0 ? 'Add expiry dates to get reminded in time.' : urgent ? `${urgent} ${urgent === 1 ? 'document needs' : 'documents need'} attention soon.` : 'Everything is up to date.'}
       />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
 
@@ -55,8 +56,8 @@ export default function Renewals() {
           <Switch value={prefs.expiryReminders} onValueChange={(v) => setPrefs({ expiryReminders: v })} trackColor={{ true: c.gold }} />
         </View>
 
-        {dated.length === 0 ? (
-          <EmptyState icon="calendar-outline" title="No expiry dates yet" body="Open a passport, visa or insurance document and add its expiry date." />
+        {loading || error || dated.length === 0 ? (
+          <ListState loading={loading} error={error} onRetry={retry} empty={<EmptyState icon="calendar-outline" title="No expiry dates yet" body="Open a passport, visa or insurance document and add its expiry date." />} />
         ) : (
           GROUPS.map((g) => {
             const items = dated.filter((x) => g.test(x.days));

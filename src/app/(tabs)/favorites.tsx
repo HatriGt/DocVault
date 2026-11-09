@@ -8,8 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated from 'react-native-reanimated';
 import { FadeInDown } from '../../theme/anim';
 import { EmptyState, Screen, SectionHeader, T, Tap } from '../../components/ui';
+import { ListState } from '../../components/ListState';
 import { DocRow, WalletCard } from '../../components/docs';
-import { space, useTheme } from '../../theme';
+import { Skeleton } from '../../components/motion';
+import { radius, space, useTheme } from '../../theme';
 import { useDocuments } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { DUR, EASE_OUT } from '../../theme/motion';
@@ -19,7 +21,7 @@ export default function Favorites() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { c } = useTheme();
-  const { docs, loading } = useDocuments();
+  const { docs, loading, error, retry } = useDocuments();
   const favs = useMemo(() => docs.filter((d) => d.favorite).sort((a, b) => b.pinned - a.pinned), [docs]);
   const cards = favs.filter((d) => CARD_TYPES.has(d.doc_type ?? ''));
   const files = favs.filter((d) => !CARD_TYPES.has(d.doc_type ?? ''));
@@ -38,13 +40,21 @@ export default function Favorites() {
             Your essential cards and favourites, ready even offline.
           </T>
         </View>
-        {loading ? null : favs.length === 0 ? (
-          <EmptyState
-            icon="heart-outline"
-            title="Your wallet is empty"
-            body="Tap the heart on any document to keep it here, one tap away."
-            action="Browse documents"
-            onAction={() => router.push('/(tabs)/documents')}
+        {loading || error || favs.length === 0 ? (
+          <ListState
+            loading={loading}
+            error={error}
+            onRetry={retry}
+            skeleton={<View style={{ paddingHorizontal: space.xl, marginTop: space.xl, gap: space.md }}>{[0, 1, 2].map((i) => <Skeleton key={i} style={{ height: 120, borderRadius: radius.xl }} />)}</View>}
+            empty={
+              <EmptyState
+                icon="heart-outline"
+                title="Your wallet is empty"
+                body="Tap the heart on any document to keep it here, one tap away."
+                action="Browse documents"
+                onAction={() => router.push('/(tabs)/documents')}
+              />
+            }
           />
         ) : (
           <>

@@ -34,7 +34,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   const { account } = useAccount();
   const { docs, loading } = useDocuments();
-  const folders = useFolders();
+  const { folders } = useFolders();
   const [refreshing, setRefreshing] = useState(false);
   const [menuDoc, setMenuDoc] = useState<DocRecord | null>(null);
   const [newFolder, setNewFolder] = useState(false);

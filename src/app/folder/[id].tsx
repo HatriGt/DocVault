@@ -7,6 +7,7 @@ import { FadeInDown, FadeInRight } from '../../theme/anim';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState, IconButton, Screen, T, Tap } from '../../components/ui';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { ListState } from '../../components/ListState';
 import { DocRow } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { Backdrop } from '../../components/Backdrop';
@@ -24,8 +25,8 @@ export default function FolderScreen() {
   const { c } = useTheme();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const folders = useFolders();
-  const { docs } = useDocuments();
+  const { folders, loading: foldersLoading } = useFolders();
+  const { docs, loading: docsLoading, error, retry } = useDocuments();
   const folder = folders.find((f) => f.id === id);
   const crumbs = pathTo(folders, id ?? null);
   const subs = useMemo(() => folders.filter((f) => f.parent_id === id), [folders, id]);
@@ -39,7 +40,8 @@ export default function FolderScreen() {
   if (!folder) {
     return (
       <Screen>
-        <EmptyState icon="folder-open-outline" title="Folder not found" body="It may have been deleted on another device." action="Back" onAction={() => router.back()} />
+        <ScreenHeader />
+        {foldersLoading ? <ListState loading empty={null} /> : <EmptyState icon="folder-open-outline" title="Folder not found" body="It may have been deleted on another device." action="Back" onAction={() => router.back()} />}
       </Screen>
     );
   }
@@ -128,12 +130,19 @@ export default function FolderScreen() {
           </View>
         }
         ListEmptyComponent={
-          <EmptyState
-            icon="document-outline"
-            title="No documents here yet"
-            body="Add one here, or move an existing document in from its ••• menu."
-            action="Add a document"
-            onAction={() => router.push({ pathname: '/add', params: { folder: folder.id } })}
+          <ListState
+            loading={docsLoading}
+            error={error}
+            onRetry={retry}
+            empty={
+              <EmptyState
+                icon="document-outline"
+                title="No documents here yet"
+                body="Add one here, or move an existing document in from its ••• menu."
+                action="Add a document"
+                onAction={() => router.push({ pathname: '/add', params: { folder: folder.id } })}
+              />
+            }
           />
         }
         renderItem={({ item }) => (

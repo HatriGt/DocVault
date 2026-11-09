@@ -27,7 +27,7 @@ export default function Insights() {
   const { c } = useTheme();
   const { docs } = useDocuments();
   const categories = useCategories();
-  const folders = useFolders();
+  const { folders } = useFolders();
   const tags = useTags();
   const total = docs.reduce((n, d) => n + d.size, 0) || 1;
    

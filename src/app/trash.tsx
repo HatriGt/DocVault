@@ -6,6 +6,7 @@ import { FadeInDown, FadeOutLeft, LinearTransition } from '../theme/anim';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, EmptyState, T, Tap } from '../components/ui';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { ListState } from '../components/ListState';
 import { DocThumb } from '../components/docs';
 import { Backdrop } from '../components/Backdrop';
 import { radius, space, useTheme } from '../theme';
@@ -19,7 +20,7 @@ import { notify, notifyError, confirm } from '../lib/feedback';
 export default function Trash() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
-  const items = useTrash();
+  const { items, loading, error, retry } = useTrash();
   const [now] = useState(() => Date.now());
   const daysLeft = (t: number | null) => Math.max(0, 30 - Math.floor((now - (t ?? now)) / 86_400_000));
 
@@ -44,7 +45,9 @@ export default function Trash() {
         data={items}
         keyExtractor={(d) => d.id}
         contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: insets.bottom + 120 }}
-        ListEmptyComponent={<EmptyState icon="trash-outline" title="Nothing here" body="Deleted documents appear here for 30 days so you can restore them." />}
+        ListEmptyComponent={
+          <ListState loading={loading} error={error} onRetry={retry} empty={<EmptyState icon="trash-outline" title="Nothing here" body="Deleted documents appear here for 30 days so you can restore them." />} />
+        }
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 35)} exiting={FadeOutLeft} layout={LinearTransition.duration(DUR.base).easing(EASE_OUT)}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.md, marginBottom: space.sm, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
