@@ -13,7 +13,7 @@ import { CountdownRing } from '../components/CountdownRing';
 import { DocThumb } from '../components/docs';
 import { radius, space, useTheme } from '../theme';
 import { useDocuments, usePrefs } from '../lib/hooks';
-import { daysUntil, formatDate } from '../lib/format';
+import { daysUntil, formatDate, humanDays } from '../lib/format';
 import { setPrefs } from '../lib/session';
 import { DUR, EASE_OUT } from '../theme/motion';
 
@@ -80,7 +80,7 @@ export default function Renewals() {
                               {d.name}
                             </T>
                             <T v="caption" color="muted">
-                              {days < 0 ? `Expired ${formatDate(d.expiry)}` : days === 0 ? 'Expires today' : `${formatDate(d.expiry)} · in ${days} days`}
+                              {days < 0 ? `Expired ${formatDate(d.expiry)}` : days === 0 ? 'Expires today' : `${formatDate(d.expiry)} · ${humanDays(days)}`}
                             </T>
                           </View>
                           <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
