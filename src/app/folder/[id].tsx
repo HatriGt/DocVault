@@ -6,6 +6,7 @@ import Animated from 'react-native-reanimated';
 import { FadeInDown, FadeInRight } from '../../theme/anim';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState, IconButton, Screen, T, Tap } from '../../components/ui';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { DocRow } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { Backdrop } from '../../components/Backdrop';
@@ -58,18 +59,15 @@ export default function FolderScreen() {
   return (
     <Screen>
       <Backdrop variant="list" />
+      <ScreenHeader right={<IconButton icon="ellipsis-horizontal" label="Folder options" onPress={() => setMenu(true)} />} />
       <FlatList
         data={items}
         keyExtractor={(d) => d.id}
         contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
         ListHeaderComponent={
           <View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: space.xl, paddingTop: space.sm }}>
-              <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} />
-              <IconButton icon="ellipsis-horizontal" label="Folder options" onPress={() => setMenu(true)} />
-            </View>
             {/* Breadcrumbs */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: space.lg, gap: 4, alignItems: 'center' }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.xl, paddingTop: space.sm, gap: 4, alignItems: 'center' }}>
               <Tap onPress={() => router.dismissTo('/(tabs)/documents')}>
                 <T v="callout" color="muted" style={{ fontFamily: fonts.semibold }}>
                   Library

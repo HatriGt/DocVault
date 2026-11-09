@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { useTheme } from '../../theme';
 
 export default function SettingsLayout() {
@@ -6,12 +7,9 @@ export default function SettingsLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShadowVisible: false,
-        headerStyle: { backgroundColor: c.bg },
-        headerTintColor: c.accent,
-        headerTitleStyle: { color: c.text },
+        // Same header as every other pushed screen; each screen still sets its title via <Stack.Screen options>.
+        header: ({ options }) => <ScreenHeader title={typeof options.title === 'string' ? options.title : undefined} safeTop />,
         contentStyle: { backgroundColor: c.bg },
-        headerBackButtonDisplayMode: 'minimal',
       }}
     />
   );

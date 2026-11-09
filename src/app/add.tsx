@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeIn } from '../theme/anim';
 import { Button, IconButton, Screen, T, Tap } from '../components/ui';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../components/DetailsForm';
 import { radius, space, useTheme } from '../theme';
 import { SaveSuccess } from '../components/SaveSuccess';
@@ -138,15 +139,13 @@ export default function AddDocument() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, height: 56 }}>
-        {step === 'details' || step === 'confirm' ? (
-          <IconButton icon="chevron-back" label="Back" onPress={() => setStep(step === 'confirm' ? 'details' : 'source')} />
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
-        <T v="bodyStrong">{title}</T>
-        {step !== 'saving' ? <IconButton icon="close" label="Close" onPress={() => router.back()} /> : <View style={{ width: 44 }} />}
-      </View>
+      <ScreenHeader
+        variant="modal"
+        title={title}
+        leading={step === 'details' || step === 'confirm' ? 'back' : 'none'}
+        onLeading={() => setStep(step === 'confirm' ? 'details' : 'source')}
+        right={step !== 'saving' ? <IconButton icon="close" label="Close" onPress={() => router.back()} /> : undefined}
+      />
 
       {step === 'scan' && (
         <ScanReview

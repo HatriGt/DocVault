@@ -6,7 +6,8 @@ import Animated from 'react-native-reanimated';
 import { FadeInDown } from '../theme/anim';
 import { Backdrop } from '../components/Backdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EmptyState, IconButton, T, Tap } from '../components/ui';
+import { EmptyState, T, Tap } from '../components/ui';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { CountdownRing } from '../components/CountdownRing';
 import { DocThumb } from '../components/docs';
 import { radius, space, useTheme } from '../theme';
@@ -37,18 +38,13 @@ export default function Renewals() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
       <Backdrop variant="list" />
+      <ScreenHeader
+        title="Renewals"
+        subtitle={dated.length === 0 ? 'Add expiry dates to get reminded in time.' : urgent ? `${urgent} ${urgent === 1 ? 'document needs' : 'documents need'} attention soon.` : 'Everything is up to date.'}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxxl }}>
-        <View style={{ paddingHorizontal: space.xl, paddingTop: space.sm }}>
-          <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} size={40} />
-          <T v="title" style={{ marginTop: space.lg }}>
-            Renewals
-          </T>
-          <T v="callout" color="muted" style={{ marginTop: 4 }}>
-            {dated.length === 0 ? 'Add expiry dates to get reminded in time.' : urgent ? `${urgent} ${urgent === 1 ? 'document needs' : 'documents need'} attention soon.` : 'Everything is up to date.'}
-          </T>
-        </View>
 
-        <View style={{ marginHorizontal: space.xl, marginTop: space.xl, flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
+        <View style={{ marginHorizontal: space.xl, flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
           <Ionicons name="notifications-outline" size={22} color={c.gold} />
           <View style={{ flex: 1 }}>
             <T v="bodyStrong">Expiry reminders</T>

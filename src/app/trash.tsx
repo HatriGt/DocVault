@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeInDown, FadeOutLeft, LinearTransition } from '../theme/anim';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, EmptyState, IconButton, T, Tap } from '../components/ui';
+import { Button, EmptyState, T, Tap } from '../components/ui';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { DocThumb } from '../components/docs';
 import { Backdrop } from '../components/Backdrop';
 import { radius, space, useTheme } from '../theme';
@@ -31,22 +31,12 @@ export default function Trash() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
+      <ScreenHeader title="Recently deleted" subtitle="Documents are kept for 30 days, then removed for good." />
       <Backdrop variant="list" />
       <FlatList
         data={items}
         keyExtractor={(d) => d.id}
         contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: insets.bottom + 120 }}
-        ListHeaderComponent={
-          <View style={{ paddingTop: space.sm, marginBottom: space.lg }}>
-            <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} size={40} />
-            <T v="title" style={{ marginTop: space.lg }}>
-              Recently deleted
-            </T>
-            <T v="callout" color="muted" style={{ marginTop: 4 }}>
-              Documents are kept for 30 days, then removed for good.
-            </T>
-          </View>
-        }
         ListEmptyComponent={<EmptyState icon="trash-outline" title="Nothing here" body="Deleted documents appear here for 30 days so you can restore them." />}
         renderItem={({ item, index }) => (
           <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 35)} exiting={FadeOutLeft} layout={LinearTransition.duration(DUR.base).easing(EASE_OUT)}>

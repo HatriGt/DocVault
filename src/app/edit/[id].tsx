@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { KeyboardSpacer } from '../../components/KeyboardSpacer';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Button, IconButton, Screen, T } from '../../components/ui';
+import { Button, Screen } from '../../components/ui';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../../components/DetailsForm';
 import { space } from '../../theme';
 import { useDocument } from '../../lib/hooks';
@@ -48,11 +49,7 @@ function EditForm({ doc }: { doc: DocRecord }) {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, height: 56 }}>
-        <IconButton icon="close" label="Cancel" onPress={() => router.back()} />
-        <T v="bodyStrong">Edit details</T>
-        <View style={{ width: 44 }} />
-      </View>
+      <ScreenHeader variant="modal" leading="close" title="Edit details" />
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: space.xl }} keyboardShouldPersistTaps="handled">
           <DetailsForm value={form} onChange={setForm} />
