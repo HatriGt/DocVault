@@ -47,7 +47,7 @@ ensure_device() {
   if adb devices | grep -qE "\sdevice$"; then return 0; fi
   wait_boot() {
     for _ in $(seq 1 90); do
-      adb connect localhost:5555 >/dev/null 2>&1 || true
+      adb devices | grep -qE "\s(device|offline)$" || adb connect localhost:5555 >/dev/null 2>&1 || true
       [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && { step "Android booted"; return 0; }
       sleep 4
     done
