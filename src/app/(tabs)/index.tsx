@@ -6,11 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeInDown } from '../../theme/anim';
 import { Backdrop } from '../../components/Backdrop';
-import { noTabSwipe, TabSwipe } from '../../components/TabSwipe';
+import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Banner, EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
 import { kvGet } from '../../lib/db';
-import { DocRow, WalletMiniCard } from '../../components/docs';
+import { DocRow } from '../../components/docs';
+import { QuickAccess } from '../../components/QuickAccess';
 import { ActionSheet } from '../../components/Sheet';
 import { VaultCard } from '../../components/VaultCard';
 import { CountdownRing } from '../../components/CountdownRing';
@@ -157,6 +158,16 @@ export default function Home() {
           />
         ) : (
           <>
+            {/* Quick access to Wallet documents: slim enough to sit near the top */}
+            {wallet.length > 0 && (
+              <View style={{ marginTop: space.xxl }}>
+                <View style={{ paddingHorizontal: pad }}>
+                  <SectionHeader title="Quick access" action="Wallet" onAction={() => router.push('/(tabs)/favorites')} />
+                </View>
+                <QuickAccess docs={wallet} onLongPress={setMenuDoc} />
+              </View>
+            )}
+
             {/* Needs attention */}
             {attention.length > 0 && (
               <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
@@ -194,22 +205,6 @@ export default function Home() {
               ))}
             </View>
 
-            {/* Wallet */}
-            {wallet.length > 0 && (
-              <View style={{ marginTop: space.xxl }}>
-                <View style={{ paddingHorizontal: pad }}>
-                  <SectionHeader title="Wallet" action="Open" onAction={() => router.push('/(tabs)/favorites')} />
-                </View>
-                {/* Compact quick-access strip; the full cards live in the Wallet tab. */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} {...noTabSwipe} contentContainerStyle={{ gap: space.md, paddingHorizontal: pad, paddingVertical: space.xs }}>
-                  {wallet.map((d) => (
-                    <Tap key={d.id} onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} scaleTo={0.97} accessibilityLabel={`Open ${d.name}`}>
-                      <WalletMiniCard doc={d} />
-                    </Tap>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
 
             {/* Folders */}
             {rootFolders.length > 0 && (

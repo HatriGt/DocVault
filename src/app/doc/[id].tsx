@@ -14,14 +14,13 @@ import { useFolderLabel } from '../../components/Folders';
 import { Backdrop } from '../../components/Backdrop';
 import { ActivityList } from '../../components/ActivityList';
 import { DocPreview } from '../../components/DocPreview';
-import { KeyFacts, type KeyFact } from '../../components/KeyFacts';
+import { KeyFacts, useKeyFacts } from '../../components/KeyFacts';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useAccount, useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
-import { daysUntil, formatBytes, humanDays, formatDate, maskNumber, relativeTime } from '../../lib/format';
+import { formatBytes, formatDate, relativeTime } from '../../lib/format';
 import { isImage, isPdf, markAccessed, parseFields, parseTags, toggleFavorite } from '../../lib/documents';
 import { docActions, openDoc, presentDoc, shareDoc, toggleOffline } from '../../lib/actions';
-import { unlockDoc } from '../../lib/guard';
 import { retryFailed } from '../../lib/sync';
 
 export default function DocumentDetail() {
@@ -37,7 +36,6 @@ export default function DocumentDetail() {
   const { account } = useAccount();
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState<'open' | 'share' | null>(null);
-  const [revealed, setRevealed] = useState(false);
   const flip = useSharedValue(0);
   const folderLabel = useFolderLabel(doc?.folder_id);
 
@@ -50,6 +48,7 @@ export default function DocumentDetail() {
     backfaceVisibility: 'hidden',
   }));
 
+  const keyFacts = useKeyFacts(doc); // hooks before the early returns below
   if (loading) return <Screen>{null}</Screen>;
   if (!doc) {
     return (
@@ -66,29 +65,7 @@ export default function DocumentDetail() {
   const f = parseFields(doc);
   const tags = parseTags(doc);
   const cat = categoryOf(doc.category);
-  const days = daysUntil(doc.expiry);
   const cardW = Math.min(width - space.xl * 2, 380);
-  const revealNumber = async () => (revealed ? setRevealed(false) : (await unlockDoc(doc)) && setRevealed(true));
-  const keyFacts: KeyFact[] = [
-    ...(doc.expiry && days != null
-      ? [{
-          label: days < 0 ? 'Expired' : 'Expires',
-          value: formatDate(doc.expiry),
-          note: humanDays(days),
-          tone: (days < 0 ? 'danger' : days <= 90 ? 'warning' : 'default') as KeyFact['tone'],
-        }]
-      : []),
-    ...(f.number
-      ? [{
-          label: 'Number',
-          value: revealed ? f.number : maskNumber(f.number),
-          icon: (revealed ? 'eye-off-outline' : 'eye-outline') as KeyFact['icon'],
-          onPress: revealNumber,
-          accessibilityLabel: revealed ? `Number ${f.number}. Tap to hide` : 'Number hidden. Tap to reveal',
-        }]
-      : []),
-    ...(f.holder ? [{ label: 'Holder', value: f.holder }] : []),
-  ].slice(0, 3);
 
   const run = async (kind: 'open' | 'share') => {
     setBusy(kind);
@@ -265,16 +242,6 @@ export default function DocumentDetail() {
             <Group title="Details">
               {doc.doc_type ? <Row icon="pricetag-outline" title="Type" value={doc.doc_type} /> : null}
               {f.holder ? <Row icon="person-outline" title="Holder" value={f.holder} /> : null}
-              {f.number ? (
-                <Row
-                  icon="keypad-outline"
-                  title="Number"
-                  value={revealed ? f.number : maskNumber(f.number)}
-                  onPress={revealNumber}
-                  chevron={false}
-                  right={<Ionicons name={revealed ? 'eye-off-outline' : 'eye-outline'} size={18} color={c.textFaint} />}
-                />
-              ) : null}
               {f.issuer ? <Row icon="business-outline" title="Issued by" value={f.issuer} /> : null}
               {f.country ? <Row icon="flag-outline" title="Country" value={f.country} /> : null}
               <Row icon="add-circle-outline" title="Date added" value={formatDate(doc.created_at)} />

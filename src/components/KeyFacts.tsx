@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { T, Tap } from './ui';
 import { radius, space, useTheme } from '../theme';
+import type { DocRecord } from '../lib/db';
+import { parseFields } from '../lib/documents';
+import { daysUntil, formatDate, humanDays, maskNumber } from '../lib/format';
+import { unlockDoc } from '../lib/guard';
 
 export interface KeyFact {
   label: string;
@@ -51,4 +55,34 @@ export function KeyFacts({ facts }: { facts: KeyFact[] }) {
       })}
     </View>
   );
+}
+
+/**
+ * The facts people open a document for: expiry, number (masked until revealed with biometrics/PIN)
+ * and holder. Shared by the document page and Home's quick-access peek.
+ */
+export function useKeyFacts(doc: DocRecord | null | undefined): KeyFact[] {
+  const [revealed, setRevealed] = useState(false);
+  if (!doc) return [];
+  const f = parseFields(doc);
+  const days = daysUntil(doc.expiry);
+  const toggleNumber = async () => (revealed ? setRevealed(false) : (await unlockDoc(doc)) && setRevealed(true));
+  const facts: KeyFact[] = [];
+  if (doc.expiry && days != null)
+    facts.push({
+      label: days < 0 ? 'Expired' : 'Expires',
+      value: formatDate(doc.expiry),
+      note: humanDays(days),
+      tone: days < 0 ? 'danger' : days <= 90 ? 'warning' : 'default',
+    });
+  if (f.number)
+    facts.push({
+      label: 'Number',
+      value: revealed ? f.number : maskNumber(f.number),
+      icon: revealed ? 'eye-off-outline' : 'eye-outline',
+      onPress: toggleNumber,
+      accessibilityLabel: revealed ? `Number ${f.number}. Tap to hide` : 'Number hidden. Tap to reveal',
+    });
+  if (f.holder) facts.push({ label: 'Holder', value: f.holder });
+  return facts.slice(0, 3);
 }

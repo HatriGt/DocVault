@@ -371,36 +371,8 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
 }
 
 // ---------- Essentials card (home carousel) ----------
-/**
- * Compact wallet tile for quick access (Home): the card's colours and icon, name and expiry,
- * without the full card's size.
- */
-export function WalletMiniCard({ doc, width = 150 }: { doc: DocRecord; width?: number }) {
-  const { c } = useTheme();
-  const isCard = CARD_TYPES.has(doc.doc_type ?? '');
-  const skin = isCard ? (CARD_SKINS[doc.doc_type ?? ''] ?? DEFAULT_SKIN) : { bg: c.surface, fg: c.text, sub: c.textMuted, icon: 'document-text-outline' as const };
-  const days = daysUntil(doc.expiry);
-  const note = days != null && days <= 90 ? (days < 0 ? 'Expired' : `Expires in ${days} d`) : doc.expiry ? `Until ${formatDate(doc.expiry)}` : (categoryOf(doc.category)?.name ?? '');
-  return (
-    <View
-      style={[
-        { width, height: 92, borderRadius: radius.lg, backgroundColor: skin.bg, padding: space.md, justifyContent: 'space-between', overflow: 'hidden' },
-        isCard ? null : { borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
-        elevation(c, 1),
-      ]}
-    >
-      {isCard ? <Ionicons name={skin.icon} size={20} color={skin.fg} /> : <DocThumb doc={doc} size={26} />}
-      <View>
-        <T v="callout" numberOfLines={1} color={skin.fg} style={{ fontFamily: fonts.semibold }}>
-          {doc.name}
-        </T>
-        {!!note && (
-          <T v="caption" numberOfLines={1} color={days != null && days <= 90 ? c.warning : skin.sub} style={{ fontSize: 11.5 }}>
-            {note}
-          </T>
-        )}
-      </View>
-    </View>
-  );
+/** A document's card colours and icon: the card design for ID-type documents, neutral otherwise. */
+export function cardSkin(doc: DocRecord, c: ReturnType<typeof useTheme>['c']) {
+  if (CARD_TYPES.has(doc.doc_type ?? '')) return CARD_SKINS[doc.doc_type ?? ''] ?? DEFAULT_SKIN;
+  return { bg: c.surfaceAlt, fg: c.text, sub: c.textMuted, icon: 'document-text-outline' as keyof typeof Ionicons.glyphMap };
 }
-
