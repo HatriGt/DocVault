@@ -185,6 +185,16 @@ export default function Home() {
               </View>
             )}
 
+            {/* Recent: what people come back for, so it sits right under anything urgent */}
+            <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
+              <SectionHeader title="Recent" action="See all" onAction={() => router.push('/(tabs)/documents')} />
+              {docs.slice(0, 5).map((d) => (
+                <SwipeRow key={d.id} favorite={!!d.favorite} onFavorite={() => toggleFavorite(d)} onDelete={() => confirmDelete(d)}>
+                  <DocRow doc={d} onMore={setMenuDoc} />
+                </SwipeRow>
+              ))}
+            </View>
+
             {/* Wallet */}
             {wallet.length > 0 && (
               <View style={{ marginTop: space.xxl }}>
@@ -207,37 +217,17 @@ export default function Home() {
             )}
 
             {/* Folders */}
-            <View style={{ paddingHorizontal: pad, marginTop: space.xl }}>
-              <SectionHeader title="Folders" action={rootFolders.length ? 'Library' : 'New'} onAction={() => (rootFolders.length ? router.push('/(tabs)/documents') : setNewFolder(true))} />
+            {rootFolders.length > 0 && (
+            <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
+              <SectionHeader title="Folders" action="Library" onAction={() => router.push('/(tabs)/documents')} />
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
                 {rootFolders.map((f) => (
                   <FolderTile key={f.id} folder={f} width={(width - pad * 2 - space.md) / 2} onPress={() => router.push(`/folder/${f.id}`)} />
                 ))}
-                {rootFolders.length === 0 && (
-                  <Tap
-                    onPress={() => setNewFolder(true)}
-                    accessibilityLabel="Create a folder"
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 48, paddingHorizontal: space.lg, borderRadius: radius.pill, borderWidth: 1, borderStyle: 'dashed', borderColor: c.textFaint }}
-                  >
-                    <Ionicons name="add" size={18} color={c.textMuted} />
-                    <T v="callout">Create a folder</T>
-                    <T v="caption" color="muted">
-                      e.g. Family › Kids
-                    </T>
-                  </Tap>
-                )}
               </View>
             </View>
+            )}
 
-            {/* Recent */}
-            <View style={{ paddingHorizontal: pad, marginTop: space.xxl }}>
-              <SectionHeader title="Recent" action="See all" onAction={() => router.push('/(tabs)/documents')} />
-              {docs.slice(0, 5).map((d) => (
-                <SwipeRow key={d.id} favorite={!!d.favorite} onFavorite={() => toggleFavorite(d)} onDelete={() => confirmDelete(d)}>
-                  <DocRow doc={d} onMore={setMenuDoc} />
-                </SwipeRow>
-              ))}
-            </View>
           </>
         )}
       </ScrollView>
@@ -246,9 +236,4 @@ export default function Home() {
     </Screen>
     </TabSwipe>
   );
-}
-
-/** Kept for screens that still show a floating add button (folders). */
-export function Fab() {
-  return null;
 }
