@@ -69,7 +69,7 @@ function Peek({ doc, onClose }: { doc: DocRecord | null; onClose: () => void }) 
               <T v="heading" numberOfLines={1}>
                 {shown.name}
               </T>
-              {!!shown.doc_type && (
+              {!!shown.doc_type && shown.doc_type !== shown.name && (
                 <T v="caption" color="muted">
                   {shown.doc_type}
                 </T>
