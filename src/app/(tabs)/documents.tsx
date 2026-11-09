@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useNavigation, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeIn, SlideInDown, SlideOutDown } from '../../theme/anim';
@@ -55,6 +55,11 @@ export default function Library() {
   const [newFolder, setNewFolder] = useState(false);
   // selection
   const [selecting, setSelecting] = useState(false);
+  const navigation = useNavigation();
+  // While selecting, the batch bar takes the dock's place (one row of actions, no stray "+").
+  useEffect(() => {
+    navigation.setOptions({ tabBarStyle: selecting ? { display: 'none' } : undefined });
+  }, [navigation, selecting]);
   const [sel, setSel] = useState<string[]>([]);
   const [moveOpen, setMoveOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
@@ -259,20 +264,20 @@ export default function Library() {
           entering={SlideInDown.duration(DUR.slow).easing(EASE_OUT)}
           exiting={SlideOutDown.duration(160)}
           style={[
-            { position: 'absolute', left: space.lg, right: space.lg, bottom: Math.max(insets.bottom, space.md) + TAB_BAR_HEIGHT + space.md, backgroundColor: c.surface, borderRadius: radius.xl, paddingVertical: space.md, flexDirection: 'row', justifyContent: 'space-around', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
+            { position: 'absolute', left: space.lg, right: space.lg, bottom: Math.max(insets.bottom, space.md), backgroundColor: c.surface, borderRadius: radius.xl, paddingVertical: space.md, flexDirection: 'row', justifyContent: 'space-around', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
             elevation(c, 3),
           ]}
         >
           {(
             [
-              { icon: 'document-text-outline', label: 'One PDF', go: sharePack, busy: sharing },
-              { icon: 'folder-open-outline', label: 'Move', go: () => setMoveOpen(true) },
-              { icon: 'pricetag-outline', label: 'Tag', go: () => (setBatchTags([]), setTagOpen(true)) },
-              { icon: 'heart-outline', label: 'Favorite', go: () => favoriteMany(selectedDocs, !selectedDocs.every((d) => d.favorite)).then(exitSelect) },
-              { icon: 'trash-outline', label: 'Delete', go: () => confirmDeleteMany(selectedDocs, exitSelect), danger: true },
-            ] as { icon: keyof typeof Ionicons.glyphMap; label: string; go: () => void; busy?: boolean; danger?: boolean }[]
+              { icon: 'document-text-outline', label: 'Share PDF', hint: 'Share as one PDF', go: sharePack, busy: sharing },
+              { icon: 'folder-open-outline', label: 'Move', hint: 'Move to a folder', go: () => setMoveOpen(true) },
+              { icon: 'pricetag-outline', label: 'Tag', hint: 'Add tags', go: () => (setBatchTags([]), setTagOpen(true)) },
+              { icon: 'heart-outline', label: 'Wallet', hint: selectedDocs.every((d) => d.favorite) ? 'Remove from Wallet' : 'Add to Wallet', go: () => favoriteMany(selectedDocs, !selectedDocs.every((d) => d.favorite)).then(exitSelect) },
+              { icon: 'trash-outline', label: 'Trash', hint: 'Move to trash', go: () => confirmDeleteMany(selectedDocs, exitSelect), danger: true },
+            ] as { icon: keyof typeof Ionicons.glyphMap; label: string; hint: string; go: () => void; busy?: boolean; danger?: boolean }[]
           ).map((a) => (
-            <Tap key={a.label} onPress={a.go} disabled={!sel.length || a.busy} style={{ alignItems: 'center', gap: 4, width: 62, opacity: sel.length ? 1 : 0.35 }}>
+            <Tap key={a.label} onPress={a.go} disabled={!sel.length || a.busy} accessibilityLabel={`${a.hint}: ${sel.length} ${sel.length === 1 ? 'document' : 'documents'}`} style={{ alignItems: 'center', gap: 4, width: 62, opacity: sel.length ? 1 : 0.35 }}>
               <Ionicons name={a.busy ? 'hourglass-outline' : a.icon} size={22} color={a.danger ? c.danger : c.text} />
               <T v="caption" color={a.danger ? c.danger : 'muted'} style={{ fontSize: 11 }}>
                 {a.label}

@@ -49,7 +49,7 @@ export function SwipeRow({ children, favorite, onFavorite, onDelete }: { childre
       leftThreshold={70}
       rightThreshold={70}
       overshootFriction={6}
-      renderLeftActions={(p, t) => (translation.current = t) && <Action progress={p} icon={favorite ? 'heart-dislike' : 'heart'} color={c.accent} label={favorite ? 'Unfavorite' : 'Favorite'} side="left" />}
+      renderLeftActions={(p, t) => (translation.current = t) && <Action progress={p} icon={favorite ? 'heart-dislike' : 'heart'} color={c.accent} label={favorite ? 'Remove' : 'Wallet'} side="left" />}
       renderRightActions={(p, t) => (translation.current = t) && <Action progress={p} icon="trash" color={c.danger} label="Delete" side="right" />}
       onSwipeableWillOpen={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})}
       onSwipeableOpen={() => {

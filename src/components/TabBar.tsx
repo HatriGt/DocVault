@@ -38,9 +38,12 @@ function TabItem({ name, focused, onPress }: { name: string; focused: boolean; o
 }
 
 /** Floating graphite dock with a raised champagne "+" in the centre. */
-export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
+export function TabBar({ state, descriptors, navigateToTab }: BottomTabBarProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  // Screens hide the dock the standard way (e.g. Library while selecting): tabBarStyle { display: 'none' }.
+  const focusedStyle = descriptors[state.routes[state.index].key]?.options.tabBarStyle as { display?: string } | undefined;
+  if (focusedStyle?.display === 'none') return null;
   const items = state.routes.map((route, i) => (
     <TabItem key={route.key} name={route.name} focused={state.index === i} onPress={() => state.index !== i && navigateToTab(route.key)} />
   ));

@@ -19,7 +19,7 @@ const FILTERS: { k: Filter; label: string; icon: string }[] = [
   { k: 'pdf', label: 'PDFs', icon: 'document-text-outline' },
   { k: 'image', label: 'Images', icon: 'image-outline' },
   { k: 'expiring', label: 'Expiring', icon: 'time-outline' },
-  { k: 'favorite', label: 'Favorites', icon: 'heart-outline' },
+  { k: 'favorite', label: 'Wallet', icon: 'heart-outline' },
   { k: 'offline', label: 'On this phone', icon: 'phone-portrait-outline' },
 ];
 
