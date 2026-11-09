@@ -45,6 +45,23 @@ fi
 # machine can be suspended, which kills it). Starts the first AVD if none is running.
 ensure_device() {
   if adb devices | grep -qE "\sdevice$"; then return 0; fi
+  wait_boot() {
+    for _ in $(seq 1 90); do
+      adb connect localhost:5555 >/dev/null 2>&1 || true
+      [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && { step "Android booted"; return 0; }
+      sleep 4
+    done
+    return 1
+  }
+  # Sandboxes that run Android in a container (redroid): restart it when adb sees it offline.
+  local ctr="${DOCVAULT_ANDROID_CONTAINER:-}"
+  [ -z "$ctr" ] && command -v docker >/dev/null && ctr=$(docker ps -a --format '{{.Names}} {{.Image}}' 2>/dev/null | grep -iE "redroid|android" | head -1 | cut -d' ' -f1)
+  if [ -n "$ctr" ]; then
+    step "Restarting Android container $ctr"
+    adb disconnect >/dev/null 2>&1 || true
+    docker restart "$ctr" >/dev/null && wait_boot && return 0
+    echo "Android container $ctr did not come back"; docker logs --tail 20 "$ctr" 2>&1; return 1
+  fi
   local emu=""
   for c in "${DOCVAULT_EMULATOR:-}" "$ANDROID_HOME/emulator/emulator" "$(command -v emulator 2>/dev/null)" \
            "$HOME/Android/Sdk/emulator/emulator" /opt/android-emulator/emulator /opt/emulator/emulator /usr/local/bin/emulator; do
