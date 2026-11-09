@@ -1,6 +1,7 @@
 import React, { useEffect, type RefObject } from 'react';
 import { Keyboard, type ScrollView } from 'react-native';
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ScrollRef = RefObject<React.ComponentRef<typeof ScrollView> | null>;
 
@@ -14,7 +15,9 @@ type ScrollRef = RefObject<React.ComponentRef<typeof ScrollView> | null>;
  */
 export function KeyboardSpacer({ scrollRef, revealKey }: { scrollRef?: ScrollRef; revealKey?: unknown }) {
   const keyboard = useAnimatedKeyboard();
-  const style = useAnimatedStyle(() => ({ height: keyboard.height.value }));
+  // The reported keyboard height includes the navigation bar, which the screen already keeps clear of.
+  const bottomInset = useSafeAreaInsets().bottom;
+  const style = useAnimatedStyle(() => ({ height: Math.max(0, keyboard.height.value - bottomInset) }));
 
   useEffect(() => {
     if (!scrollRef) return;
