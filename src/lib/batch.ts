@@ -5,11 +5,11 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { File } from 'expo-file-system';
 import type { DocRecord } from './db';
 import { decryptDocument, deleteDocument, normalizeTags, parseTags, restoreDocument, updateDetails } from './documents';
-import { toast } from './toast';
 import { moveDocument } from './folders';
 import { purgeTempPlain, writeTempPlain } from './blobs';
 import { resolveType } from './filetype';
 import { logActivity } from './activity';
+import { notify } from './feedback';
 
 export async function moveMany(docs: DocRecord[], folderId: string | null) {
   for (const d of docs) await moveDocument(d.id, folderId, true);
@@ -26,7 +26,7 @@ export async function favoriteMany(docs: DocRecord[], on: boolean) {
 export async function confirmDeleteMany(docs: DocRecord[], after: () => void) {
   for (const d of docs) await deleteDocument(d);
   after();
-  toast(`${docs.length} moved to Recently Deleted`, {
+  notify(`${docs.length} moved to Recently deleted`, {
     icon: 'trash-outline',
     action: {
       label: 'Undo',

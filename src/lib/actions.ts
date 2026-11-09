@@ -1,13 +1,12 @@
-import { Alert } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import type { DocRecord } from './db';
 import { deleteDocument, exportCopy, restoreDocument, shareDocument, toggleFavorite } from './documents';
 import { unlockDoc } from './guard';
-import { toast } from './toast';
 import type { SheetAction } from '../components/Sheet';
+import { notify, notifyError } from './feedback';
 
-const fail = (e: unknown) => Alert.alert('Something went wrong', e instanceof Error ? e.message : String(e));
+const fail = (e: unknown) => notifyError(e, 'Something went wrong');
 
 export async function openDoc(doc: DocRecord) {
   if (!(await unlockDoc(doc))) return;
@@ -32,7 +31,7 @@ export async function presentDoc(doc: DocRecord) {
 export async function confirmDelete(doc: DocRecord, after?: () => void) {
   await deleteDocument(doc);
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-  toast(`“${doc.name}” moved to Recently deleted`, { icon: 'trash-outline', action: { label: 'Undo', run: () => restoreDocument({ ...doc, trashed_at: Date.now() }) } });
+  notify(`“${doc.name}” moved to Recently deleted`, { icon: 'trash-outline', action: { label: 'Undo', run: () => restoreDocument({ ...doc, trashed_at: Date.now() }) } });
   after?.();
 }
 

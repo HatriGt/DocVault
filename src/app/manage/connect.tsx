@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, Share, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -10,6 +10,7 @@ import { onGoogleSignIn, startGoogleSignIn } from '../../lib/googleSignIn';
 import { connectDriveToLocalVault, lookupExistingVault } from '../../lib/vault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 import { useAccount } from '../../lib/hooks';
+import { notifyError, inform } from '../../lib/feedback';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -34,7 +35,7 @@ export default function Connect() {
         try {
           if (error) throw error;
           if (await lookupExistingVault()) {
-            Alert.alert(
+            inform(
               'This Google account already has a vault',
               'To use it, sign out on this device and restore it with its recovery key. To keep this vault, connect a different Google account.',
             );
@@ -44,7 +45,7 @@ export default function Connect() {
           registerBackgroundSync();
           setKey(k);
         } catch (e) {
-          Alert.alert('Couldn’t connect', e instanceof Error ? e.message : String(e));
+          notifyError(e, 'Couldn’t connect');
         } finally {
           setBusy(false);
         }
@@ -54,7 +55,7 @@ export default function Connect() {
 
   const connect = async () => {
     if (!isGoogleConfigured()) {
-      Alert.alert('Google isn’t configured', 'Add OAuth client IDs to .env — see README.');
+      inform('Google isn’t configured', 'Add OAuth client IDs to .env — see README.');
       return;
     }
     if (!request) return;
@@ -63,7 +64,7 @@ export default function Connect() {
       if (!(await startGoogleSignIn(request, promptAsync))) setBusy(false);
     } catch (e) {
       setBusy(false);
-      Alert.alert('Couldn’t connect', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t connect');
     }
   };
 

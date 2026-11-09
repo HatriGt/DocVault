@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, ScrollView, Share, Switch, View } from 'react-native';
+import { ActivityIndicator, BackHandler, ScrollView, Share, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -14,6 +14,7 @@ import { seedSampleVault } from '../../lib/sampleVault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 import { normalizeRecoveryKey } from '../../lib/crypto';
 import { kvSet } from '../../lib/db';
+import { notifyError } from '../../lib/feedback';
 
 type Step = 'intro' | 'working' | 'show' | 'confirm' | 'profile';
 
@@ -51,7 +52,7 @@ export default function RecoverySetup() {
       setKey(k);
       setStep('show');
     } catch (e) {
-      Alert.alert('Couldn’t create your vault', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t create your vault');
       setStep('intro');
     }
   };

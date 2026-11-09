@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { KeyboardSpacer } from '../components/KeyboardSpacer';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
@@ -21,6 +21,7 @@ import { prettifyName, suggest } from '../lib/classify';
 import { recognizeText, ocrAvailable } from '../lib/ocr';
 import { useAccount } from '../lib/hooks';
 import { formatBytes } from '../lib/format';
+import { notifyError, inform, informPermission, choose } from '../lib/feedback';
 
 type Step = 'source' | 'scan' | 'details' | 'confirm' | 'saving' | 'done';
 type Source = 'camera' | 'photos' | 'files';
@@ -68,7 +69,7 @@ export default function AddDocument() {
         }
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) {
-          Alert.alert('Camera access needed', 'Allow camera access in Settings to scan documents.');
+          informPermission('Camera access needed', 'Allow camera access to scan documents.');
           return;
         }
         const r = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: true, exif: false });
@@ -88,7 +89,7 @@ export default function AddDocument() {
         accept({ uri: a.uri, name: a.name, mime: a.mimeType ?? 'application/octet-stream', size: a.size });
       }
     } catch (e) {
-      Alert.alert('Couldn’t import', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t import');
     }
   };
 
@@ -97,21 +98,18 @@ export default function AddDocument() {
     if (!src) return;
     const size = new File(src.uri).size ?? 0;
     if (size > MAX_FILE_BYTES) {
-      Alert.alert('File too large', 'DocVault can store files up to 200 MB on this phone.');
+      inform('File too large', 'DocVault can store files up to 200 MB on this phone.');
       return;
     }
     const bytes = await new File(src.uri).bytes(); // read once: used for duplicate check and saving
     const dup = await findDuplicate(bytes).catch(() => null);
     if (dup) {
-      const choice = await new Promise<'view' | 'save' | 'cancel'>((resolve) =>
-        Alert.alert('Already in your vault', `This file is identical to “${dup.name}”.`, [
-          { text: 'Cancel', style: 'cancel', onPress: () => resolve('cancel') },
-          { text: 'View existing', onPress: () => resolve('view') },
-          { text: 'Save anyway', onPress: () => resolve('save') },
-        ]),
-      );
+      const choice = await choose('Already in your vault', `This file is identical to “${dup.name}”.`, [
+        { label: 'View existing', value: 'view' },
+        { label: 'Save anyway', value: 'save' },
+      ]);
       if (choice === 'view') return router.replace(`/doc/${dup.id}`);
-      if (choice === 'cancel') return;
+      if (choice === null) return;
     }
     setStep('saving');
     try {
@@ -129,7 +127,7 @@ export default function AddDocument() {
       setNewId(rec.id);
       setStep('done');
     } catch (e) {
-      Alert.alert('Couldn’t save document', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t save document', { retry: save });
       setStep('confirm');
     }
   };

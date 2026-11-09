@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,7 @@ import { textToHtml, wordToHtml } from '../../lib/officeRender';
 import { formatBytes } from '../../lib/format';
 import { unlockDoc } from '../../lib/guard';
 import { DUR, EASE_OUT } from '../../theme/motion';
+import { notifyError } from '../../lib/feedback';
 
 interface Loaded {
   kind: ViewKind;
@@ -96,7 +97,7 @@ export default function Viewer() {
   const fg = darkChrome ? '#fff' : c.text;
   const btnBg = darkChrome ? 'rgba(255,255,255,0.16)' : undefined;
 
-  const openWith = () => openNative(doc).catch((e) => Alert.alert('No app can open this', e instanceof Error ? e.message : String(e)));
+  const openWith = () => openNative(doc).catch((e) => notifyError(e, 'No app can open this'));
 
   return (
     <View style={{ flex: 1, backgroundColor: darkChrome ? '#000' : c.bg }}>

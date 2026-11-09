@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeInDown, FadeOutLeft, LinearTransition } from '../theme/anim';
@@ -12,8 +12,8 @@ import { radius, space, useTheme } from '../theme';
 import { useTrash } from '../lib/hooks';
 import { emptyTrash, purgeDocument, restoreDocument } from '../lib/documents';
 import { formatBytes } from '../lib/format';
-import { toast } from '../lib/toast';
 import { DUR, EASE_OUT } from '../theme/motion';
+import { notify, notifyError, confirm } from '../lib/feedback';
 
 /** Recently Deleted: restore within 30 days, or delete permanently. */
 export default function Trash() {
@@ -23,11 +23,18 @@ export default function Trash() {
   const [now] = useState(() => Date.now());
   const daysLeft = (t: number | null) => Math.max(0, 30 - Math.floor((now - (t ?? now)) / 86_400_000));
 
-  const confirmEmpty = () =>
-    Alert.alert('Empty Recently deleted?', `${items.length} documents will be permanently deleted from this device, your Drive and your other devices. This can’t be undone.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete forever', style: 'destructive', onPress: () => emptyTrash(items).then(() => toast('Recently deleted emptied', { icon: 'checkmark-circle' })) },
-    ]);
+  const confirmEmpty = async () => {
+    const ok = await confirm({
+      title: 'Empty Recently deleted?',
+      message: `${items.length} documents will be permanently deleted from this device, your Drive and your other devices. This can’t be undone.`,
+      confirmLabel: 'Delete forever',
+      destructive: true,
+    });
+    if (!ok) return;
+    emptyTrash(items)
+      .then(() => notify('Recently deleted emptied'))
+      .catch((e) => notifyError(e, 'Couldn’t empty Recently deleted', { retry: confirmEmpty }));
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -50,18 +57,16 @@ export default function Trash() {
                   {daysLeft(item.trashed_at)} days left · {formatBytes(item.size)}
                 </T>
               </View>
-              <Tap onPress={() => restoreDocument(item).then(() => toast(`Restored “${item.name}”`, { icon: 'arrow-undo' }))} accessibilityLabel={`Restore ${item.name}`} style={{ paddingHorizontal: 12, height: 36, borderRadius: 18, backgroundColor: c.accentSoft, justifyContent: 'center' }}>
+              <Tap onPress={() => restoreDocument(item).then(() => notify(`Restored “${item.name}”`, { icon: 'arrow-undo' }))} accessibilityLabel={`Restore ${item.name}`} style={{ paddingHorizontal: 12, height: 36, borderRadius: 18, backgroundColor: c.accentSoft, justifyContent: 'center' }}>
                 <T v="callout" color="accent">
                   Restore
                 </T>
               </Tap>
               <Tap
-                onPress={() =>
-                  Alert.alert(`Delete “${item.name}” forever?`, 'This can’t be undone.', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete', style: 'destructive', onPress: () => purgeDocument(item) },
-                  ])
-                }
+                onPress={async () => {
+                  if (await confirm({ title: `Delete “${item.name}” forever?`, message: 'This can’t be undone.', confirmLabel: 'Delete', destructive: true }))
+                    purgeDocument(item).catch((e) => notifyError(e, 'Couldn’t delete'));
+                }}
                 hitSlop={8}
                 accessibilityLabel={`Delete ${item.name} forever`}
               >
@@ -73,7 +78,7 @@ export default function Trash() {
       />
       {items.length > 0 && (
         <View style={{ position: 'absolute', left: space.xl, right: space.xl, bottom: insets.bottom + space.lg, flexDirection: 'row', gap: space.md }}>
-          <Button title="Restore all" variant="secondary" style={{ flex: 1 }} onPress={() => Promise.all(items.map(restoreDocument)).then(() => toast('All documents restored', { icon: 'arrow-undo' }))} />
+          <Button title="Restore all" variant="secondary" style={{ flex: 1 }} onPress={() => Promise.all(items.map(restoreDocument)).then(() => notify('All documents restored', { icon: 'arrow-undo' }))} />
           <Button title="Empty" variant="danger" style={{ flex: 1 }} onPress={confirmEmpty} />
         </View>
       )}

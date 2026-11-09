@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, FlatList, ScrollView, useWindowDimensions, View } from 'react-native';
+import { FlatList, ScrollView, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -17,6 +17,7 @@ import { deleteFolder, moveFolder, pathTo } from '../../lib/folders';
 import { docActions } from '../../lib/actions';
 import type { DocRecord } from '../../lib/db';
 import { DUR, EASE_OUT } from '../../theme/motion';
+import { notify, notifyError, confirm } from '../../lib/feedback';
 
 export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,18 +44,22 @@ export default function FolderScreen() {
     );
   }
 
-  const confirmDelete = () =>
-    Alert.alert(`Delete “${folder.name}”?`, 'Its documents and subfolders will move up to the parent folder. Nothing is deleted.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete folder',
-        style: 'destructive',
-        onPress: async () => {
-          await deleteFolder(folder.id);
-          router.back();
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    const ok = await confirm({
+      title: `Delete “${folder.name}”?`,
+      message: 'Its documents and subfolders will move up to the parent folder. Nothing is deleted.',
+      confirmLabel: 'Delete folder',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteFolder(folder.id);
+      router.back();
+      notify(`Folder “${folder.name}” deleted`);
+    } catch (e) {
+      notifyError(e, 'Couldn’t delete the folder');
+    }
+  };
 
   return (
     <Screen>
@@ -178,7 +183,7 @@ export default function FolderScreen() {
         excludeId={folder.id}
         title="Move folder to"
         action="Move here"
-        onPick={(dest) => moveFolder(folder.id, dest).catch((e) => Alert.alert('Can’t move', e.message))}
+        onPick={(dest) => moveFolder(folder.id, dest).catch((e) => notifyError(e, 'Can’t move'))}
       />
     </Screen>
   );

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Field, Screen, T } from '../../components/ui';
@@ -8,6 +8,7 @@ import { space, type, useTheme } from '../../theme';
 import { getPendingAccount } from '../../lib/pending';
 import { lookupExistingVault, resetRemoteVault, restoreFromRecoveryKey } from '../../lib/vault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
+import { notifyError, confirm } from '../../lib/feedback';
 
 export default function Restore() {
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
@@ -38,29 +39,26 @@ export default function Restore() {
     }
   };
 
-  const lost = () =>
-    Alert.alert(
-      'Start a new vault?',
-      'Without your recovery key, your existing encrypted documents can’t be decrypted by anyone. Starting over permanently deletes them from your Google Drive.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete & start over',
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await resetRemoteVault();
-              router.replace('/recovery/setup');
-            } catch (e) {
-              Alert.alert('Couldn’t reset', e instanceof Error ? e.message : String(e));
-            } finally {
-              setBusy(false);
-            }
-          },
-        },
-      ],
-    );
+  const startOver = async () => {
+    setBusy(true);
+    try {
+      await resetRemoteVault();
+      router.replace('/recovery/setup');
+    } catch (e) {
+      notifyError(e, 'Couldn’t reset', { retry: startOver });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const lost = async () => {
+    const ok = await confirm({
+      title: 'Start a new vault?',
+      message: 'Without your recovery key, your existing encrypted documents can’t be decrypted by anyone. Starting over permanently deletes them from your Google Drive.',
+      confirmLabel: 'Delete & start over',
+      destructive: true,
+    });
+    if (ok) await startOver();
+  };
 
   return (
     <Screen edges={['top', 'bottom']}>

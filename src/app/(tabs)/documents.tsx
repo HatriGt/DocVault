@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -23,6 +23,7 @@ import { SkeletonRows, SwipeRow } from '../../components/motion';
 import { parseTags, toggleFavorite } from '../../lib/documents';
 import { confirmDeleteMany, favoriteMany, moveMany, shareAsOnePdf, tagMany } from '../../lib/batch';
 import { DUR, EASE_OUT } from '../../theme/motion';
+import { notify, notifyError } from '../../lib/feedback';
 
 type Sort = 'added' | 'name' | 'accessed' | 'expiry';
 const SORT_LABEL: Record<Sort, string> = { added: 'Recently added', name: 'Name', accessed: 'Recently opened', expiry: 'Expiring soonest' };
@@ -105,9 +106,9 @@ export default function Library() {
     setSharing(true);
     try {
       const skipped = await shareAsOnePdf(selectedDocs, selectedDocs.length === 1 ? selectedDocs[0].name : `DocVault pack (${selectedDocs.length})`);
-      if (skipped) Alert.alert('Some files were left out', `${skipped} selected ${skipped === 1 ? 'file isn’t' : 'files aren’t'} a PDF or image.`);
+      if (skipped) notify(`${skipped} ${skipped === 1 ? 'file was' : 'files were'} left out: only PDFs and images can be combined`, { icon: 'information-circle' });
     } catch (e) {
-      Alert.alert('Couldn’t create the PDF', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t create the PDF');
     } finally {
       setSharing(false);
     }

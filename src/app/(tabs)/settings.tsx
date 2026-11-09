@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Image, ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,7 @@ import { useAccount, useDocuments, usePrefs, useSyncStatus } from '../../lib/hoo
 import { relativeTime } from '../../lib/format';
 import { setPrefs } from '../../lib/session';
 import { signOutAndWipeDevice } from '../../lib/vault';
+import { notifyError, confirm } from '../../lib/feedback';
 
 export default function Settings() {
   const { c } = useTheme();
@@ -18,24 +19,24 @@ export default function Settings() {
   const prefs = usePrefs();
   const sync = useSyncStatus();
 
-  const signOut = () =>
-    Alert.alert(
-      'Sign out and remove from this device?',
-      account?.mode === 'google'
+  const signOut = async () => {
+    const google = account?.mode === 'google';
+    const ok = await confirm({
+      title: google ? 'Sign out and remove from this device?' : 'Delete this vault?',
+      message: google
         ? 'All documents and keys will be erased from this phone. Your encrypted vault stays in Google Drive — you’ll need your recovery key to restore it.'
         : 'This vault exists only on this device. Everything will be permanently deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: account?.mode === 'google' ? 'Sign out' : 'Delete everything',
-          style: 'destructive',
-          onPress: async () => {
-            await signOutAndWipeDevice();
-            router.replace('/onboarding');
-          },
-        },
-      ],
-    );
+      confirmLabel: google ? 'Sign out' : 'Delete everything',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await signOutAndWipeDevice();
+      router.replace('/onboarding');
+    } catch (e) {
+      notifyError(e, google ? 'Couldn’t sign out' : 'Couldn’t delete the vault');
+    }
+  };
 
   const cycleTheme = () => setPrefs({ theme: prefs.theme === 'system' ? 'light' : prefs.theme === 'light' ? 'dark' : 'system' });
 

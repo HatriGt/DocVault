@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, LayoutChangeEvent, ScrollView, View } from 'react-native';
+import { ActivityIndicator, LayoutChangeEvent, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,7 @@ import { fonts, radius, space, useTheme } from '../../theme';
 import { useDocument } from '../../lib/hooks';
 import { discardWorking, ImageFormat, openWorking, saveWorking, transformWorking, Working } from '../../lib/tools';
 import { DUR, EASE_OUT } from '../../theme/motion';
+import { notifyError } from '../../lib/feedback';
 
 const ASPECTS = [
   { k: 'free', label: 'Free', r: 0 },
@@ -59,7 +60,7 @@ export default function ImageEditor() {
     openWorking(doc)
       .then((wk) => alive && (setWork(wk), setBusy(null)))
       .catch((e) => {
-        Alert.alert('Can’t edit this image', e instanceof Error ? e.message : String(e));
+        notifyError(e, 'Can’t edit this image');
         router.back();
       });
     return () => {
@@ -181,7 +182,7 @@ export default function ImageEditor() {
       router.replace(`/doc/${newId}`);
     } catch (e) {
       setBusy(null);
-      Alert.alert('Couldn’t save', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t save', { retry: () => save(mode) });
     }
   };
 

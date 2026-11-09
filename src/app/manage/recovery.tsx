@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, Share, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Banner, Button, T } from '../../components/ui';
@@ -7,6 +7,7 @@ import { radius, space, useTheme, fonts } from '../../theme';
 import { newRecoveryKey } from '../../lib/vault';
 import { useAccount } from '../../lib/hooks';
 import { kvSet } from '../../lib/db';
+import { notifyError, confirm } from '../../lib/feedback';
 
 export default function Recovery() {
   const { c } = useTheme();
@@ -14,26 +15,27 @@ export default function Recovery() {
   const [key, setKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const regenerate = () =>
-    Alert.alert('Create a new recovery key?', 'Your old recovery key will stop working immediately. Make sure to save the new one.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Create new key',
-        onPress: async () => {
-          const auth = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm it’s you' });
-          if (!auth.success) return;
-          setBusy(true);
-          try {
-            setKey(await newRecoveryKey());
-            kvSet('recovery.unconfirmed', false);
-          } catch (e) {
-            Alert.alert('Couldn’t create key', e instanceof Error ? e.message : String(e));
-          } finally {
-            setBusy(false);
-          }
-        },
-      },
-    ]);
+  const createKey = async () => {
+    const auth = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm it’s you' });
+    if (!auth.success) return;
+    setBusy(true);
+    try {
+      setKey(await newRecoveryKey());
+      kvSet('recovery.unconfirmed', false);
+    } catch (e) {
+      notifyError(e, 'Couldn’t create key', { retry: createKey });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const regenerate = async () => {
+    const ok = await confirm({
+      title: 'Create a new recovery key?',
+      message: 'Your old recovery key will stop working immediately. Make sure to save the new one.',
+      confirmLabel: 'Create new key',
+    });
+    if (ok) await createKey();
+  };
 
   return (
     <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg }}>

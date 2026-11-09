@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -8,6 +8,7 @@ import { Button, T, Tap } from './ui';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { DUR, EASE_OUT } from '../theme/motion';
 import { buildScan, discardScan, rotatePage, ScanPage, ScanResult, scanPages } from '../lib/scan';
+import { notifyError } from '../lib/feedback';
 
 /**
  * Review step after the system scanner: see every page large, rotate,
@@ -26,7 +27,7 @@ export function ScanReview({ initial, onDone, onCancel }: { initial: ScanPage[];
       const more = await scanPages(20 - pages.length);
       if (more) setPages((p) => [...p, ...more]);
     } catch (e) {
-      Alert.alert('Scanner unavailable', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Scanner unavailable');
     }
   };
   const rotate = async (i: number) => {
@@ -56,7 +57,7 @@ export function ScanReview({ initial, onDone, onCancel }: { initial: ScanPage[];
       onDone(await buildScan(pages, pages.length > 1 || asPdf));
     } catch (e) {
       setBusy(null);
-      Alert.alert('Couldn’t prepare the scan', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t prepare the scan', { retry: finish });
     }
   };
   const cancel = () => {

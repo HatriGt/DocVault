@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, useWindowDimensions, View } from 'react-native';
+import { FlatList, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -11,6 +11,7 @@ import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../lib/googl
 import { onGoogleSignIn, startGoogleSignIn } from '../lib/googleSignIn';
 import { lookupExistingVault } from '../lib/vault';
 import { setPendingAccount } from '../lib/pending';
+import { notifyError, inform } from '../lib/feedback';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -52,7 +53,7 @@ export default function Onboarding() {
       onGoogleSignIn(async ({ profile, error }) => {
         if (error) {
           setBusy(false);
-          Alert.alert('Couldn’t sign in with Google', error.message);
+          notifyError(error, 'Couldn’t sign in with Google');
           return;
         }
         try {
@@ -60,7 +61,7 @@ export default function Onboarding() {
           const existing = await lookupExistingVault();
           router.replace(existing ? '/recovery/restore' : '/recovery/setup');
         } catch (e) {
-          Alert.alert('Couldn’t connect Google Drive', e instanceof Error ? e.message : String(e));
+          notifyError(e, 'Couldn’t connect Google Drive');
         } finally {
           setBusy(false);
         }
@@ -70,7 +71,7 @@ export default function Onboarding() {
 
   const signInGoogle = async () => {
     if (!isGoogleConfigured()) {
-      Alert.alert(
+      inform(
         'Google isn’t configured',
         'Add your OAuth client IDs to .env (see README) to enable Google Drive backup. You can continue on this device only for now.',
       );
@@ -83,7 +84,7 @@ export default function Onboarding() {
       if (!ok) setBusy(false); // cancelled; on success the listener navigates
     } catch (e) {
       setBusy(false);
-      Alert.alert('Couldn’t sign in with Google', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t sign in with Google');
     }
   };
 

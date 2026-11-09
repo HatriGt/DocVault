@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -16,6 +16,7 @@ import { toolById } from '../../lib/toolCatalog';
 import { extractPages, imagesToPdf, mergePdfs, parsePageRanges, pdfPageCount, rotatePdf, splitPdf } from '../../lib/tools';
 import type { DocRecord } from '../../lib/db';
 import { DUR, EASE_OUT } from '../../theme/motion';
+import { notifyError } from '../../lib/feedback';
 
 type Step = 'pick' | 'options' | 'running' | 'done';
 
@@ -89,7 +90,7 @@ export default function RunTool() {
       setStep('done');
     } catch (e) {
       setStep('options');
-      Alert.alert('Couldn’t finish', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t finish', { retry: run });
     }
   };
 

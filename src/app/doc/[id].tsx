@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -21,8 +21,8 @@ import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '..
 import { exportCopy, isImage, isPdf, OfflineChangeError, parseFields, parseTags, setLocked, setOfflinePreference, toggleFavorite } from '../../lib/documents';
 import { confirmDelete, openDoc, presentDoc, shareDoc } from '../../lib/actions';
 import { unlockDoc } from '../../lib/guard';
-import { toast } from '../../lib/toast';
 import { retryFailed } from '../../lib/sync';
+import { notify, notifyError } from '../../lib/feedback';
 
 export default function DocumentDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -79,7 +79,7 @@ export default function DocumentDetail() {
       await setOfflinePreference(doc, doc.offline_pref === 'keep' ? 'cloud' : 'keep');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e) {
-      Alert.alert(e instanceof OfflineChangeError ? 'Not yet' : 'Something went wrong', e instanceof Error ? e.message : String(e));
+      notifyError(e, e instanceof OfflineChangeError ? 'Not yet' : 'Something went wrong');
     }
   };
 
@@ -328,7 +328,7 @@ export default function DocumentDetail() {
             onPress: async () => {
               if (doc.locked && !(await unlockDoc(doc))) return;
               await setLocked(doc, !doc.locked);
-              toast(doc.locked ? 'Lock removed' : 'Locked — biometrics needed to open', { icon: doc.locked ? 'lock-open' : 'lock-closed' });
+              notify(doc.locked ? 'Lock removed' : 'Locked — biometrics needed to open', { icon: doc.locked ? 'lock-open' : 'lock-closed' });
             },
           },
           ...(account?.mode === 'google'
@@ -345,7 +345,7 @@ export default function DocumentDetail() {
             label: 'Save a decrypted copy',
             hint: 'To Downloads or another app',
             icon: 'download-outline',
-            onPress: () => exportCopy(doc).catch((e) => Alert.alert('Couldn’t save', String(e?.message ?? e))),
+            onPress: function exportIt() { exportCopy(doc).catch((e) => notifyError(e, 'Couldn’t save a copy', { retry: exportIt })); },
           },
           { section: 'Export', label: 'Move to trash', hint: 'Restore within 30 days', icon: 'trash-outline', destructive: true, onPress: () => confirmDelete(doc, () => router.back()) },
         ]}
