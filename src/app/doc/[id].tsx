@@ -14,6 +14,7 @@ import { useFolderLabel } from '../../components/Folders';
 import { Backdrop } from '../../components/Backdrop';
 import { ActivityList } from '../../components/ActivityList';
 import { DocPreview } from '../../components/DocPreview';
+import { KeyFacts, type KeyFact } from '../../components/KeyFacts';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useAccount, useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
@@ -63,6 +64,27 @@ export default function DocumentDetail() {
   const cat = categoryOf(doc.category);
   const days = daysUntil(doc.expiry);
   const cardW = Math.min(width - space.xl * 2, 380);
+  const revealNumber = async () => (revealed ? setRevealed(false) : (await unlockDoc(doc)) && setRevealed(true));
+  const keyFacts: KeyFact[] = [
+    ...(doc.expiry && days != null
+      ? [{
+          label: days < 0 ? 'Expired' : 'Expires',
+          value: formatDate(doc.expiry),
+          note: days < 0 ? `${Math.abs(days)} days ago` : days === 0 ? 'today' : `in ${days} days`,
+          tone: (days < 0 ? 'danger' : days <= 90 ? 'warning' : 'default') as KeyFact['tone'],
+        }]
+      : []),
+    ...(f.number
+      ? [{
+          label: 'Number',
+          value: revealed ? f.number : maskNumber(f.number),
+          icon: (revealed ? 'eye-off-outline' : 'eye-outline') as KeyFact['icon'],
+          onPress: revealNumber,
+          accessibilityLabel: revealed ? `Number ${f.number}. Tap to hide` : 'Number hidden. Tap to reveal',
+        }]
+      : []),
+    ...(f.holder ? [{ label: 'Holder', value: f.holder }] : []),
+  ].slice(0, 3);
 
   const run = async (kind: 'open' | 'share') => {
     setBusy(kind);
@@ -166,13 +188,9 @@ export default function DocumentDetail() {
             )}
           </View>
 
-          {days != null && days <= 90 && (
+          {keyFacts.length > 0 && (
             <View style={{ marginTop: space.lg }}>
-              <Banner
-                tone={days < 0 ? 'danger' : 'warning'}
-                icon="time-outline"
-                text={days < 0 ? `Expired ${Math.abs(days)} days ago` : days === 0 ? 'Expires today' : `Expires in ${days} days — consider renewing`}
-              />
+              <KeyFacts facts={keyFacts} />
             </View>
           )}
           {doc.sync_state === 'failed' && (
@@ -189,7 +207,6 @@ export default function DocumentDetail() {
           </Tap>
           {/* Quick tools */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: space.lg, marginHorizontal: -space.xl }} contentContainerStyle={{ gap: space.sm, paddingHorizontal: space.xl }}>
-            <Chip label="Full screen" icon="expand-outline" tint={c.accent} onPress={() => presentDoc(doc)} />
             {(isImage(doc)
               ? [
                   { label: 'Edit & crop', icon: 'crop', go: () => router.push({ pathname: '/edit-image/[id]', params: { id: doc.id } }) },
@@ -249,7 +266,7 @@ export default function DocumentDetail() {
                   icon="keypad-outline"
                   title="Number"
                   value={revealed ? f.number : maskNumber(f.number)}
-                  onPress={async () => (revealed ? setRevealed(false) : (await unlockDoc(doc)) && setRevealed(true))}
+                  onPress={revealNumber}
                   chevron={false}
                   right={<Ionicons name={revealed ? 'eye-off-outline' : 'eye-outline'} size={18} color={c.textFaint} />}
                 />
