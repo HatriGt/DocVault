@@ -30,7 +30,10 @@ export default function Present() {
   const { doc } = useDocument(id);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const [file, setFile] = useState<{ uri: string; kind: 'image' | 'pdf' | 'card' } | null>(null);
+  // The decrypted file (null while loading; kind null if it can't be shown). Card-type documents also
+  // get a drawn card + large facts view, which is the default for them.
+  const [file, setFile] = useState<{ uri: string; kind: 'image' | 'pdf' | null } | null>(null);
+  const [view, setView] = useState<'card' | 'file' | null>(null);
   const flip = useSharedValue(0);
 
   useEffect(() => {
@@ -51,15 +54,13 @@ export default function Present() {
     let alive = true;
     let ownUri: string | null = null;
     (async () => {
-      let next: { uri: string; kind: 'image' | 'pdf' | 'card' } = { uri: '', kind: 'card' };
-      if (!(CARD_TYPES.has(doc.doc_type ?? '') && !doc.mime.startsWith('image/'))) {
-        try {
-          const plain = await decryptDocument(doc);
-          const t = resolveType(plain, `${doc.name}.${doc.ext}`, doc.mime);
-          const kind = t.mime === 'application/pdf' ? 'pdf' : t.mime.startsWith('image/') ? 'image' : 'card';
-          next = { uri: kind === 'card' ? '' : (ownUri = writeTempPlain(`present-${doc.id}.${t.ext}`, plain).uri), kind };
-        } catch {}
-      }
+      let next: { uri: string; kind: 'image' | 'pdf' | null } = { uri: '', kind: null };
+      try {
+        const plain = await decryptDocument(doc);
+        const t = resolveType(plain, `${doc.name}.${doc.ext}`, doc.mime);
+        const kind = t.mime === 'application/pdf' ? 'pdf' : t.mime.startsWith('image/') ? 'image' : null;
+        next = { uri: kind ? (ownUri = writeTempPlain(`present-${doc.id}.${t.ext}`, plain).uri) : '', kind };
+      } catch {}
       if (alive) setFile(next);
     })();
     return () => {
@@ -74,6 +75,9 @@ export default function Present() {
 
   if (!doc) return <View style={{ flex: 1, backgroundColor: '#000' }} />;
   const f = parseFields(doc);
+  const isCard = CARD_TYPES.has(doc.doc_type ?? '');
+  const shown = view ?? (isCard ? 'card' : 'file');
+  const canSwitch = isCard && !!file?.kind;
   const cardW = width - space.xl * 2;
 
   return (
@@ -89,15 +93,15 @@ export default function Present() {
         </View>
       </View>
 
-      {!file ? (
+      {shown === 'file' && !file ? (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator color="#fff" />
         </View>
-      ) : file.kind === 'image' ? (
+      ) : shown === 'file' && file?.kind === 'image' ? (
         <View style={{ flex: 1, paddingTop: insets.top + 56 }}>
           <ImageView uri={file.uri} />
         </View>
-      ) : file.kind === 'pdf' ? (
+      ) : shown === 'file' && file?.kind === 'pdf' ? (
         <View style={{ flex: 1, paddingTop: insets.top + 56 }}>
           <PdfView uri={file.uri} />
         </View>
@@ -135,6 +139,25 @@ export default function Present() {
             )}
           </View>
         </Animated.View>
+      )}
+
+      {canSwitch && (
+        <View style={{ position: 'absolute', bottom: insets.bottom + space.xl, alignSelf: 'center', flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 4 }}>
+          {(['card', 'file'] as const).map((v) => (
+            <Tap
+              key={v}
+              onPress={() => setView(v)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: shown === v }}
+              accessibilityLabel={v === 'card' ? 'Show card and details' : 'Show the document'}
+              style={{ height: 36, paddingHorizontal: space.lg, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: shown === v ? '#fff' : 'transparent' }}
+            >
+              <T v="callout" color={shown === v ? '#07060D' : '#fff'} style={{ fontFamily: fonts.semibold }}>
+                {v === 'card' ? 'Card' : 'Document'}
+              </T>
+            </Tap>
+          ))}
+        </View>
       )}
     </View>
   );
