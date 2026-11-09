@@ -167,6 +167,7 @@ export function IconButton({
   tint,
   bg,
   size = 44,
+  disabled,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
@@ -174,14 +175,18 @@ export function IconButton({
   tint?: string;
   bg?: string;
   size?: number;
+  disabled?: boolean;
 }) {
   const { c } = useTheme();
   return (
     <Tap
       onPress={onPress}
+      disabled={disabled}
       accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       hitSlop={8}
       style={{
+        opacity: disabled ? 0.35 : 1,
         width: size,
         height: size,
         borderRadius: size / 2,

@@ -123,7 +123,7 @@ export default function RunTool() {
               const on = order >= 0;
               return (
                 <Animated.View entering={FadeInDown.delay(Math.min(index, 10) * 30)}>
-                  <Tap onPress={() => toggle(item)} style={[{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.md, borderWidth: 2, borderColor: on ? c.accent : 'transparent' }, elevation(c, 1)]}>
+                  <Tap onPress={() => toggle(item)} accessibilityLabel={`${item.name}, ${formatBytes(item.size)}`} accessibilityState={{ selected: on }} style={[{ flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.md, borderWidth: 2, borderColor: on ? c.accent : 'transparent' }, elevation(c, 1)]}>
                     <DocThumb doc={item} size={48} />
                     <View style={{ flex: 1 }}>
                       <T v="bodyStrong" numberOfLines={1}>
@@ -151,7 +151,11 @@ export default function RunTool() {
           />
           {tool.accepts === 'pdf' || tool.multi ? (
             <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: space.xl, paddingBottom: insets.bottom + space.lg, backgroundColor: c.bg }}>
-              <Button title={tool.multi ? `Continue with ${chosen.length}` : 'Continue'} onPress={toOptions} disabled={!canContinue} />
+              <Button title={
+                  canContinue
+                    ? tool.multi ? `Continue with ${chosen.length}` : 'Continue'
+                    : `Select ${chosen.length ? `${minCount - chosen.length} more` : `${minCount === 1 ? 'a' : minCount} ${tool.accepts === 'pdf' ? 'PDF' : 'photo'}${minCount > 1 && !chosen.length ? 's' : ''}`}`
+                } onPress={toOptions} disabled={!canContinue} />
             </View>
           ) : null}
         </>
@@ -172,8 +176,8 @@ export default function RunTool() {
                     <T v="body" style={{ flex: 1 }} numberOfLines={1}>
                       {d.name}
                     </T>
-                    <IconButton icon="arrow-up" label="Move up" size={36} onPress={() => move(i, -1)} />
-                    <IconButton icon="arrow-down" label="Move down" size={36} onPress={() => move(i, 1)} />
+                    <IconButton icon="arrow-up" label={`Move ${d.name} up`} size={36} disabled={i === 0} onPress={() => move(i, -1)} />
+                    <IconButton icon="arrow-down" label={`Move ${d.name} down`} size={36} disabled={i === chosen.length - 1} onPress={() => move(i, 1)} />
                   </Animated.View>
                 ))}
               </View>
@@ -224,7 +228,10 @@ export default function RunTool() {
 
       {step === 'done' && (
         <View style={{ flex: 1, justifyContent: 'center', padding: space.xxl }}>
-          <SaveSuccess title={resultIds.length > 1 ? `${resultIds.length} documents created` : 'Done!'} subtitle="Saved to your vault, encrypted and available offline." />
+          <SaveSuccess
+            title={resultIds.length > 1 ? `${resultIds.length} documents created` : `“${docs.find((d) => d.id === resultIds[0])?.name ?? 'New document'}” created`}
+            subtitle="Saved to your vault, encrypted and available offline."
+          />
           <View style={{ gap: space.md, marginTop: space.xxxl }}>
             {resultIds.length === 1 && <Button title="View document" icon="eye-outline" onPress={() => router.replace(`/doc/${resultIds[0]}`)} />}
             <Button title="Back to tools" variant="secondary" onPress={() => router.back()} />
