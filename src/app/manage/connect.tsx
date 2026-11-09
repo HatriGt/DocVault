@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { Button, T } from '../../components/ui';
 import { radius, space, useTheme, fonts } from '../../theme';
-import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../../lib/google';
-import { onGoogleSignIn, startGoogleSignIn } from '../../lib/googleSignIn';
+import { isGoogleConfigured } from '../../lib/google';
+import { useGoogleSignIn } from '../../lib/useGoogleSignIn';
+import { onGoogleSignIn } from '../../lib/googleSignIn';
 import { connectDriveToLocalVault, lookupExistingVault } from '../../lib/vault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 import { useAccount } from '../../lib/hooks';
@@ -20,13 +20,7 @@ export default function Connect() {
   const { account } = useAccount();
   const [busy, setBusy] = useState(false);
   const [key, setKey] = useState<string | null>(null);
-  const [request, , promptAsync] = Google.useAuthRequest({
-    ...googleClientIds,
-    scopes: GOOGLE_SCOPES,
-    selectAccount: true,
-    shouldAutoExchangeCode: false,
-    extraParams: { access_type: 'offline', prompt: 'consent' },
-  });
+  const google = useGoogleSignIn();
 
   const displayName = account?.displayName;
   useEffect(
@@ -58,10 +52,10 @@ export default function Connect() {
       inform('Google isn’t configured', 'Add OAuth client IDs to .env — see README.');
       return;
     }
-    if (!request) return;
+    if (!google.ready) return;
     setBusy(true);
     try {
-      if (!(await startGoogleSignIn(request, promptAsync))) setBusy(false);
+      if (!(await google.start())) setBusy(false);
     } catch (e) {
       setBusy(false);
       notifyError(e, 'Couldn’t connect');

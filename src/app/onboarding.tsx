@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FlatList, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { Button, Screen, T, Tap } from '../components/ui';
 import { radius, space, useTheme } from '../theme';
-import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../lib/google';
-import { onGoogleSignIn, startGoogleSignIn } from '../lib/googleSignIn';
+import { isGoogleConfigured } from '../lib/google';
+import { useGoogleSignIn } from '../lib/useGoogleSignIn';
+import { onGoogleSignIn } from '../lib/googleSignIn';
 import { lookupExistingVault } from '../lib/vault';
 import { setPendingAccount } from '../lib/pending';
 import { notifyError, inform } from '../lib/feedback';
@@ -40,13 +40,7 @@ export default function Onboarding() {
   const list = useRef<FlatList>(null);
   const [busy, setBusy] = useState(false);
 
-  const [request, , promptAsync] = Google.useAuthRequest({
-    ...googleClientIds,
-    scopes: GOOGLE_SCOPES,
-    selectAccount: true,
-    shouldAutoExchangeCode: false, // exchanged in googleSignIn.ts (works even if the browser "dismisses")
-    extraParams: { access_type: 'offline', prompt: 'consent' },
-  });
+  const google = useGoogleSignIn();
 
   useEffect(
     () =>
@@ -77,10 +71,10 @@ export default function Onboarding() {
       );
       return;
     }
-    if (!request) return;
+    if (!google.ready) return;
     setBusy(true);
     try {
-      const ok = await startGoogleSignIn(request, promptAsync);
+      const ok = await google.start();
       if (!ok) setBusy(false); // cancelled; on success the listener navigates
     } catch (e) {
       setBusy(false);
@@ -141,7 +135,7 @@ export default function Onboarding() {
                   Sign in with Google to back up your encrypted vault to your own Google Drive and sync it across devices.
                 </T>
                 <View style={{ marginTop: space.xxxl, gap: space.md }}>
-                  <Button title="Continue with Google" icon="logo-google" onPress={signInGoogle} loading={busy} disabled={!request && isGoogleConfigured()} />
+                  <Button title="Continue with Google" icon="logo-google" onPress={signInGoogle} loading={busy} disabled={google.configured && !google.ready} />
                   <Button title="Use on this device only" variant="secondary" onPress={localOnly} />
                   <T v="caption" color="muted" style={{ textAlign: 'center' }}>
                     No backup: if this phone is lost, its documents are gone. You can connect Drive later.
