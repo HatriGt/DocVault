@@ -72,6 +72,11 @@ export default function Search() {
       .sort((a, b) => b.score - a.score)
       .map((x) => x.d);
   }, [docs, query, filters]);
+  // What people search for most is something they opened recently: offer it before they type.
+  const recentlyOpened = useMemo(
+    () => docs.filter((d) => d.accessed_at).sort((a, b) => (b.accessed_at ?? 0) - (a.accessed_at ?? 0)).slice(0, 3),
+    [docs],
+  );
   const folderHits = query && !query.startsWith('#') ? folders.filter((f) => f.name.toLowerCase().includes(query)).slice(0, 6) : [];
 
   return (
@@ -94,11 +99,21 @@ export default function Search() {
 
       {!query && !filters.length ? (
         <Animated.View entering={FadeIn} style={{ paddingHorizontal: space.xl, gap: space.xl, marginTop: space.md }}>
+          {recentlyOpened.length > 0 && (
+            <View>
+              <T v="overline" color="muted" style={{ marginBottom: space.xs }}>
+                RECENTLY OPENED
+              </T>
+              {recentlyOpened.map((d) => (
+                <DocRow key={d.id} doc={d} />
+              ))}
+            </View>
+          )}
           {recent.length > 0 && (
             <View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: space.sm }}>
                 <T v="overline" color="muted">
-                  RECENT
+                  RECENT SEARCHES
                 </T>
                 <Tap onPress={() => (setRecent([]), kvSet('search.recent', []))}>
                   <T v="caption" color={c.gold}>
