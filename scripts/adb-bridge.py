@@ -15,6 +15,7 @@ Endpoints (all require header  X-Token: <BRIDGE_TOKEN>):
     GET  /logcat?lines=500          -> recent logcat (threadtime)
     POST /build     (body = branch) -> starts scripts/sandbox-build.sh in the background
     GET  /build?lines=80            -> build state (idle/running/ok/failed) + log tail
+    POST /sh?timeout=120 (body = bash script) -> runs it on the sandbox, returns exit code + output
 
 Only run this in a disposable sandbox. Anyone with the token can control the device.
 """
@@ -121,6 +122,7 @@ class H(http.server.BaseHTTPRequestHandler):
         if not self._ok():
             return
         url = urllib.parse.urlparse(self.path)
+        q = urllib.parse.parse_qs(url.query)
         try:
             if url.path == "/install":
                 with tempfile.NamedTemporaryFile(suffix=".apk", delete=False) as f:
@@ -153,6 +155,11 @@ class H(http.server.BaseHTTPRequestHandler):
                 if not start_build(branch):
                     return self._send(409, "a build is already running")
                 self._send(202, f"build started for {branch}; poll GET /build")
+            elif url.path == "/sh":
+                # Full shell on the sandbox, for remote debugging. Same token protects it.
+                timeout = min(int(q.get("timeout", ["120"])[0]), 1800)
+                p = subprocess.run(["bash", "-lc", self._body().decode()], capture_output=True, timeout=timeout)
+                self._send(200, f"exit={p.returncode}\n".encode() + p.stdout + p.stderr)
             elif url.path == "/adb":
                 args = shlex.split(self._body().decode())
                 code, out = run(args, 180)
