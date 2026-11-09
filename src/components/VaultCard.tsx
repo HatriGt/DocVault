@@ -22,7 +22,7 @@ export function VaultCard() {
   const syncLabel =
     account?.mode !== 'google' ? 'Phone only' : s.running ? 'Backing up…' : !s.online ? 'No internet' : pending ? `${pending} waiting` : s.lastSyncAt ? relativeTime(s.lastSyncAt) : 'Ready';
   return (
-    <Tap onPress={() => router.push('/manage/sync')} scaleTo={0.985} accessibilityLabel={`Vault: ${docs.length} documents, ${syncLabel}`}>
+    <Tap onPress={() => router.push(account?.mode === 'google' ? '/manage/sync' : '/manage/connect')} scaleTo={0.985} accessibilityLabel={`Vault: ${docs.length} documents, ${syncLabel}`}>
       <LinearGradient
         colors={['#7360FF', '#5B45F2', '#3A2BB8']}
         locations={[0, 0.55, 1]}
@@ -56,7 +56,7 @@ export function VaultCard() {
         <View>
           <View style={{ position: 'absolute', right: 0, top: 6, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
             <T v="caption" color={c.heroMuted}>
-              Sync & storage
+              {account?.mode === 'google' ? 'Sync & storage' : 'Set up backup'}
             </T>
             <Ionicons name="chevron-forward" size={14} color={c.heroMuted} />
           </View>

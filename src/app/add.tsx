@@ -226,7 +226,7 @@ export default function AddDocument() {
 function SourceOption({ icon, title, body, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string; onPress: () => void }) {
   const { c } = useTheme();
   return (
-    <Tap onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg }}>
+    <Tap onPress={onPress} accessibilityLabel={`${title}. ${body}`} style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg }}>
       <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name={icon} size={23} color={c.accent} />
       </View>
