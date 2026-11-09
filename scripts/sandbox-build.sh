@@ -53,7 +53,9 @@ if [ -n "${BRIDGE_TOKEN:-}" ] && [ -n "${DOCVAULT_BRIDGE_PATH:-}" ] && ! cmp -s 
   step "Updating the adb bridge (restarts in a few seconds)"
   cp scripts/adb-bridge.py "$DOCVAULT_BRIDGE_PATH"
   cp scripts/sandbox-build.sh "$(dirname "$DOCVAULT_BRIDGE_PATH")/sandbox-build.sh"
-  setsid nohup bash -c "sleep 5; pkill -f 'python3 .*adb-bridge.py' ; cd '$(dirname "$DOCVAULT_BRIDGE_PATH")' && BRIDGE_TOKEN='$BRIDGE_TOKEN' PORT='${PORT:-3000}' exec python3 adb-bridge.py" >"$HOME/dvbridge.log" 2>&1 < /dev/null &
+  old_pids=$(pgrep -f 'python3 .*adb-bridge.py' | tr '\n' ' ')
+  # Kill the old bridge by PID (a pattern would also match this restart command itself).
+  setsid nohup bash -c "sleep 5; kill $old_pids 2>/dev/null; sleep 1; cd '$(dirname "$DOCVAULT_BRIDGE_PATH")' && BRIDGE_TOKEN='$BRIDGE_TOKEN' PORT='${PORT:-3000}' exec python3 adb-bridge.py" >"$HOME/dvbridge.log" 2>&1 < /dev/null &
   echo "Bridge restart scheduled; log at ~/dvbridge.log"
   exit 0
 fi
