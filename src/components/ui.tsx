@@ -370,7 +370,7 @@ export function Row({
   const content = (
     <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 56, paddingHorizontal: space.lg, gap: space.md }}>
       {icon && (
-        <View style={{ width: 28, alignItems: 'center' }}>
+        <View style={{ width: 28, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Ionicons name={icon} size={21} color={danger ? c.danger : c.textMuted} />
         </View>
       )}
@@ -390,11 +390,15 @@ export function Row({
         </T>
       )}
       {right}
-      {chevron && <Ionicons name="chevron-forward" size={18} color={c.textFaint} />}
+      {chevron && (
+        <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
+        </View>
+      )}
     </View>
   );
   return onPress ? (
-    <Pressable onPress={onPress} android_ripple={{ color: c.border }} accessibilityRole="button">
+    <Pressable onPress={onPress} android_ripple={{ color: c.border }} accessibilityRole="button" accessibilityLabel={[title, subtitle, value].filter(Boolean).join(', ')}>
       {({ pressed }) => <View style={{ opacity: pressed ? 0.6 : 1 }}>{content}</View>}
     </Pressable>
   ) : (
