@@ -8,7 +8,7 @@ import { Button, T, Tap } from './ui';
 import { elevation, fonts, radius, space, useTheme } from '../theme';
 import { DUR, EASE_OUT } from '../theme/motion';
 import { buildScan, discardScan, rotatePage, ScanPage, ScanResult, scanPages } from '../lib/scan';
-import { notifyError } from '../lib/feedback';
+import { confirm, notifyError } from '../lib/feedback';
 
 /**
  * Review step after the system scanner: see every page large, rotate,
@@ -60,7 +60,17 @@ export function ScanReview({ initial, onDone, onCancel }: { initial: ScanPage[];
       notifyError(e, 'Couldn’t prepare the scan', { retry: finish });
     }
   };
-  const cancel = () => {
+  const cancel = async () => {
+    if (pages.length > 0) {
+      const ok = await confirm({
+        title: pages.length === 1 ? 'Discard this scan?' : `Discard ${pages.length} scanned pages?`,
+        message: 'They haven’t been saved yet.',
+        confirmLabel: 'Discard',
+        destructive: true,
+        cancelLabel: 'Keep editing',
+      });
+      if (!ok) return;
+    }
     pages.forEach((p) => discardScan(p.uri));
     onCancel();
   };
@@ -128,7 +138,7 @@ export function ScanReview({ initial, onDone, onCancel }: { initial: ScanPage[];
               { v: true, label: 'One PDF', icon: 'document-text-outline' as const },
               { v: false, label: 'Photo', icon: 'image-outline' as const },
             ].map((o) => (
-              <Tap key={o.label} onPress={() => setAsPdf(o.v)} accessibilityState={{ selected: asPdf === o.v }} style={{ flex: 1, height: 40, borderRadius: radius.pill, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: asPdf === o.v ? c.surface : 'transparent' }}>
+              <Tap key={o.label} onPress={() => setAsPdf(o.v)} accessibilityLabel={`Save as ${o.label}`} accessibilityRole="radio" accessibilityState={{ selected: asPdf === o.v }} style={{ flex: 1, height: 40, borderRadius: radius.pill, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: asPdf === o.v ? c.surface : 'transparent' }}>
                 <Ionicons name={o.icon} size={16} color={asPdf === o.v ? c.text : c.textMuted} />
                 <T v="callout" color={asPdf === o.v ? 'text' : 'muted'} style={{ fontFamily: fonts.semibold }}>
                   {o.label}
