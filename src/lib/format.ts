@@ -33,6 +33,14 @@ export function daysUntil(iso: string | null) {
   return Math.round((end - start) / 86400000);
 }
 
+/** A day count as people say it: "today", "in 12 days", "in 3 months", "2 years ago". */
+export function humanDays(days: number) {
+  if (days === 0) return 'today';
+  const n = Math.abs(days);
+  const span = n <= 60 ? `${n} ${n === 1 ? 'day' : 'days'}` : n < 730 ? `${Math.round(n / 30.4)} months` : `${Math.round(n / 365.25)} years`;
+  return days > 0 ? `in ${span}` : `${span} ago`;
+}
+
 export function greeting() {
   const h = new Date().getHours();
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';

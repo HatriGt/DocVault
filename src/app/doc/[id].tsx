@@ -18,7 +18,7 @@ import { KeyFacts, type KeyFact } from '../../components/KeyFacts';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useAccount, useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
-import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
+import { daysUntil, formatBytes, humanDays, formatDate, maskNumber, relativeTime } from '../../lib/format';
 import { isImage, isPdf, parseFields, parseTags, toggleFavorite } from '../../lib/documents';
 import { docActions, openDoc, presentDoc, shareDoc, toggleOffline } from '../../lib/actions';
 import { unlockDoc } from '../../lib/guard';
@@ -70,7 +70,7 @@ export default function DocumentDetail() {
       ? [{
           label: days < 0 ? 'Expired' : 'Expires',
           value: formatDate(doc.expiry),
-          note: days < 0 ? `${Math.abs(days)} days ago` : days === 0 ? 'today' : `in ${days} days`,
+          note: humanDays(days),
           tone: (days < 0 ? 'danger' : days <= 90 ? 'warning' : 'default') as KeyFact['tone'],
         }]
       : []),
