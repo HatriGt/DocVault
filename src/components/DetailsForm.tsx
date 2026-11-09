@@ -21,6 +21,14 @@ export interface FormState {
   folderId?: string | null;
 }
 
+/** Types the slashes for you: "12062031" → "12/06/2031". Leaves other formats (e.g. pasted ISO dates) alone. */
+export function maskDateInput(next: string, prev: string) {
+  if (!/^[\d/]*$/.test(next)) return next;
+  if (next.length < prev.length) return next; // deleting: don't re-add slashes under the cursor
+  const d = next.replace(/\D/g, '').slice(0, 8);
+  return [d.slice(0, 2), d.slice(2, 4), d.slice(4)].filter(Boolean).join('/') + (d.length === 2 || d.length === 4 ? '/' : '');
+}
+
 export const expiryValid = (s: string) => !s.trim() || parseDate(s.trim()) != null;
 export const normalizeExpiry = (s: string) => (s.trim() ? parseDate(s.trim()) : null);
 
@@ -83,9 +91,10 @@ export function DetailsForm({ value, onChange }: { value: FormState; onChange: (
         <Field
           label="Expiry date"
           value={value.expiry}
-          onChangeText={(expiry) => set({ expiry })}
+          onChangeText={(expiry) => set({ expiry: maskDateInput(expiry, value.expiry) })}
           placeholder="DD/MM/YYYY"
-          keyboardType="numbers-and-punctuation"
+          keyboardType="number-pad"
+          maxLength={10}
           hint={expiryValid(value.expiry) ? 'We’ll remind you 90, 30 and 7 days before it expires.' : 'Enter a date like 12/06/2031'}
         />
       )}
