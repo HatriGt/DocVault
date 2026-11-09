@@ -142,7 +142,7 @@ export default function Present() {
       )}
 
       {canSwitch && (
-        <View style={{ position: 'absolute', bottom: insets.bottom + space.xl, alignSelf: 'center', flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 22, padding: 4 }}>
+        <View style={{ position: 'absolute', bottom: insets.bottom + space.xl, alignSelf: 'center', flexDirection: 'row', backgroundColor: 'rgba(7,6,13,0.9)', borderRadius: 22, padding: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
           {(['card', 'file'] as const).map((v) => (
             <Tap
               key={v}
