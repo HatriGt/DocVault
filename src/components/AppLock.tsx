@@ -12,6 +12,7 @@ import { purgeTempPlain } from '../lib/blobs';
 import { relockAll } from '../lib/guard';
 import { radius, space, useTheme } from '../theme';
 import { T, Tap } from './ui';
+import { PinDots, PinPad } from './PinPad';
 
 const clock = () => Date.now();
 
@@ -150,40 +151,13 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
                   Too many attempts. Try again in {remaining}s
                 </T>
               )}
-              <Animated.View style={[{ flexDirection: 'row', gap: space.md, marginVertical: space.xxl }, shakeStyle]}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <View
-                    key={i}
-                    style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: i < pin.length ? c.accent : c.surfaceAlt }}
-                  />
-                ))}
-              </Animated.View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: 276, gap: space.lg, justifyContent: 'center' }}>
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bio', '0', 'del'].map((k) => (
-                  <Tap
-                    key={k}
-                    debounce={false}
-                    accessibilityLabel={k === 'bio' ? 'Use biometrics' : k === 'del' ? 'Delete' : k}
-                    onPress={() => (k === 'del' ? setPin(pin.slice(0, -1)) : k === 'bio' ? hasBio && tryBiometric() : press(k))}
-                    style={{
-                      width: 76,
-                      height: 76,
-                      borderRadius: 38,
-                      backgroundColor: k === 'bio' || k === 'del' ? 'transparent' : c.surface,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {k === 'del' ? (
-                      <Ionicons name="backspace-outline" size={26} color={c.text} />
-                    ) : k === 'bio' ? (
-                      hasBio ? <Ionicons name="finger-print" size={28} color={c.accent} /> : null
-                    ) : (
-                      <T v="title">{k}</T>
-                    )}
-                  </Tap>
-                ))}
-              </View>
+              <PinDots count={pin.length} style={[{ marginVertical: space.xxl }, shakeStyle]} />
+              <PinPad
+                onDigit={press}
+                onDelete={() => setPin(pin.slice(0, -1))}
+                disabled={waiting}
+                extraKey={hasBio ? { icon: 'finger-print', label: 'Use biometrics', onPress: tryBiometric } : undefined}
+              />
             </>
           ) : (
             <Tap
