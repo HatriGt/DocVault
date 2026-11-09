@@ -288,7 +288,7 @@ export default function Library() {
         title="Sort by"
         actions={(Object.keys(SORT_LABEL) as Sort[]).map((s) => ({ label: SORT_LABEL[s], icon: sort === s ? 'checkmark-circle' : 'ellipse-outline', onPress: () => setSort(s) }))}
       />
-      <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc) : []} />
+      <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc, { inList: true, cloud: account?.mode === 'google' }) : []} />
       <FolderEditor visible={newFolder} onClose={() => setNewFolder(false)} parentId={null} onSaved={(f) => router.push(`/folder/${f.id}`)} />
       <FolderPicker visible={moveOpen} onClose={() => setMoveOpen(false)} value={null} title={`Move ${sel.length} documents`} action="Move here" onPick={(dest) => moveMany(selectedDocs, dest).then(exitSelect)} />
       <BottomSheet visible={tagOpen} onClose={() => setTagOpen(false)} title={`Tag ${sel.length} documents`}>

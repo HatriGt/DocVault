@@ -13,7 +13,7 @@ import { ActionSheet } from '../../components/Sheet';
 import { Backdrop } from '../../components/Backdrop';
 import { FolderEditor, FolderPicker, FolderTile } from '../../components/Folders';
 import { elevation, fonts, radius, space, useTheme } from '../../theme';
-import { useDocuments, useFolders } from '../../lib/hooks';
+import { useAccount, useDocuments, useFolders } from '../../lib/hooks';
 import { deleteFolder, moveFolder, pathTo } from '../../lib/folders';
 import { docActions } from '../../lib/actions';
 import type { DocRecord } from '../../lib/db';
@@ -26,6 +26,7 @@ export default function FolderScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { folders, loading: foldersLoading } = useFolders();
+  const { account } = useAccount();
   const { docs, loading: docsLoading, error, retry } = useDocuments();
   const folder = folders.find((f) => f.id === id);
   const crumbs = pathTo(folders, id ?? null);
@@ -177,7 +178,7 @@ export default function FolderScreen() {
           { label: 'Delete folder', icon: 'trash-outline', destructive: true, onPress: confirmDelete },
         ]}
       />
-      <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc) : []} />
+      <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc, { inList: true, cloud: account?.mode === 'google' }) : []} />
       <FolderEditor
         visible={editing != null}
         onClose={() => setEditing(null)}

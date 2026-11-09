@@ -242,7 +242,7 @@ export default function Home() {
         )}
       </ScrollView>
       <FolderEditor visible={newFolder} onClose={() => setNewFolder(false)} parentId={null} onSaved={(f) => router.push(`/folder/${f.id}`)} />
-      <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc) : []} />
+      <ActionSheet visible={!!menuDoc} onClose={() => setMenuDoc(null)} title={menuDoc?.name} actions={menuDoc ? docActions(menuDoc, { inList: true, cloud: account?.mode === 'google' }) : []} />
     </Screen>
     </TabSwipe>
   );

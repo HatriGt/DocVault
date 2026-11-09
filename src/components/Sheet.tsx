@@ -90,6 +90,8 @@ export function ActionSheet({ visible, onClose, title, actions }: { visible: boo
           )}
           <Tap
             scaleTo={0.985}
+            accessibilityLabel={a.hint ? `${a.label}, ${a.hint}` : a.label}
+            accessibilityRole="button"
             onPress={() => {
               onClose();
               // Run after the sheet has left so the next screen/sheet doesn't overlap it.

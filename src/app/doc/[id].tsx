@@ -18,11 +18,10 @@ import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useAccount, useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, formatDate, maskNumber, relativeTime } from '../../lib/format';
-import { exportCopy, isImage, isPdf, OfflineChangeError, parseFields, parseTags, setLocked, setOfflinePreference, toggleFavorite } from '../../lib/documents';
-import { confirmDelete, openDoc, presentDoc, shareDoc } from '../../lib/actions';
+import { isImage, isPdf, parseFields, parseTags, toggleFavorite } from '../../lib/documents';
+import { docActions, openDoc, presentDoc, shareDoc, toggleOffline } from '../../lib/actions';
 import { unlockDoc } from '../../lib/guard';
 import { retryFailed } from '../../lib/sync';
-import { notify, notifyError } from '../../lib/feedback';
 
 export default function DocumentDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -74,14 +73,6 @@ export default function DocumentDetail() {
     }
   };
 
-  const toggleOffline = async () => {
-    try {
-      await setOfflinePreference(doc, doc.offline_pref === 'keep' ? 'cloud' : 'keep');
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    } catch (e) {
-      notifyError(e, e instanceof OfflineChangeError ? 'Not yet' : 'Something went wrong');
-    }
-  };
 
   const glass = c.surface;
   return (
@@ -274,7 +265,7 @@ export default function DocumentDetail() {
                 title="Available offline"
                 subtitle={doc.offline_pref === 'keep' ? 'Stored encrypted on this device' : 'Downloaded when you open it'}
                 value={doc.offline_pref === 'keep' ? 'On' : 'Off'}
-                onPress={toggleOffline}
+                onPress={() => toggleOffline(doc)}
               />
               <Row icon="document-outline" title="File" value={`${doc.ext.toUpperCase()} · ${formatBytes(doc.size)}`} />
               <Row icon="lock-closed-outline" title="Encryption" value="AES-256-GCM" />
@@ -317,38 +308,7 @@ export default function DocumentDetail() {
         visible={more}
         onClose={() => setMore(false)}
         title={doc.name}
-        actions={[
-          { section: 'Organise', label: 'Edit details', hint: 'Name, number, dates, tags', icon: 'create-outline', onPress: () => router.push(`/edit/${doc.id}`) },
-          { section: 'Organise', label: 'Move to folder', icon: 'folder-open-outline', onPress: () => router.push(`/move/${doc.id}`) },
-          {
-            section: 'Protect',
-            label: doc.locked ? 'Remove biometric lock' : 'Lock with biometrics',
-            hint: doc.locked ? undefined : 'Fingerprint or face needed to open',
-            icon: doc.locked ? 'lock-open-outline' : 'lock-closed-outline',
-            onPress: async () => {
-              if (doc.locked && !(await unlockDoc(doc))) return;
-              await setLocked(doc, !doc.locked);
-              notify(doc.locked ? 'Lock removed' : 'Locked — biometrics needed to open', { icon: doc.locked ? 'lock-open' : 'lock-closed' });
-            },
-          },
-          ...(account?.mode === 'google'
-            ? [{
-                section: 'Protect',
-                label: doc.offline_pref === 'keep' ? 'Make cloud-only' : 'Keep offline',
-                hint: doc.offline_pref === 'keep' ? 'Free space; download when opened' : 'Always available without internet',
-                icon: (doc.offline_pref === 'keep' ? 'cloud-outline' : 'cloud-download-outline') as 'cloud-outline',
-                onPress: toggleOffline,
-              }]
-            : []),
-          {
-            section: 'Export',
-            label: 'Save a decrypted copy',
-            hint: 'To Downloads or another app',
-            icon: 'download-outline',
-            onPress: function exportIt() { exportCopy(doc).catch((e) => notifyError(e, 'Couldn’t save a copy', { retry: exportIt })); },
-          },
-          { section: 'Export', label: 'Move to trash', hint: 'Restore within 30 days', icon: 'trash-outline', destructive: true, onPress: () => confirmDelete(doc, () => router.back()) },
-        ]}
+        actions={docActions(doc, { cloud: account?.mode === 'google', afterDelete: () => router.back() })}
       />
     </Screen>
   );
