@@ -7,7 +7,6 @@ import Animated, {
   Extrapolation,
   interpolate,
   SharedValue,
-  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -15,7 +14,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { T } from './ui';
 import { radius, space, useTheme } from '../theme';
-import { noTabSwipe } from './TabSwipe';
 
 // ---------- Swipe actions ----------
 function Action({ progress, icon, color, label, side }: { progress: SharedValue<number>; icon: keyof typeof Ionicons.glyphMap; color: string; label: string; side: 'left' | 'right' }) {
@@ -67,48 +65,8 @@ export function SwipeRow({ children, favorite, onFavorite, onDelete }: { childre
 }
 
 // ---------- Wallet carousel with depth ----------
-function CarouselItem({ index, x, step, children }: { index: number; x: SharedValue<number>; step: number; children: React.ReactNode }) {
-  const st = useAnimatedStyle(() => {
-    const d = (x.get() - index * step) / step; // 0 when centred
-    return {
-      opacity: interpolate(Math.abs(d), [0, 1, 2], [1, 0.7, 0.45], Extrapolation.CLAMP),
-      transform: [
-        { scale: interpolate(Math.abs(d), [0, 1], [1, 0.9], Extrapolation.CLAMP) },
-        { translateY: interpolate(Math.abs(d), [0, 1], [0, 10], Extrapolation.CLAMP) },
-        { rotateZ: `${interpolate(d, [-1, 0, 1], [3, 0, -3], Extrapolation.CLAMP)}deg` },
-      ],
-    };
-  });
-  return <Animated.View style={st}>{children}</Animated.View>;
-}
 
 /** Horizontal snap carousel where the centred card is full size and neighbours recede. */
-export function WalletCarousel<T>({ data, itemWidth, gap, padding, keyOf, render }: { data: T[]; itemWidth: number; gap: number; padding: number; keyOf: (t: T) => string; render: (t: T) => React.ReactNode }) {
-  const x = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((e) => {
-    x.set(e.contentOffset.x);
-  });
-  const step = itemWidth + gap;
-  return (
-    <Animated.ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={step}
-      decelerationRate="fast"
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      {...noTabSwipe}
-      contentContainerStyle={{ paddingHorizontal: padding, gap, paddingVertical: space.md }}
-    >
-      {data.map((d, i) => (
-        <CarouselItem key={keyOf(d)} index={i} x={x} step={step}>
-          {render(d)}
-        </CarouselItem>
-      ))}
-    </Animated.ScrollView>
-  );
-}
-
 // ---------- Skeleton shimmer ----------
 export function Skeleton({ style }: { style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();

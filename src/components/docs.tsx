@@ -371,31 +371,36 @@ export function PassportBook({ doc, width }: { doc: DocRecord; width: number }) 
 }
 
 // ---------- Essentials card (home carousel) ----------
-export function EssentialCard({ doc, width }: { doc: DocRecord; width: number }) {
-  if (CARD_TYPES.has(doc.doc_type ?? '')) return <WalletCard doc={doc} width={width} />;
-  return <FileCard doc={doc} width={width} />;
-}
-
-/** Non-card documents in the wallet carousel: paper-like card with format accent. */
-function FileCard({ doc, width }: { doc: DocRecord; width: number }) {
+/**
+ * Compact wallet tile for quick access (Home): the card's colours and icon, name and expiry,
+ * without the full card's size.
+ */
+export function WalletMiniCard({ doc, width = 150 }: { doc: DocRecord; width?: number }) {
   const { c } = useTheme();
-  const h = width / 1.586;
+  const isCard = CARD_TYPES.has(doc.doc_type ?? '');
+  const skin = isCard ? (CARD_SKINS[doc.doc_type ?? ''] ?? DEFAULT_SKIN) : { bg: c.surface, fg: c.text, sub: c.textMuted, icon: 'document-text-outline' as const };
+  const days = daysUntil(doc.expiry);
+  const note = days != null && days <= 90 ? (days < 0 ? 'Expired' : `Expires in ${days} d`) : doc.expiry ? `Until ${formatDate(doc.expiry)}` : (categoryOf(doc.category)?.name ?? '');
   return (
-    <View style={[{ width, height: h, borderRadius: 18, backgroundColor: c.surface, padding: 18, justifyContent: 'space-between', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }, elevation(c, 2)]}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        <T v="overline" color="muted">
-          {(categoryOf(doc.category)?.name ?? doc.category).toUpperCase()}
-        </T>
-        <DocThumb doc={doc} size={34} />
-      </View>
+    <View
+      style={[
+        { width, height: 92, borderRadius: radius.lg, backgroundColor: skin.bg, padding: space.md, justifyContent: 'space-between', overflow: 'hidden' },
+        isCard ? null : { borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline },
+        elevation(c, 1),
+      ]}
+    >
+      {isCard ? <Ionicons name={skin.icon} size={20} color={skin.fg} /> : <DocThumb doc={doc} size={26} />}
       <View>
-        <T v="heading" numberOfLines={1}>
+        <T v="callout" numberOfLines={1} color={skin.fg} style={{ fontFamily: fonts.semibold }}>
           {doc.name}
         </T>
-        <T v="caption" color="muted" style={{ marginTop: 2 }}>
-          {doc.expiry ? `Valid until ${formatDate(doc.expiry)}` : `${doc.ext.toUpperCase()} · ${formatBytes(doc.size)}`}
-        </T>
+        {!!note && (
+          <T v="caption" numberOfLines={1} color={days != null && days <= 90 ? c.warning : skin.sub} style={{ fontSize: 11.5 }}>
+            {note}
+          </T>
+        )}
       </View>
     </View>
   );
 }
+

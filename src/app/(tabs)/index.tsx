@@ -6,11 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
 import { FadeInDown } from '../../theme/anim';
 import { Backdrop } from '../../components/Backdrop';
-import { TabSwipe } from '../../components/TabSwipe';
+import { noTabSwipe, TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Banner, EmptyState, IconButton, Screen, SectionHeader, T, Tap } from '../../components/ui';
 import { kvGet } from '../../lib/db';
-import { DocRow, EssentialCard } from '../../components/docs';
+import { DocRow, WalletMiniCard } from '../../components/docs';
 import { ActionSheet } from '../../components/Sheet';
 import { VaultCard } from '../../components/VaultCard';
 import { CountdownRing } from '../../components/CountdownRing';
@@ -23,7 +23,7 @@ import { daysUntil, formatDate, greeting } from '../../lib/format';
 import { syncNow } from '../../lib/sync';
 import { confirmDelete, docActions } from '../../lib/actions';
 import { toggleFavorite } from '../../lib/documents';
-import { SkeletonRows, SwipeRow, WalletCarousel } from '../../components/motion';
+import { SkeletonRows, SwipeRow } from '../../components/motion';
 import type { DocRecord } from '../../lib/db';
 
 const ESSENTIAL_ORDER = ['Passport', 'National ID', 'Driving Licence', 'Residence Permit', 'Visa', 'Aadhaar', 'PAN Card'];
@@ -68,7 +68,6 @@ export default function Home() {
 
   const first = account?.displayName ?? '';
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-  const cardW = Math.min(width * 0.78, 330);
   const QUICK: { icon: keyof typeof Ionicons.glyphMap; label: string; go: () => void }[] = [
     { icon: 'scan-outline', label: 'Scan', go: () => router.push('/add') },
     { icon: 'arrow-down-circle-outline', label: 'Import', go: () => router.push('/add') },
@@ -201,18 +200,14 @@ export default function Home() {
                 <View style={{ paddingHorizontal: pad }}>
                   <SectionHeader title="Wallet" action="Open" onAction={() => router.push('/(tabs)/favorites')} />
                 </View>
-                <WalletCarousel
-                  data={wallet}
-                  itemWidth={cardW}
-                  gap={space.md}
-                  padding={pad}
-                  keyOf={(d) => d.id}
-                  render={(d) => (
-                    <Tap onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} scaleTo={0.98} accessibilityLabel={`Open ${d.name}`}>
-                      <EssentialCard doc={d} width={cardW} />
+                {/* Compact quick-access strip; the full cards live in the Wallet tab. */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} {...noTabSwipe} contentContainerStyle={{ gap: space.md, paddingHorizontal: pad, paddingVertical: space.xs }}>
+                  {wallet.map((d) => (
+                    <Tap key={d.id} onPress={() => router.push(`/doc/${d.id}`)} onLongPress={() => setMenuDoc(d)} scaleTo={0.97} accessibilityLabel={`Open ${d.name}`}>
+                      <WalletMiniCard doc={d} />
                     </Tap>
-                  )}
-                />
+                  ))}
+                </ScrollView>
               </View>
             )}
 
