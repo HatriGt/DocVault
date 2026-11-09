@@ -107,7 +107,7 @@ export default function Present() {
           <PdfView uri={file.uri} />
         </View>
       ) : (
-        <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl, paddingBottom: canSwitch ? 96 : 0 }}>
+        <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', paddingHorizontal: space.xl, paddingTop: insets.top + 96 }}>
           {/* One group, explicit spacing: the card/passport, a fixed gap, then the facts. */}
           <View style={{ alignItems: 'center' }}>
           {doc.doc_type === 'Passport' ? (
