@@ -78,6 +78,7 @@ export default function Present() {
   const isCard = CARD_TYPES.has(doc.doc_type ?? '');
   const shown = view ?? (isCard ? 'card' : 'file');
   const canSwitch = isCard && !!file?.kind;
+  const bookW = Math.min(width * 0.62, 280, height * 0.3);
   const cardW = width - space.xl * 2;
 
   return (
@@ -108,9 +109,12 @@ export default function Present() {
       ) : (
         <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xxl, paddingHorizontal: space.xl, paddingBottom: canSwitch ? 96 : 0 }}>
           {doc.doc_type === 'Passport' ? (
-            <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)}>
-              <PassportBook doc={doc} width={Math.min(width * 0.62, 280, height * 0.3)} />
-            </Animated.View>
+            // Fixed-size box so the facts below are laid out against the passport's real height.
+            <View style={{ width: bookW, height: bookW * 1.4 }}>
+              <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)}>
+                <PassportBook doc={doc} width={bookW} />
+              </Animated.View>
+            </View>
           ) : (
             <Tap onPress={() => flip.set(withTiming(flip.get() > 0.5 ? 0 : 1, { duration: 450 }))} scaleTo={0.98} style={{ width: cardW, height: cardW / 1.586 }}>
               <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)} style={[StyleSheet.absoluteFill, front]}>
