@@ -62,13 +62,12 @@ async function saveCopy(doc: DocRecord): Promise<void> {
 
 /**
  * The one menu of document actions, used by the document page and by every list row.
- * `inList` adds a Quick group (open, share, favourite) that the document page already shows
+ * `inList` adds a Quick group (share, favourite) that the document page already shows
  * as buttons; `cloud` adds the offline toggle, which only means something with Drive backup.
  */
 export function docActions(doc: DocRecord, opts: { inList?: boolean; cloud?: boolean; afterDelete?: () => void } = {}): SheetAction[] {
   const quick: SheetAction[] = opts.inList
     ? [
-        { section: 'Quick', label: 'Open', icon: 'eye-outline', onPress: () => openDoc(doc) },
         { section: 'Quick', label: 'Share', icon: 'share-outline', onPress: () => shareDoc(doc) },
         {
           section: 'Quick',

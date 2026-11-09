@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedKeyboard, useAnimatedStyle, Easing } from 'react-native-reanimated';
 import { FadeIn, FadeOut, SlideInDown, SlideOutDown } from '../theme/anim';
@@ -75,12 +75,14 @@ export function ActionSheet({ visible, onClose, title, actions }: { visible: boo
   const { c } = useTheme();
   return (
     <SheetFrame visible={visible} onClose={onClose}>
-      <View style={{ paddingHorizontal: space.lg }}>
+      <View style={{ paddingHorizontal: space.lg, flexShrink: 1 }}>
         {title && (
           <T v="bodyStrong" color="muted" style={{ textAlign: 'center', marginBottom: space.sm }} numberOfLines={1}>
             {title}
           </T>
         )}
+        {/* Scrolls when the menu is taller than the sheet's max height (small screens, long menus). */}
+        <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} bounces={false} showsVerticalScrollIndicator={false}>
         {actions.map((a, i) => (
           <React.Fragment key={a.label}>
           {a.section && a.section !== actions[i - 1]?.section && (
@@ -113,6 +115,7 @@ export function ActionSheet({ visible, onClose, title, actions }: { visible: boo
           </Tap>
           </React.Fragment>
         ))}
+        </ScrollView>
       </View>
     </SheetFrame>
   );
