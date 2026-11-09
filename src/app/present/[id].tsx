@@ -106,7 +106,7 @@ export default function Present() {
           <PdfView uri={file.uri} />
         </View>
       ) : (
-        <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xxl, paddingHorizontal: space.xl }}>
+        <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xxl, paddingHorizontal: space.xl, paddingBottom: canSwitch ? 96 : 0 }}>
           {doc.doc_type === 'Passport' ? (
             <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)}>
               <PassportBook doc={doc} width={Math.min(width * 0.62, 280)} />
