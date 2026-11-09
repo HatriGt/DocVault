@@ -41,6 +41,23 @@ if [ -z "${DOCVAULT_HANDED_OFF:-}" ] && ! cmp -s "$0" scripts/sandbox-build.sh; 
   DOCVAULT_HANDED_OFF=1 exec bash scripts/sandbox-build.sh "$BRANCH"
 fi
 
+# Keep the running adb bridge in sync with the branch: if scripts/adb-bridge.py changed,
+# install it over the running copy and restart the bridge (same token) once this build ends.
+if [ -z "${DOCVAULT_BRIDGE_PATH:-}" ]; then
+  for pid in $(pgrep -f 'python3 .*adb-bridge.py' 2>/dev/null); do
+    f=$(tr '\0' ' ' < "/proc/$pid/cmdline" | grep -o '[^ ]*adb-bridge.py' | head -1)
+    [ -n "$f" ] && DOCVAULT_BRIDGE_PATH=$(cd "/proc/$pid/cwd" && readlink -f "$f") && break
+  done
+fi
+if [ -n "${BRIDGE_TOKEN:-}" ] && [ -n "${DOCVAULT_BRIDGE_PATH:-}" ] && ! cmp -s scripts/adb-bridge.py "$DOCVAULT_BRIDGE_PATH"; then
+  step "Updating the adb bridge (restarts in a few seconds)"
+  cp scripts/adb-bridge.py "$DOCVAULT_BRIDGE_PATH"
+  cp scripts/sandbox-build.sh "$(dirname "$DOCVAULT_BRIDGE_PATH")/sandbox-build.sh"
+  setsid nohup bash -c "sleep 5; pkill -f 'python3 .*adb-bridge.py' ; cd '$(dirname "$DOCVAULT_BRIDGE_PATH")' && BRIDGE_TOKEN='$BRIDGE_TOKEN' PORT='${PORT:-3000}' exec python3 adb-bridge.py" >"$HOME/dvbridge.log" 2>&1 < /dev/null &
+  echo "Bridge restart scheduled; log at ~/dvbridge.log"
+  exit 0
+fi
+
 # Make sure an emulator is up before spending time on the build (the sandbox
 # machine can be suspended, which kills it). Starts the first AVD if none is running.
 ensure_device() {

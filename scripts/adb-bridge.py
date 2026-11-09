@@ -50,7 +50,7 @@ def start_build(branch):
 
     def work():
         with open(BUILD_LOG, "w") as log:
-            code = subprocess.call(["bash", BUILD_SCRIPT, branch], stdout=log, stderr=subprocess.STDOUT)
+            code = subprocess.call(["bash", BUILD_SCRIPT, branch], stdout=log, stderr=subprocess.STDOUT, env={**os.environ, "DOCVAULT_BRIDGE_PATH": os.path.abspath(__file__)})
         build.update(state="ok" if code == 0 else "failed", finished=time.time())
 
     threading.Thread(target=work, daemon=True).start()
