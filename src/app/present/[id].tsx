@@ -28,7 +28,7 @@ export default function Present() {
   useKeepAwake('present');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { doc } = useDocument(id);
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // The decrypted file (null while loading; kind null if it can't be shown). Card-type documents also
   // get a drawn card + large facts view, which is the default for them.
@@ -109,7 +109,7 @@ export default function Present() {
         <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xxl, paddingHorizontal: space.xl, paddingBottom: canSwitch ? 96 : 0 }}>
           {doc.doc_type === 'Passport' ? (
             <Animated.View entering={ZoomIn.duration(DUR.slow).easing(EASE_OUT)}>
-              <PassportBook doc={doc} width={Math.min(width * 0.62, 280)} />
+              <PassportBook doc={doc} width={Math.min(width * 0.62, 280, height * 0.3)} />
             </Animated.View>
           ) : (
             <Tap onPress={() => flip.set(withTiming(flip.get() > 0.5 ? 0 : 1, { duration: 450 }))} scaleTo={0.98} style={{ width: cardW, height: cardW / 1.586 }}>
