@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,7 @@ import { elevation, fonts, radius, space, useTheme } from '../../theme';
 import { useAccount, useDocument } from '../../lib/hooks';
 import { CARD_TYPES } from '../../lib/categories';
 import { daysUntil, formatBytes, humanDays, formatDate, maskNumber, relativeTime } from '../../lib/format';
-import { isImage, isPdf, parseFields, parseTags, toggleFavorite } from '../../lib/documents';
+import { isImage, isPdf, markAccessed, parseFields, parseTags, toggleFavorite } from '../../lib/documents';
 import { docActions, openDoc, presentDoc, shareDoc, toggleOffline } from '../../lib/actions';
 import { unlockDoc } from '../../lib/guard';
 import { retryFailed } from '../../lib/sync';
@@ -27,6 +27,10 @@ import { retryFailed } from '../../lib/sync';
 export default function DocumentDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { doc, loading } = useDocument(id);
+  // Looking at a document's page counts as opening it (Search's "Recently opened", Library sort).
+  useEffect(() => {
+    if (id) markAccessed(id).catch(() => {});
+  }, [id]);
   const { c } = useTheme();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
