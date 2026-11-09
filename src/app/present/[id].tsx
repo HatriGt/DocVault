@@ -107,7 +107,9 @@ export default function Present() {
           <PdfView uri={file.uri} />
         </View>
       ) : (
-        <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: space.xxl, paddingHorizontal: space.xl, paddingBottom: canSwitch ? 96 : 0 }}>
+        <Animated.View entering={FadeIn} style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space.xl, paddingBottom: canSwitch ? 96 : 0 }}>
+          {/* One group, explicit spacing: the card/passport, a fixed gap, then the facts. */}
+          <View style={{ alignItems: 'center' }}>
           {doc.doc_type === 'Passport' ? (
             // Fixed-size box so the facts below are laid out against the passport's real height.
             <View style={{ width: bookW, height: bookW * 1.4 }}>
@@ -125,6 +127,7 @@ export default function Present() {
               </Animated.View>
             </Tap>
           )}
+          <View style={{ height: space.xxl }} />
           <View style={{ alignItems: 'center', gap: space.sm }}>
             {f.holder && (
               <T v="heading" color="#fff" style={{ fontSize: 22 }}>
@@ -141,6 +144,7 @@ export default function Present() {
                 Valid until {formatDate(doc.expiry)}
               </T>
             )}
+          </View>
           </View>
         </Animated.View>
       )}
