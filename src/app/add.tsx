@@ -23,7 +23,7 @@ import { useAccount } from '../lib/hooks';
 import { formatBytes } from '../lib/format';
 import { notifyError, inform, informPermission, choose } from '../lib/feedback';
 
-type Step = 'source' | 'scan' | 'details' | 'confirm' | 'saving' | 'done';
+type Step = 'source' | 'scan' | 'details' | 'saving' | 'done';
 type Source = 'camera' | 'photos' | 'files';
 
 export default function AddDocument() {
@@ -128,11 +128,11 @@ export default function AddDocument() {
       setStep('done');
     } catch (e) {
       notifyError(e, 'Couldn’t save document', { retry: save });
-      setStep('confirm');
+      setStep('details');
     }
   };
 
-  const title = { source: 'Add document', scan: 'Review scan', details: 'Details', confirm: 'Review', saving: '', done: '' }[step];
+  const title = { source: 'Add document', scan: 'Review scan', details: 'Details', saving: '', done: '' }[step];
   const cloud = account?.mode === 'google';
 
   return (
@@ -140,8 +140,8 @@ export default function AddDocument() {
       <ScreenHeader
         variant="modal"
         title={title}
-        leading={step === 'details' || step === 'confirm' ? 'back' : 'none'}
-        onLeading={() => setStep(step === 'confirm' ? 'details' : 'source')}
+        leading={step === 'details' ? 'back' : 'none'}
+        onLeading={() => setStep('source')}
         right={step !== 'saving' ? <IconButton icon="close" label="Close" onPress={() => router.back()} /> : undefined}
       />
 
@@ -183,30 +183,17 @@ export default function AddDocument() {
               <DetailsForm value={form} onChange={setForm} />
             </View>
           </ScrollView>
-          <View style={{ padding: space.xl, paddingTop: space.sm }}>
-            <Button title="Continue" onPress={() => setStep('confirm')} disabled={!form.name.trim() || !expiryValid(form.expiry)} />
+          <View style={{ padding: space.xl, paddingTop: space.sm, gap: space.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Ionicons name={cloud ? 'cloud-upload-outline' : 'lock-closed'} size={13} color={c.textMuted} />
+              <T v="caption" color="muted">
+                {cloud ? 'Encrypted on this phone, then backed up to your Drive' : 'Encrypted and stored on this phone only'}
+              </T>
+            </View>
+            <Button title="Encrypt & save" icon="shield-checkmark" onPress={save} disabled={!form.name.trim() || !expiryValid(form.expiry)} />
           </View>
           <KeyboardSpacer />
       </View>
-      )}
-
-      {step === 'confirm' && src && (
-        <Animated.View entering={FadeIn} style={{ flex: 1, padding: space.xl }}>
-          <SourcePreview src={src} />
-          <View style={{ marginTop: space.xl, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, gap: space.md }}>
-            <Line k="Name" v={form.name} />
-            <Line k="Type" v={form.docType ?? '—'} />
-            <Line k="Expiry" v={normalizeExpiry(form.expiry) ?? 'Not set'} />
-            {form.tags.length > 0 && <Line k="Tags" v={form.tags.map((t) => `#${t}`).join('  ')} />}
-          </View>
-          <View style={{ marginTop: space.xl, gap: space.lg }}>
-            <PlanStep icon="lock-closed" text="Encrypt with AES-256-GCM on this device" />
-            <PlanStep icon="phone-portrait-outline" text="Keep an encrypted copy for offline access" />
-            <PlanStep icon={cloud ? 'cloud-upload-outline' : 'cloud-offline-outline'} text={cloud ? 'Back up the encrypted file to your Google Drive' : 'Stored on this device only (connect Drive in Settings)'} />
-          </View>
-          <View style={{ flex: 1 }} />
-          <Button title="Encrypt & save" icon="shield-checkmark" onPress={save} />
-        </Animated.View>
       )}
 
       {step === 'saving' && (
@@ -279,29 +266,4 @@ function SourcePreview({ src }: { src: ImportSource & { size?: number } }) {
   );
 }
 
-function Line({ k, v }: { k: string; v: string }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.md }}>
-      <T v="callout" color="muted">
-        {k}
-      </T>
-      <T v="callout" numberOfLines={1} style={{ flexShrink: 1 }}>
-        {v}
-      </T>
-    </View>
-  );
-}
 
-function PlanStep({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
-  const { c } = useTheme();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={16} color={c.accent} />
-      </View>
-      <T v="callout" style={{ flex: 1 }}>
-        {text}
-      </T>
-    </View>
-  );
-}
