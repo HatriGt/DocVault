@@ -45,8 +45,18 @@ fi
 # machine can be suspended, which kills it). Starts the first AVD if none is running.
 ensure_device() {
   if adb devices | grep -qE "\sdevice$"; then return 0; fi
-  local emu="$ANDROID_HOME/emulator/emulator"
-  [ -x "$emu" ] || { echo "No device and no emulator binary at $emu"; return 1; }
+  local emu=""
+  for c in "${DOCVAULT_EMULATOR:-}" "$ANDROID_HOME/emulator/emulator" "$(command -v emulator 2>/dev/null)" \
+           "$HOME/Android/Sdk/emulator/emulator" /opt/android-emulator/emulator /opt/emulator/emulator /usr/local/bin/emulator; do
+    [ -n "$c" ] && [ -x "$c" ] && { emu="$c"; break; }
+  done
+  if [ -z "$emu" ]; then
+    echo "No device and no emulator binary found. Diagnostics:"
+    ps -eo pid,cmd | grep -iE "emulator|qemu|android|redroid|waydroid|anbox" | grep -v grep | head -10
+    find / -xdev -maxdepth 6 \( -name emulator -o -name "*.avd" -o -name "start-android*" \) 2>/dev/null | head -20
+    ls "$HOME/.android/avd" 2>/dev/null
+    return 1
+  fi
   local avd="${DOCVAULT_AVD:-$("$emu" -list-avds | head -1)}"
   [ -n "$avd" ] || { echo "No device and no AVD found"; return 1; }
   step "Starting emulator $avd"
