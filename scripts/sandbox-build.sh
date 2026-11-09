@@ -41,6 +41,26 @@ if [ -z "${DOCVAULT_HANDED_OFF:-}" ] && ! cmp -s "$0" scripts/sandbox-build.sh; 
   DOCVAULT_HANDED_OFF=1 exec bash scripts/sandbox-build.sh "$BRANCH"
 fi
 
+# Make sure an emulator is up before spending time on the build (the sandbox
+# machine can be suspended, which kills it). Starts the first AVD if none is running.
+ensure_device() {
+  if adb devices | grep -qE "\sdevice$"; then return 0; fi
+  local emu="$ANDROID_HOME/emulator/emulator"
+  [ -x "$emu" ] || { echo "No device and no emulator binary at $emu"; return 1; }
+  local avd="${DOCVAULT_AVD:-$("$emu" -list-avds | head -1)}"
+  [ -n "$avd" ] || { echo "No device and no AVD found"; return 1; }
+  step "Starting emulator $avd"
+  adb kill-server >/dev/null 2>&1 || true
+  DISPLAY="${DISPLAY:-:0}" nohup "$emu" -avd "$avd" -no-audio -no-boot-anim >"$HOME/docvault-emulator.log" 2>&1 &
+  adb start-server >/dev/null 2>&1 || true
+  for _ in $(seq 1 90); do
+    [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] && { step "Emulator booted"; return 0; }
+    sleep 4
+  done
+  echo "Emulator did not boot; see ~/docvault-emulator.log"; tail -20 "$HOME/docvault-emulator.log"; return 1
+}
+ensure_device
+
 STAMP=.sandbox-build
 mkdir -p "$STAMP"
 deps_hash=$(sha256sum package-lock.json | cut -c1-16)
