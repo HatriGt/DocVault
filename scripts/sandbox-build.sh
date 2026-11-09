@@ -126,8 +126,8 @@ if [ ! -d android ] || [ "$(cat $STAMP/native 2>/dev/null)" != "$native_hash" ];
 
 org.gradle.caching=true
 org.gradle.parallel=true
-org.gradle.daemon=true
-org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC -Dfile.encoding=UTF-8
+org.gradle.daemon=false
+org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+UseParallelGC -Dfile.encoding=UTF-8
 PROPS
   echo "$native_hash" > $STAMP/native
 else
@@ -164,9 +164,16 @@ fi
 GRADLE_NET+=("-Dorg.gradle.internal.http.connectionTimeout=60000" "-Dorg.gradle.internal.http.socketTimeout=60000" "-Dorg.gradle.internal.repository.max.retries=5")
 
 cd android
+# Gradle/Kotlin daemons hold ~2-3 GB after a build. The Android container shares this
+# machine's memory, so leftover daemons starve it (lmkd thrashes, system_server restarts,
+# adb goes offline). Always release them, whatever happens to the build.
+release_build_memory() { ./gradlew --stop -q >/dev/null 2>&1 || true; pkill -f KotlinCompileDaemon 2>/dev/null || true; }
+trap release_build_memory EXIT
+# Existing projects keep their old gradle.properties; make sure the daemon is off there too.
+sed -i 's/^org.gradle.daemon=true/org.gradle.daemon=false/; s/-Xmx4g/-Xmx3g/' gradle.properties
 for attempt in 1 2 3 4 5 6 7 8; do
   step "Gradle assembleRelease ($ABI), attempt $attempt"
-  if ./gradlew assembleRelease --build-cache --parallel -PreactNativeArchitectures="$ABI" "${GRADLE_NET[@]}" 2>&1 | tee /tmp/docvault-gradle.log; then
+  if ./gradlew assembleRelease --no-daemon --build-cache --parallel -PreactNativeArchitectures="$ABI" "${GRADLE_NET[@]}" 2>&1 | tee /tmp/docvault-gradle.log; then
     break
   fi
   if [ "$attempt" = 8 ] || ! grep -qE "Could not (resolve|GET|download)|handshake|Connection reset|timed out" /tmp/docvault-gradle.log; then
