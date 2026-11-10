@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, Share, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Banner, Button, T } from '../../components/ui';
 import { radius, space, useTheme, fonts } from '../../theme';
@@ -45,7 +45,13 @@ export default function Recovery() {
         replace it with a new one at any time.
       </T>
       {account?.mode === 'local' && (
-        <Banner tone="warning" icon="warning-outline" text="Your vault isn’t backed up. A recovery key only helps once Google Drive is connected." />
+        <Banner
+          tone="warning"
+          icon="warning-outline"
+          text="Your vault isn’t backed up. A recovery key only helps once Google Drive is connected."
+          action="Set up backup"
+          onAction={() => router.push('/manage/connect')}
+        />
       )}
       {key ? (
         <>
@@ -62,7 +68,7 @@ export default function Recovery() {
           <Banner tone="success" icon="checkmark-circle" text="New key active. Your previous key no longer works." />
         </>
       ) : (
-        <Button title="Create a new recovery key" icon="key-outline" onPress={regenerate} loading={busy} />
+        <Button title="Create a new recovery key" icon="key-outline" onPress={regenerate} loading={busy} variant={account?.mode === 'local' ? 'secondary' : 'primary'} />
       )}
     </ScrollView>
   );
