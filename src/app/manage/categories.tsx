@@ -58,6 +58,7 @@ export default function Categories() {
               value={`${n} ${n === 1 ? 'document' : 'documents'}`}
               onPress={() => router.push({ pathname: '/(tabs)/documents', params: { category: cat.id } })}
               right={cat.custom ? <IconButton icon="trash-outline" label={`Delete ${cat.name}`} size={36} onPress={() => remove(cat.id, cat.name, n)} /> : undefined}
+              actions={cat.custom ? [{ name: 'delete', label: `Delete ${cat.name}`, run: () => remove(cat.id, cat.name, n) }] : undefined}
             />
           );
         })}

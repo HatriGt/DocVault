@@ -356,6 +356,7 @@ export function Row({
   right,
   danger,
   chevron = !!onPress,
+  actions,
 }: {
   icon?: keyof typeof Ionicons.glyphMap;
   title: string;
@@ -365,6 +366,8 @@ export function Row({
   right?: React.ReactNode;
   danger?: boolean;
   chevron?: boolean;
+  /** Secondary actions (e.g. a delete button in `right`) exposed to screen readers, which can't reach buttons nested in the row. */
+  actions?: { name: string; label: string; run: () => void }[];
 }) {
   const { c } = useTheme();
   const content = (
@@ -398,7 +401,14 @@ export function Row({
     </View>
   );
   return onPress ? (
-    <Pressable onPress={onPress} android_ripple={{ color: c.border }} accessibilityRole="button" accessibilityLabel={[title, subtitle, value].filter(Boolean).join(', ')}>
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: c.border }}
+      accessibilityRole="button"
+      accessibilityLabel={[title, subtitle, value].filter(Boolean).join(', ')}
+      accessibilityActions={actions?.map((a) => ({ name: a.name, label: a.label }))}
+      onAccessibilityAction={(e) => actions?.find((a) => a.name === e.nativeEvent.actionName)?.run()}
+    >
       {({ pressed }) => <View style={{ opacity: pressed ? 0.6 : 1 }}>{content}</View>}
     </Pressable>
   ) : (
