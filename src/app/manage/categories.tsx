@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Field, Group, Row, T, Tap } from '../../components/ui';
+import { Field, Group, IconButton, Row, T, Tap } from '../../components/ui';
 import { BottomSheet } from '../../components/Sheet';
 import { radius, space, useTheme } from '../../theme';
 import { useCategories, useDocuments } from '../../lib/hooks';
 import { addCustomCategory } from '../../lib/db';
 import { uuid } from '../../lib/crypto';
-import { notify, notifyError } from '../../lib/feedback';
+import { confirm, notify, notifyError } from '../../lib/feedback';
+import { deleteCategory } from '../../lib/documents';
 
 const ICONS = ['folder-outline', 'home-outline', 'car-outline', 'school-outline', 'briefcase-outline', 'paw-outline', 'medkit-outline', 'receipt-outline'] as const;
 const HUES: { hex: string; name: string }[] = [
@@ -26,6 +27,22 @@ export default function Categories() {
   const { docs } = useDocuments();
   const [adding, setAdding] = useState(false);
 
+  const remove = async (id: string, name: string, count: number) => {
+    const ok = await confirm({
+      title: `Delete “${name}”?`,
+      message: count ? `Its ${count} ${count === 1 ? 'document moves' : 'documents move'} to Personal. Nothing is deleted.` : 'This category has no documents.',
+      confirmLabel: 'Delete category',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await deleteCategory(id);
+      notify(`Category “${name}” deleted`);
+    } catch (e) {
+      notifyError(e, 'Couldn’t delete the category');
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={{ padding: space.xl, paddingTop: 0 }}>
       <Stack.Screen options={{ title: 'Categories' }} />
@@ -40,6 +57,7 @@ export default function Categories() {
               subtitle={cat.custom ? 'Custom' : undefined}
               value={`${n} ${n === 1 ? 'document' : 'documents'}`}
               onPress={() => router.push({ pathname: '/(tabs)/documents', params: { category: cat.id } })}
+              right={cat.custom ? <IconButton icon="trash-outline" label={`Delete ${cat.name}`} size={36} onPress={() => remove(cat.id, cat.name, n)} /> : undefined}
             />
           );
         })}

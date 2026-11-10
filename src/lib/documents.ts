@@ -7,7 +7,7 @@ import { logActivity } from './activity';
 import { hashHex, open, seal, utf8, uuid } from './crypto';
 import { newWrappedDek, unwrapDek } from './keys';
 import { deleteBlob, hasBlob, purgeTempPlain, readBlob, writeBlob, writeTempPlain } from './blobs';
-import { DocRecord, findByPlainHash, getDoc, hardDeleteDoc, insertDoc, OfflinePref, updateDoc } from './db';
+import { DocRecord, findByPlainHash, getDoc, hardDeleteDoc, insertDoc, listDocs, OfflinePref, removeCustomCategoryRow, updateDoc } from './db';
 import QuickCrypto from 'react-native-quick-crypto';
 import { getAccount, getPrefs } from './session';
 import { cancelReminders, scheduleReminders } from './notifications';
@@ -230,6 +230,17 @@ export async function exportCopy(doc: DocRecord) {
   }
   await shareDocument(doc); // iOS: "Save to Files" lives in the share sheet
   return 'shared';
+}
+
+/**
+ * Deletes a custom category. Its documents move to `fallbackId` first (through updateDetails, so
+ * the change syncs like any edit), so no document is left pointing at a category that's gone.
+ */
+export async function deleteCategory(id: string, fallbackId = 'personal') {
+  const docs = (await listDocs()).filter((d) => d.category === id);
+  for (const d of docs) await updateDetails(d.id, { category: fallbackId });
+  await removeCustomCategoryRow(id);
+  return docs.length;
 }
 
 export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, 'name' | 'category' | 'doc_type' | 'expiry' | 'notes' | 'favorite' | 'pinned'>> & { fields?: DocFields; tags?: string[] }) {

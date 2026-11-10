@@ -240,6 +240,12 @@ export async function addCustomCategory(c: CustomCategory) {
   emit('documents');
 }
 
+export async function removeCustomCategoryRow(id: string) {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+  emit('documents');
+}
+
 export async function wipeDatabase() {
   const db = await getDb();
   await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories; DELETE FROM folders; DELETE FROM activity;');
