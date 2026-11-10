@@ -1,33 +1,40 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { KeyboardSpacer } from '../components/KeyboardSpacer';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import Animated from 'react-native-reanimated';
+import { FadeIn } from '../theme/anim';
 import { Button, IconButton, Screen, T, Tap } from '../components/ui';
+import { ScreenHeader } from '../components/ScreenHeader';
 import { DetailsForm, expiryValid, FormState, normalizeExpiry } from '../components/DetailsForm';
 import { radius, space, useTheme } from '../theme';
-import { importDocument, ImportSource } from '../lib/documents';
+import { SaveSuccess } from '../components/SaveSuccess';
+import { findDuplicate, importDocument, ImportSource, MAX_FILE_BYTES } from '../lib/documents';
+import { discardScan, ScanPage, scanPages } from '../lib/scan';
+import { ScanReview } from '../components/ScanReview';
+import { File } from 'expo-file-system';
 import { prettifyName, suggest } from '../lib/classify';
 import { recognizeText, ocrAvailable } from '../lib/ocr';
 import { useAccount } from '../lib/hooks';
 import { formatBytes } from '../lib/format';
+import { notifyError, inform, informPermission, choose } from '../lib/feedback';
 
-type Step = 'source' | 'details' | 'confirm' | 'saving' | 'done';
+type Step = 'source' | 'scan' | 'details' | 'saving' | 'done';
 type Source = 'camera' | 'photos' | 'files';
 
 export default function AddDocument() {
   const { c } = useTheme();
-  const params = useLocalSearchParams<{ source?: Source }>();
+  const params = useLocalSearchParams<{ folder?: string }>();
   const { account } = useAccount();
   const [step, setStep] = useState<Step>('source');
   const [src, setSrc] = useState<(ImportSource & { size?: number }) | null>(null);
-  const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [] });
+  const [form, setForm] = useState<FormState>({ name: '', category: 'identity', docType: null, expiry: '', fields: {}, notes: '', tags: [], folderId: params.folder ?? null });
   const [newId, setNewId] = useState<string | null>(null);
-  const autoStarted = useRef(false);
+  const [scanned, setScanned] = useState<ScanPage[]>([]);
 
   const accept = async (s: ImportSource & { size?: number }) => {
     setSrc(s);
@@ -41,6 +48,7 @@ export default function AddDocument() {
       fields: sug.number ? { number: sug.number } : {},
       notes: '',
       tags: sug.tags,
+      folderId: params.folder ?? null,
     });
     setStep('details');
   };
@@ -48,9 +56,20 @@ export default function AddDocument() {
   const pick = async (kind: Source) => {
     try {
       if (kind === 'camera') {
+        // Prefer the system document scanner (edge detection), then review pages.
+        try {
+          const pages = await scanPages();
+          if (pages) {
+            setScanned(pages);
+            setStep('scan');
+          }
+          return;
+        } catch {
+          // Scanner unavailable (e.g. no Google Play services) → plain camera.
+        }
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (!perm.granted) {
-          Alert.alert('Camera access needed', 'Allow camera access in Settings to scan documents.');
+          informPermission('Camera access needed', 'Allow camera access to scan documents.');
           return;
         }
         const r = await ImagePicker.launchCameraAsync({ quality: 0.85, allowsEditing: true, exif: false });
@@ -64,26 +83,34 @@ export default function AddDocument() {
         accept({ uri: a.uri, name: a.fileName ?? 'Photo.jpg', mime: a.mimeType ?? 'image/jpeg', size: a.fileSize });
       } else {
         // System picker: includes local storage, iCloud Drive and Google Drive providers.
-        const r = await DocumentPicker.getDocumentAsync({ type: ['application/pdf', 'image/*'], copyToCacheDirectory: true });
+        const r = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
         if (r.canceled) return;
         const a = r.assets[0];
         accept({ uri: a.uri, name: a.name, mime: a.mimeType ?? 'application/octet-stream', size: a.size });
       }
     } catch (e) {
-      Alert.alert('Couldn’t import', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t import');
     }
   };
 
-  useEffect(() => {
-    if (params.source && !autoStarted.current) {
-      autoStarted.current = true;
-      setTimeout(() => pick(params.source!), 350);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.source]);
 
   const save = async () => {
     if (!src) return;
+    const size = new File(src.uri).size ?? 0;
+    if (size > MAX_FILE_BYTES) {
+      inform('File too large', 'DocVault can store files up to 200 MB on this phone.');
+      return;
+    }
+    const bytes = await new File(src.uri).bytes(); // read once: used for duplicate check and saving
+    const dup = await findDuplicate(bytes).catch(() => null);
+    if (dup) {
+      const choice = await choose('Already in your vault', `This file is identical to “${dup.name}”.`, [
+        { label: 'View existing', value: 'view' },
+        { label: 'Save anyway', value: 'save' },
+      ]);
+      if (choice === 'view') return router.replace(`/doc/${dup.id}`);
+      if (choice === null) return;
+    }
     setStep('saving');
     try {
       const rec = await importDocument(src, {
@@ -94,40 +121,46 @@ export default function AddDocument() {
         fields: form.fields,
         notes: form.notes.trim() || null,
         tags: form.tags,
-      });
+        folderId: form.folderId ?? null,
+      }, bytes);
+      if (src.uri.includes('/scans/')) discardScan(src.uri); // remove the scanner's plaintext output
       setNewId(rec.id);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       setStep('done');
     } catch (e) {
-      Alert.alert('Couldn’t save document', e instanceof Error ? e.message : String(e));
-      setStep('confirm');
+      notifyError(e, 'Couldn’t save document', { retry: save });
+      setStep('details');
     }
   };
 
-  const title = { source: 'Add document', details: 'Details', confirm: 'Review', saving: '', done: '' }[step];
+  const title = { source: 'Add document', scan: 'Review scan', details: 'Details', saving: '', done: '' }[step];
   const cloud = account?.mode === 'google';
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, height: 56 }}>
-        {step === 'details' || step === 'confirm' ? (
-          <IconButton icon="chevron-back" label="Back" onPress={() => setStep(step === 'confirm' ? 'details' : 'source')} />
-        ) : (
-          <View style={{ width: 44 }} />
-        )}
-        <T v="bodyStrong">{title}</T>
-        {step !== 'saving' ? <IconButton icon="close" label="Close" onPress={() => router.back()} /> : <View style={{ width: 44 }} />}
-      </View>
+      <ScreenHeader
+        variant="modal"
+        title={title}
+        leading={step === 'details' ? 'back' : 'none'}
+        onLeading={() => setStep('source')}
+        right={step !== 'saving' ? <IconButton icon="close" label="Close" onPress={() => router.back()} /> : undefined}
+      />
+
+      {step === 'scan' && (
+        <ScanReview
+          initial={scanned}
+          onCancel={() => setStep('source')}
+          onDone={(r) => accept({ uri: r.uri, name: r.name, mime: r.mime })}
+        />
+      )}
 
       {step === 'source' && (
         <Animated.View entering={FadeIn} style={{ padding: space.xl, gap: space.md }}>
           <T v="title" style={{ marginBottom: space.md }}>
             How would you like{'\n'}to add it?
           </T>
-          <SourceOption icon="scan" title="Scan with camera" body="Capture a card or paper document" onPress={() => pick('camera')} />
-          <SourceOption icon="images-outline" title="Choose from Photos" body="Import an existing photo" onPress={() => pick('photos')} />
-          <SourceOption icon="document-attach-outline" title="Import a file" body="PDFs and images from your device" onPress={() => pick('files')} />
-          <SourceOption icon="logo-google" title="From Google Drive" body="Pick a file using the Drive provider" onPress={() => pick('files')} />
+          <SourceOption icon="scan" title="Smart scan" body="Camera finds the edges · review pages · save as PDF" onPress={() => pick('camera')} />
+          <SourceOption icon="images-outline" title="Photos" body="A picture you already took of a document" onPress={() => pick('photos')} />
+          <SourceOption icon="folder-open-outline" title="Browse files" body="Phone storage, Downloads, Google Drive · any file type" onPress={() => pick('files')} />
           <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.lg }}>
             <Ionicons name="lock-closed" size={15} color={c.textMuted} />
             <T v="caption" color="muted" style={{ flex: 1 }}>
@@ -138,7 +171,7 @@ export default function AddDocument() {
       )}
 
       {step === 'details' && src && (
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: space.xxxl }} keyboardShouldPersistTaps="handled">
             <SourcePreview src={src} />
             {!ocrAvailable() && form.docType && (
@@ -150,29 +183,17 @@ export default function AddDocument() {
               <DetailsForm value={form} onChange={setForm} />
             </View>
           </ScrollView>
-          <View style={{ padding: space.xl, paddingTop: space.sm }}>
-            <Button title="Continue" onPress={() => setStep('confirm')} disabled={!form.name.trim() || !expiryValid(form.expiry)} />
+          <View style={{ padding: space.xl, paddingTop: space.sm, gap: space.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Ionicons name={cloud ? 'cloud-upload-outline' : 'lock-closed'} size={13} color={c.textMuted} />
+              <T v="caption" color="muted">
+                {cloud ? 'Encrypted on this phone, then backed up to your Drive' : 'Encrypted and stored on this phone only'}
+              </T>
+            </View>
+            <Button title="Encrypt & save" icon="shield-checkmark" onPress={save} disabled={!form.name.trim() || !expiryValid(form.expiry)} />
           </View>
-        </KeyboardAvoidingView>
-      )}
-
-      {step === 'confirm' && src && (
-        <Animated.View entering={FadeIn} style={{ flex: 1, padding: space.xl }}>
-          <SourcePreview src={src} />
-          <View style={{ marginTop: space.xl, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, gap: space.md }}>
-            <Line k="Name" v={form.name} />
-            <Line k="Type" v={form.docType ?? '—'} />
-            <Line k="Expiry" v={normalizeExpiry(form.expiry) ?? 'Not set'} />
-            {form.tags.length > 0 && <Line k="Tags" v={form.tags.map((t) => `#${t}`).join('  ')} />}
-          </View>
-          <View style={{ marginTop: space.xl, gap: space.lg }}>
-            <PlanStep icon="lock-closed" text="Encrypt with AES-256-GCM on this device" />
-            <PlanStep icon="phone-portrait-outline" text="Keep an encrypted copy for offline access" />
-            <PlanStep icon={cloud ? 'cloud-upload-outline' : 'cloud-offline-outline'} text={cloud ? 'Back up the encrypted file to your Google Drive' : 'Stored on this device only (connect Drive in Settings)'} />
-          </View>
-          <View style={{ flex: 1 }} />
-          <Button title="Encrypt & save" icon="shield-checkmark" onPress={save} />
-        </Animated.View>
+          <KeyboardSpacer />
+      </View>
       )}
 
       {step === 'saving' && (
@@ -184,15 +205,7 @@ export default function AddDocument() {
 
       {step === 'done' && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: space.xxl, gap: space.lg }}>
-          <Animated.View entering={ZoomIn.springify().damping(12)} style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: c.successSoft, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="checkmark" size={46} color={c.success} />
-          </Animated.View>
-          <Animated.View entering={FadeInDown.delay(150)} style={{ alignItems: 'center', gap: space.sm }}>
-            <T v="title">Saved securely</T>
-            <T v="body" color="muted" style={{ textAlign: 'center' }}>
-              {form.name} is encrypted and available offline.{cloud ? ' It’ll back up to Drive automatically.' : ''}
-            </T>
-          </Animated.View>
+          <SaveSuccess title="Saved securely" subtitle={`${form.name} is encrypted and available offline.${cloud ? ' It’ll back up to Drive automatically.' : ''}`} />
           <View style={{ alignSelf: 'stretch', gap: space.md, marginTop: space.xl }}>
             <Button title="View document" onPress={() => router.replace(`/doc/${newId}`)} />
             <Button
@@ -213,7 +226,7 @@ export default function AddDocument() {
 function SourceOption({ icon, title, body, onPress }: { icon: keyof typeof Ionicons.glyphMap; title: string; body: string; onPress: () => void }) {
   const { c } = useTheme();
   return (
-    <Tap onPress={onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg }}>
+    <Tap onPress={onPress} accessibilityLabel={`${title}. ${body}`} style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg }}>
       <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name={icon} size={23} color={c.accent} />
       </View>
@@ -245,7 +258,7 @@ function SourcePreview({ src }: { src: ImportSource & { size?: number } }) {
           {src.name}
         </T>
         <T v="caption" color="muted">
-          {image ? 'Image' : 'PDF'}
+          {image ? 'Image' : src.mime === 'application/pdf' ? 'PDF' : (src.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? 'File').toUpperCase()}
           {src.size ? ` · ${formatBytes(src.size)}` : ''}
         </T>
       </View>
@@ -253,29 +266,4 @@ function SourcePreview({ src }: { src: ImportSource & { size?: number } }) {
   );
 }
 
-function Line({ k, v }: { k: string; v: string }) {
-  return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.md }}>
-      <T v="callout" color="muted">
-        {k}
-      </T>
-      <T v="callout" numberOfLines={1} style={{ flexShrink: 1 }}>
-        {v}
-      </T>
-    </View>
-  );
-}
 
-function PlanStep({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
-  const { c } = useTheme();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
-      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={16} color={c.accent} />
-      </View>
-      <T v="callout" style={{ flex: 1 }}>
-        {text}
-      </T>
-    </View>
-  );
-}

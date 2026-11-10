@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -17,7 +17,7 @@ import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { radius, space, type, useTheme, elevation } from '../theme';
+import { radius, space, type, useTheme, elevation, fonts } from '../theme';
 
 type Variant = keyof typeof type;
 
@@ -66,9 +66,11 @@ export function Tap({
   haptic = true,
   scaleTo = 0.97,
   onPress,
+  debounce = true,
   ...rest
-}: PressableProps & { style?: StyleProp<ViewStyle>; haptic?: boolean; scaleTo?: number; children: React.ReactNode }) {
+}: PressableProps & { style?: StyleProp<ViewStyle>; haptic?: boolean; scaleTo?: number; debounce?: boolean; children: React.ReactNode }) {
   const s = useSharedValue(1);
+  const last = useRef(0);
   const a = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }));
   return (
     <AnimatedPressable
@@ -83,6 +85,12 @@ export function Tap({
         rest.onPressOut?.(e);
       }}
       onPress={(e) => {
+        // Ignore rapid repeat taps so a double tap can't open a screen twice.
+        if (debounce) {
+          const now = e.nativeEvent.timestamp || 0;
+          if (now && now - last.current < 450) return;
+          last.current = now;
+        }
         if (haptic) Haptics.selectionAsync().catch(() => {});
         onPress?.(e);
       }}
@@ -113,8 +121,8 @@ export function Button({
   size?: 'lg' | 'md';
 }) {
   const { c } = useTheme();
-  const bg = { primary: c.accent, secondary: c.surfaceAlt, ghost: 'transparent', danger: c.dangerSoft }[variant];
-  const fg = { primary: c.onAccent, secondary: c.text, ghost: c.accent, danger: c.danger }[variant];
+  const bg = { primary: c.accent, secondary: c.surface, ghost: 'transparent', danger: c.dangerSoft }[variant];
+  const fg = { primary: c.onAccent, secondary: c.text, ghost: c.text, danger: c.danger }[variant];
   return (
     <Tap
       onPress={onPress}
@@ -122,7 +130,7 @@ export function Button({
       accessibilityLabel={title}
       style={[
         {
-          height: size === 'lg' ? 54 : 44,
+          height: size === 'lg' ? 56 : 44,
           borderRadius: radius.pill,
           backgroundColor: bg,
           paddingHorizontal: space.xl,
@@ -130,7 +138,9 @@ export function Button({
           alignItems: 'center',
           justifyContent: 'center',
           gap: space.sm,
-          opacity: disabled ? 0.45 : 1,
+          opacity: disabled ? 0.4 : 1,
+          borderWidth: variant === 'secondary' ? StyleSheet.hairlineWidth : 0,
+          borderColor: c.hairline,
         },
         variant === 'primary' && elevation(c, 2),
         style,
@@ -157,6 +167,7 @@ export function IconButton({
   tint,
   bg,
   size = 44,
+  disabled,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
@@ -164,22 +175,25 @@ export function IconButton({
   tint?: string;
   bg?: string;
   size?: number;
+  disabled?: boolean;
 }) {
   const { c } = useTheme();
   return (
     <Tap
       onPress={onPress}
+      disabled={disabled}
       accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       hitSlop={8}
       style={{
+        opacity: disabled ? 0.35 : 1,
         width: size,
         height: size,
         borderRadius: size / 2,
         backgroundColor: bg ?? c.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: c.border,
+        ...(bg ? {} : { borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }),
       }}
     >
       <Ionicons name={icon} size={size * 0.45} color={tint ?? c.text} />
@@ -192,31 +206,34 @@ export function Chip({
   active,
   onPress,
   icon,
+  tint,
 }: {
   label: string;
   active?: boolean;
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
+  tint?: string;
 }) {
   const { c } = useTheme();
   return (
     <Tap
       onPress={onPress}
+      accessibilityLabel={label}
       accessibilityState={{ selected: active }}
       style={{
         height: 38,
-        paddingHorizontal: space.lg,
+        paddingHorizontal: icon ? 14 : 16,
         borderRadius: radius.pill,
-        backgroundColor: active ? c.text : c.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: active ? c.text : c.border,
+        backgroundColor: active ? c.accent : c.surface,
+        borderWidth: active ? 0 : StyleSheet.hairlineWidth,
+        borderColor: c.hairline,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
       }}
     >
-      {icon && <Ionicons name={icon} size={15} color={active ? c.bg : c.textMuted} />}
-      <T v="callout" color={active ? c.bg : c.text} style={{ fontWeight: '600' }}>
+      {icon && <Ionicons name={icon} size={15} color={active ? c.onAccent : tint ?? c.textMuted} />}
+      <T v="callout" color={active ? c.onAccent : c.text} style={{ fontFamily: fonts.medium }}>
         {label}
       </T>
     </Tap>
@@ -224,12 +241,13 @@ export function Chip({
 }
 
 export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+  const { c } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space.md }}>
-      <T v="heading">{title}</T>
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: space.md }}>
+      <T v="heading" style={{ fontSize: 18 }}>{title}</T>
       {action && (
         <Tap onPress={onAction} hitSlop={10}>
-          <T v="callout" color="accent" style={{ fontWeight: '600' }}>
+          <T v="callout" color={c.gold} style={{ fontFamily: fonts.semibold }}>
             {action}
           </T>
         </Tap>
@@ -244,14 +262,12 @@ export function SearchField({ ref, ...props }: TextInputProps & { trailing?: Rea
     <View
       style={{
         height: 50,
-        borderRadius: radius.pill,
-        backgroundColor: c.surface,
+        borderRadius: radius.md,
+        backgroundColor: c.surfaceAlt,
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: space.lg,
         gap: space.sm,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: c.border,
       }}
     >
       <Ionicons name="search" size={19} color={c.textMuted} />
@@ -286,7 +302,7 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
             backgroundColor: c.surface,
             borderRadius: radius.md,
             paddingHorizontal: space.lg,
-            height: props.multiline ? 96 : 50,
+            height: props.multiline ? 96 : 52,
             paddingTop: props.multiline ? space.md : 0,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: c.border,
@@ -310,11 +326,11 @@ export function Group({ children, title, footer }: { children: React.ReactNode; 
   return (
     <View style={{ marginBottom: space.xxl }}>
       {title && (
-        <T v="overline" color="faint" style={{ marginBottom: space.sm, marginLeft: space.xs, textTransform: 'uppercase' }}>
+        <T v="overline" color="muted" style={{ marginBottom: space.sm, marginLeft: space.xs, textTransform: 'uppercase' }}>
           {title}
         </T>
       )}
-      <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: c.hairline }}>
         {items.map((child, i) => (
           <View key={i}>
             {i > 0 && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.border, marginLeft: 56 }} />}
@@ -340,6 +356,7 @@ export function Row({
   right,
   danger,
   chevron = !!onPress,
+  actions,
 }: {
   icon?: keyof typeof Ionicons.glyphMap;
   title: string;
@@ -349,12 +366,14 @@ export function Row({
   right?: React.ReactNode;
   danger?: boolean;
   chevron?: boolean;
+  /** Secondary actions (e.g. a delete button in `right`) exposed to screen readers, which can't reach buttons nested in the row. */
+  actions?: { name: string; label: string; run: () => void }[];
 }) {
   const { c } = useTheme();
   const content = (
     <View style={{ flexDirection: 'row', alignItems: 'center', minHeight: 56, paddingHorizontal: space.lg, gap: space.md }}>
       {icon && (
-        <View style={{ width: 28, alignItems: 'center' }}>
+        <View style={{ width: 28, alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Ionicons name={icon} size={21} color={danger ? c.danger : c.textMuted} />
         </View>
       )}
@@ -374,11 +393,22 @@ export function Row({
         </T>
       )}
       {right}
-      {chevron && <Ionicons name="chevron-forward" size={18} color={c.textFaint} />}
+      {chevron && (
+        <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Ionicons name="chevron-forward" size={18} color={c.textFaint} />
+        </View>
+      )}
     </View>
   );
   return onPress ? (
-    <Pressable onPress={onPress} android_ripple={{ color: c.border }} accessibilityRole="button">
+    <Pressable
+      onPress={onPress}
+      android_ripple={{ color: c.border }}
+      accessibilityRole="button"
+      accessibilityLabel={[title, subtitle, value].filter(Boolean).join(', ')}
+      accessibilityActions={actions?.map((a) => ({ name: a.name, label: a.label }))}
+      onAccessibilityAction={(e) => actions?.find((a) => a.name === e.nativeEvent.actionName)?.run()}
+    >
       {({ pressed }) => <View style={{ opacity: pressed ? 0.6 : 1 }}>{content}</View>}
     </Pressable>
   ) : (
@@ -407,13 +437,13 @@ export function EmptyState({
           width: 72,
           height: 72,
           borderRadius: 24,
-          backgroundColor: c.accentSoft,
+          backgroundColor: c.goldSoft,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: space.sm,
         }}
       >
-        <Ionicons name={icon} size={32} color={c.accent} />
+        <Ionicons name={icon} size={30} color={c.gold} />
       </View>
       <T v="heading" style={{ textAlign: 'center' }}>
         {title}
@@ -459,7 +489,7 @@ export function Banner({
       </T>
       {action && (
         <Tap onPress={onAction} hitSlop={8}>
-          <T v="callout" color={fg} style={{ fontWeight: '700' }}>
+          <T v="callout" color={fg} style={{ fontFamily: fonts.bold }}>
             {action}
           </T>
         </Tap>

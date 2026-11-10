@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, Share, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { ScrollView, Share, View } from 'react-native';
+import { router, Stack } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { Banner, Button, T } from '../../components/ui';
-import { radius, space, useTheme } from '../../theme';
+import { radius, space, useTheme, fonts } from '../../theme';
 import { newRecoveryKey } from '../../lib/vault';
 import { useAccount } from '../../lib/hooks';
+import { kvSet } from '../../lib/db';
+import { notifyError, confirm } from '../../lib/feedback';
 
 export default function Recovery() {
   const { c } = useTheme();
@@ -13,25 +15,27 @@ export default function Recovery() {
   const [key, setKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const regenerate = () =>
-    Alert.alert('Create a new recovery key?', 'Your old recovery key will stop working immediately. Make sure to save the new one.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Create new key',
-        onPress: async () => {
-          const auth = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm it’s you' });
-          if (!auth.success) return;
-          setBusy(true);
-          try {
-            setKey(await newRecoveryKey());
-          } catch (e) {
-            Alert.alert('Couldn’t create key', e instanceof Error ? e.message : String(e));
-          } finally {
-            setBusy(false);
-          }
-        },
-      },
-    ]);
+  const createKey = async () => {
+    const auth = await LocalAuthentication.authenticateAsync({ promptMessage: 'Confirm it’s you' });
+    if (!auth.success) return;
+    setBusy(true);
+    try {
+      setKey(await newRecoveryKey());
+      kvSet('recovery.unconfirmed', false);
+    } catch (e) {
+      notifyError(e, 'Couldn’t create key', { retry: createKey });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const regenerate = async () => {
+    const ok = await confirm({
+      title: 'Create a new recovery key?',
+      message: 'Your old recovery key will stop working immediately. Make sure to save the new one.',
+      confirmLabel: 'Create new key',
+    });
+    if (ok) await createKey();
+  };
 
   return (
     <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.lg }}>
@@ -41,14 +45,20 @@ export default function Recovery() {
         replace it with a new one at any time.
       </T>
       {account?.mode === 'local' && (
-        <Banner tone="warning" icon="warning-outline" text="Your vault isn’t backed up. A recovery key only helps once Google Drive is connected." />
+        <Banner
+          tone="warning"
+          icon="warning-outline"
+          text="Your vault isn’t backed up. A recovery key only helps once Google Drive is connected."
+          action="Set up backup"
+          onAction={() => router.push('/manage/connect')}
+        />
       )}
       {key ? (
         <>
           <View style={{ backgroundColor: c.surface, borderRadius: radius.lg, padding: space.xl, flexDirection: 'row', flexWrap: 'wrap', gap: space.md, justifyContent: 'center' }}>
             {key.split('-').map((g, i) => (
               <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                <T v="mono" selectable style={{ fontWeight: '700' }}>
+                <T v="mono" selectable style={{ fontFamily: fonts.bold }}>
                   {g}
                 </T>
               </View>
@@ -58,7 +68,7 @@ export default function Recovery() {
           <Banner tone="success" icon="checkmark-circle" text="New key active. Your previous key no longer works." />
         </>
       ) : (
-        <Button title="Create a new recovery key" icon="key-outline" onPress={regenerate} loading={busy} />
+        <Button title="Create a new recovery key" icon="key-outline" onPress={regenerate} loading={busy} variant={account?.mode === 'local' ? 'secondary' : 'primary'} />
       )}
     </ScrollView>
   );

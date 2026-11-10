@@ -12,9 +12,21 @@ import { registerBackgroundSync } from '../lib/backgroundSync';
 import { purgeTempPlain } from '../lib/blobs';
 import { getAccount } from '../lib/session';
 import { AppLock } from '../components/AppLock';
+import { ToastHost } from '../components/ToastHost';
+import { purgeExpiredTrash } from '../lib/documents';
+import { purgeScanCache } from '../lib/scan';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 function Navigator() {
   const { c, dark } = useTheme();
+
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(c.bg).catch(() => {});
   }, [c.bg]);
@@ -33,8 +45,16 @@ function Navigator() {
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="add" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-          <Stack.Screen name="viewer/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="share" options={{ presentation: 'modal', animation: 'slide_from_bottom', gestureEnabled: false }} />
+          <Stack.Screen name="expo-sharing" options={{ animation: 'none' }} />
+          <Stack.Screen name="move/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+          <Stack.Screen name="edit-image/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="search" options={{ animation: 'fade' }} />
+          <Stack.Screen name="present/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="oauthredirect" options={{ animation: 'none', presentation: 'transparentModal' }} />
+          <Stack.Screen name="view/[id]" options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom' }} />
         </Stack>
+        <ToastHost />
       </AppLock>
     </>
   );
@@ -42,11 +62,20 @@ function Navigator() {
 
 export default function RootLayout() {
   const [ready, setReady] = useState(false);
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
   useEffect(() => {
     let unsub: (() => void) | undefined;
     (async () => {
       await getDb();
       purgeTempPlain(); // never leave decrypted files behind from a previous session
+      purgeExpiredTrash().catch(() => {});
+      purgeScanCache();
       await initSyncStatus();
       unsub = startSyncListeners();
       setReady(true);
@@ -61,7 +90,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>{ready ? <Navigator /> : null}</ThemeProvider>
+        <ThemeProvider>{ready && (fontsLoaded || fontError) ? <Navigator /> : null}</ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

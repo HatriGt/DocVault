@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Alert, ScrollView, Switch, View } from 'react-native';
+import { ScrollView, Switch, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { Group, Row, T } from '../../components/ui';
 import { DocThumb } from '../../components/docs';
@@ -8,7 +8,7 @@ import { useAccount, useDocuments, usePrefs } from '../../lib/hooks';
 import { formatBytes } from '../../lib/format';
 import { setPrefs } from '../../lib/session';
 import { OfflineChangeError, setOfflinePreference } from '../../lib/documents';
-import { localVaultBytes } from '../../lib/blobs';
+import { notifyError } from '../../lib/feedback';
 
 export default function Storage() {
   const { c } = useTheme();
@@ -16,8 +16,8 @@ export default function Storage() {
   const prefs = usePrefs();
   const { account } = useAccount();
   const google = account?.mode === 'google';
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const used = useMemo(() => localVaultBytes(), [docs]);
+   
+  const used = useMemo(() => docs.reduce((n, d) => n + (d.has_local ? d.size : 0), 0), [docs]);
   const total = docs.reduce((s, d) => s + d.size, 0);
 
   const toggle = async (id: string, keep: boolean) => {
@@ -25,7 +25,7 @@ export default function Storage() {
     try {
       await setOfflinePreference(d, keep ? 'keep' : 'cloud');
     } catch (e) {
-      Alert.alert(e instanceof OfflineChangeError ? 'Not yet' : 'Error', e instanceof Error ? e.message : String(e));
+      notifyError(e, e instanceof OfflineChangeError ? 'Not yet' : 'Error');
     }
   };
 
@@ -74,7 +74,7 @@ export default function Storage() {
                   {d.name}
                 </T>
                 <T v="caption" color="muted">
-                  {formatBytes(d.size)} · {d.has_local ? 'On device' : 'Cloud only'}
+                  {formatBytes(d.size)} · {d.has_local ? 'On this phone' : 'Drive only'}
                 </T>
               </View>
               <Switch value={d.offline_pref === 'keep'} onValueChange={(v) => toggle(d.id, v)} trackColor={{ true: c.accent }} accessibilityLabel={`Keep ${d.name} offline`} />

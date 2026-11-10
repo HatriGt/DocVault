@@ -43,6 +43,10 @@ export interface DocRecord {
   back_id: string | null; // optional linked doc id for card back side
   notes: string | null;
   tags: string; // JSON string[] of lowercase hashtags (without #)
+  folder_id: string | null;
+  trashed_at: number | null; // in Recently Deleted since (ms)
+  locked: number; // requires biometrics to open
+  plain_hash: string | null; // sha256 of plaintext, local only (duplicate detection)
 }
 
 export interface CustomCategory {
@@ -94,6 +98,31 @@ const MIGRATIONS: string[] = [
     id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, icon TEXT NOT NULL, hue TEXT NOT NULL
   );`,
   `ALTER TABLE documents ADD COLUMN tags TEXT NOT NULL DEFAULT '[]';`,
+  `CREATE TABLE IF NOT EXISTS folders (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    parent_id TEXT,
+    color TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
+  ALTER TABLE documents ADD COLUMN folder_id TEXT;
+  CREATE INDEX IF NOT EXISTS idx_docs_folder ON documents(folder_id);`,
+  `CREATE TABLE IF NOT EXISTS activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    detail TEXT,
+    at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_activity_doc ON activity(doc_id, at);`,
+  `ALTER TABLE documents ADD COLUMN trashed_at INTEGER;
+  ALTER TABLE documents ADD COLUMN locked INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE documents ADD COLUMN plain_hash TEXT;
+  CREATE INDEX IF NOT EXISTS idx_docs_hash ON documents(plain_hash);`,
 ];
 
 export function getDb() {
@@ -130,7 +159,17 @@ export async function kvSet(k: string, v: unknown) {
 // ---------- documents ----------
 export async function listDocs(): Promise<DocRecord[]> {
   const db = await getDb();
-  return db.getAllAsync<DocRecord>('SELECT * FROM documents WHERE deleted = 0 ORDER BY created_at DESC');
+  return db.getAllAsync<DocRecord>('SELECT * FROM documents WHERE deleted = 0 AND trashed_at IS NULL ORDER BY created_at DESC');
+}
+
+export async function listTrashed(): Promise<DocRecord[]> {
+  const db = await getDb();
+  return db.getAllAsync<DocRecord>('SELECT * FROM documents WHERE deleted = 0 AND trashed_at IS NOT NULL ORDER BY trashed_at DESC');
+}
+
+export async function findByPlainHash(hash: string): Promise<DocRecord | null> {
+  const db = await getDb();
+  return db.getFirstAsync<DocRecord>('SELECT * FROM documents WHERE plain_hash = ? AND deleted = 0 AND trashed_at IS NULL LIMIT 1', hash);
 }
 
 export async function getDoc(id: string): Promise<DocRecord | null> {
@@ -176,7 +215,7 @@ export async function docsNeedingPush(): Promise<DocRecord[]> {
 export async function docsNeedingDownload(): Promise<DocRecord[]> {
   const db = await getDb();
   return db.getAllAsync<DocRecord>(
-    `SELECT * FROM documents WHERE deleted = 0 AND has_local = 0 AND offline_pref = 'keep'
+    `SELECT * FROM documents WHERE deleted = 0 AND trashed_at IS NULL AND has_local = 0 AND offline_pref = 'keep'
      AND remote_bin_id IS NOT NULL`,
   );
 }
@@ -186,7 +225,7 @@ export async function listTags(): Promise<{ tag: string; count: number }[]> {
   const db = await getDb();
   return db.getAllAsync<{ tag: string; count: number }>(
     `SELECT j.value AS tag, COUNT(*) AS count FROM documents d, json_each(d.tags) j
-     WHERE d.deleted = 0 GROUP BY j.value ORDER BY count DESC, tag ASC`,
+     WHERE d.deleted = 0 AND d.trashed_at IS NULL GROUP BY j.value ORDER BY count DESC, tag ASC`,
   );
 }
 
@@ -201,8 +240,14 @@ export async function addCustomCategory(c: CustomCategory) {
   emit('documents');
 }
 
+export async function removeCustomCategoryRow(id: string) {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+  emit('documents');
+}
+
 export async function wipeDatabase() {
   const db = await getDb();
-  await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories;');
+  await db.execAsync('DELETE FROM documents; DELETE FROM kv; DELETE FROM categories; DELETE FROM folders; DELETE FROM activity;');
   emit('documents');
 }

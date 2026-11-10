@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button, Field, Screen, T } from '../../components/ui';
+import { KeyboardSpacer } from '../../components/KeyboardSpacer';
 import { space, type, useTheme } from '../../theme';
 import { getPendingAccount } from '../../lib/pending';
 import { lookupExistingVault, resetRemoteVault, restoreFromRecoveryKey } from '../../lib/vault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
+import { notifyError, confirm } from '../../lib/feedback';
 
 export default function Restore() {
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const { c } = useTheme();
   const account = getPendingAccount();
   const [key, setKey] = useState('');
@@ -36,34 +39,30 @@ export default function Restore() {
     }
   };
 
-  const lost = () =>
-    Alert.alert(
-      'Start a new vault?',
-      'Without your recovery key, your existing encrypted documents can’t be decrypted by anyone. Starting over permanently deletes them from your Google Drive.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete & start over',
-          style: 'destructive',
-          onPress: async () => {
-            setBusy(true);
-            try {
-              await resetRemoteVault();
-              router.replace('/recovery/setup');
-            } catch (e) {
-              Alert.alert('Couldn’t reset', e instanceof Error ? e.message : String(e));
-            } finally {
-              setBusy(false);
-            }
-          },
-        },
-      ],
-    );
+  const startOver = async () => {
+    setBusy(true);
+    try {
+      await resetRemoteVault();
+      router.replace('/recovery/setup');
+    } catch (e) {
+      notifyError(e, 'Couldn’t reset', { retry: startOver });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const lost = async () => {
+    const ok = await confirm({
+      title: 'Start a new vault?',
+      message: 'Without your recovery key, your existing encrypted documents can’t be decrypted by anyone. Starting over permanently deletes them from your Google Drive.',
+      confirmLabel: 'Delete & start over',
+      destructive: true,
+    });
+    if (ok) await startOver();
+  };
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: space.xxl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} contentContainerStyle={{ padding: space.xxl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="cloud-download" size={28} color={c.accent} />
           </View>
@@ -91,7 +90,7 @@ export default function Restore() {
           <Button title="Unlock vault" onPress={restore} loading={busy} disabled={key.replace(/[^0-9a-z]/gi, '').length < 32} style={{ marginTop: space.xxl }} />
           <Button title="I lost my recovery key" variant="ghost" onPress={lost} style={{ marginTop: space.sm }} />
         </ScrollView>
-      </KeyboardAvoidingView>
+        <KeyboardSpacer scrollRef={scroll} />
     </Screen>
   );
 }

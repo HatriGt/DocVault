@@ -69,3 +69,11 @@ export function wipeAllBlobs() {
   if (d.exists) d.delete();
   purgeTempPlain();
 }
+
+/** Deletes one decrypted temp file. */
+export function deleteTemp(uri: string) {
+  try {
+    const f = new File(uri);
+    if (f.exists) f.delete();
+  } catch {}
+}

@@ -29,7 +29,7 @@ export const DEFAULT_PREFS: Preferences = {
   pinLock: false,
   lockAfterSeconds: 30,
   expiryReminders: true,
-  theme: 'system',
+  theme: 'light',
 };
 
 export const getAccount = () => kvGet<Account | null>('account', null);

@@ -1,0 +1,97 @@
+# End-to-end: first launch → local vault with samples → core screens.
+appId: com.hatrigt.docvault
+name: Onboarding and core navigation
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Skip"
+    timeout: 45000
+- takeScreenshot: 01-onboarding
+# The slow CI emulator sometimes drops the first tap while the intro animates in:
+# keep advancing until the account step shows.
+- repeat:
+    times: 6
+    while:
+      notVisible: "Use on this device only"
+    commands:
+      - tapOn:
+          text: "Skip|Continue"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 3000
+- tapOn: "Use on this device only"
+- tapOn: "Create my recovery key"
+# scrypt key derivation runs on-device; give it time on a slow emulator
+- extendedWaitUntil:
+    visible:
+      id: "recovery-key-last"
+    timeout: 90000
+- takeScreenshot: 02-recovery-key
+- copyTextFrom:
+    id: "recovery-key-last"
+- tapOn: ".*saved it"
+- tapOn:
+    id: "recovery-confirm-input"
+- inputText: ${maestro.copiedText}
+# The confirm step advances by itself once the last group matches; the button is a fallback.
+- repeat:
+    times: 4
+    while:
+      notVisible: "Almost there"
+    commands:
+      - tapOn:
+          text: "Confirm"
+          optional: true
+      - waitForAnimationToEnd:
+          timeout: 3000
+- extendedWaitUntil:
+    visible: "Almost there"
+    timeout: 15000
+- tapOn:
+    id: "profile-name-input"
+- inputText: "Ajeeth"
+- tapOn: "Open my vault"
+# sample documents are generated and encrypted
+- extendedWaitUntil:
+    visible: ".*documents secured"
+    timeout: 90000
+- takeScreenshot: 03-home
+- scrollUntilVisible:
+    element: "Needs attention"
+    direction: DOWN
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Recent"
+    direction: DOWN
+- takeScreenshot: 04-home-scrolled
+
+# Library
+- tapOn: "Library"
+- extendedWaitUntil:
+    visible: "Recently added.*"
+    timeout: 20000
+- takeScreenshot: 05-library
+- tapOn:
+    text: "Got it"
+    optional: true
+# Rows read out as one label ("Passport, Identity, …"), so match by prefix.
+- scrollUntilVisible:
+    element: "Passport,.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Passport,.*"
+- extendedWaitUntil:
+    visible: "Present"
+    timeout: 20000
+- takeScreenshot: 06-detail
+# open the document in the in-app PDF viewer
+- tapOn: "Open"
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: 07-viewer
+- back
+- waitForAnimationToEnd
+- back

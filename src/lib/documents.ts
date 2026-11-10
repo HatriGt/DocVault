@@ -1,14 +1,20 @@
 import { Platform } from 'react-native';
 import { Directory, File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as IntentLauncher from 'expo-intent-launcher';
+import { resolveType } from './filetype';
+import { logActivity } from './activity';
 import { hashHex, open, seal, utf8, uuid } from './crypto';
 import { newWrappedDek, unwrapDek } from './keys';
 import { deleteBlob, hasBlob, purgeTempPlain, readBlob, writeBlob, writeTempPlain } from './blobs';
-import { DocRecord, getDoc, hardDeleteDoc, insertDoc, OfflinePref, updateDoc } from './db';
+import { DocRecord, findByPlainHash, getDoc, hardDeleteDoc, insertDoc, listDocs, OfflinePref, removeCustomCategoryRow, updateDoc } from './db';
+import QuickCrypto from 'react-native-quick-crypto';
 import { getAccount, getPrefs } from './session';
 import { cancelReminders, scheduleReminders } from './notifications';
 import { download as driveDownload } from './drive';
 import { requestSync } from './syncQueue';
+
+import { normalizeTags } from './tags';
 
 export interface DocFields {
   holder?: string;
@@ -34,9 +40,8 @@ export interface NewDocDetails {
   offlinePref?: OfflinePref;
   notes?: string | null;
   tags?: string[];
+  folderId?: string | null;
 }
-
-import { normalizeTags } from './tags';
 export { normalizeTags };
 
 export const parseTags = (d: Pick<DocRecord, 'tags'>): string[] => {
@@ -71,6 +76,8 @@ const blobAad = (id: string) => `doc:${id}`;
 /** Encrypts plaintext and stores it as a new document. Returns the record. */
 export async function createDocument(plain: Uint8Array, src: { name: string; mime: string }, d: NewDocDetails) {
   const id = uuid();
+  const real = resolveType(plain, src.name, src.mime);
+  src = { name: src.name.replace(/\.[a-z0-9]{1,5}$/i, '') + '.' + real.ext, mime: real.mime };
   const { dek, wrapped } = await newWrappedDek(id);
   const ct = seal(dek, plain, blobAad(id));
   dek.fill(0);
@@ -112,15 +119,27 @@ export async function createDocument(plain: Uint8Array, src: { name: string; mim
     back_id: null,
     notes: d.notes ?? null,
     tags: JSON.stringify(normalizeTags(d.tags ?? [])),
+    folder_id: d.folderId ?? null,
+    trashed_at: null,
+    locked: 0,
+    plain_hash: plainHash(plain),
   };
   await insertDoc(rec);
+  logActivity(id, 'added');
   if (prefs.expiryReminders) scheduleReminders(rec).catch(() => {});
   requestSync();
   return rec;
 }
 
-export async function importDocument(src: ImportSource, d: NewDocDetails) {
-  const plain = await new File(src.uri).bytes();
+/** Files larger than this are refused (they would be held in memory while encrypting). */
+export const MAX_FILE_BYTES = 200 * 1024 * 1024;
+
+export class FileTooLargeError extends Error {}
+
+export async function importDocument(src: ImportSource, d: NewDocDetails, preRead?: Uint8Array) {
+  const size = preRead?.length ?? new File(src.uri).size ?? 0;
+  if (size > MAX_FILE_BYTES) throw new FileTooLargeError('This file is larger than 200 MB, which DocVault can’t store safely on this phone.');
+  const plain = preRead ?? (await new File(src.uri).bytes());
   return createDocument(plain, src, d);
 }
 
@@ -153,29 +172,44 @@ const fileNameFor = (doc: DocRecord) => `${doc.name.replace(/\.[a-z0-9]{2,5}$/i,
 
 export async function markAccessed(id: string) {
   await updateDoc(id, { accessed_at: Date.now() });
+  logActivity(id, 'opened');
 }
 
-/** Decrypts to a temporary file for an in-app or native viewer. */
+/** Decrypts to a temporary file (named with its real extension) for viewing/sharing. */
 export async function materialize(doc: DocRecord) {
   const plain = await decryptDocument(doc);
-  const f = await writeTempPlain(fileNameFor(doc), plain);
+  const real = resolveType(plain, `x.${doc.ext}`, doc.mime);
+  if (real.mime !== doc.mime || real.ext !== doc.ext) {
+    updateDoc(doc.id, { mime: real.mime, ext: real.ext }, true).catch(() => {}); // self-heal stale metadata
+  }
+  const base = doc.name.replace(/\.[a-z0-9]{2,5}$/i, '') || 'document';
+  const file = await writeTempPlain(`${base}.${real.ext}`, plain);
   markAccessed(doc.id);
-  return f;
+  return Object.assign(file, { realMime: real.mime });
 }
 
-/** Opens the platform's native viewer (QuickLook on iOS, system viewer on Android). */
+/** Opens the platform viewer with an explicit MIME type (QuickLook on iOS). */
 export async function openNative(doc: DocRecord) {
   const f = await materialize(doc);
-  await f.preview();
+  if (Platform.OS === 'android') {
+    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+      data: f.contentUri,
+      type: f.realMime,
+      flags: 1, // FLAG_GRANT_READ_URI_PERMISSION
+    });
+  } else {
+    await f.preview();
+  }
 }
 
 /** Native share sheet (AirDrop, Quick Share, Mail, WhatsApp…). Works offline for local docs. */
 export async function shareDocument(doc: DocRecord) {
   const f = await materialize(doc);
+  logActivity(doc.id, 'shared');
   try {
     await Sharing.shareAsync(f.uri, {
-      mimeType: doc.mime,
-      UTI: isPdf(doc) ? 'com.adobe.pdf' : isImage(doc) ? 'public.image' : undefined,
+      mimeType: f.realMime,
+      UTI: f.realMime === 'application/pdf' ? 'com.adobe.pdf' : f.realMime.startsWith('image/') ? 'public.image' : undefined,
       dialogTitle: `Share ${doc.name}`,
     });
   } finally {
@@ -191,10 +225,22 @@ export async function exportCopy(doc: DocRecord) {
     const plain = await decryptDocument(doc);
     const out = dir.createFile(fileNameFor(doc), doc.mime);
     await out.write(plain);
+    logActivity(doc.id, 'exported');
     return 'saved';
   }
   await shareDocument(doc); // iOS: "Save to Files" lives in the share sheet
   return 'shared';
+}
+
+/**
+ * Deletes a custom category. Its documents move to `fallbackId` first (through updateDetails, so
+ * the change syncs like any edit), so no document is left pointing at a category that's gone.
+ */
+export async function deleteCategory(id: string, fallbackId = 'personal') {
+  const docs = (await listDocs()).filter((d) => d.category === id);
+  for (const d of docs) await updateDetails(d.id, { category: fallbackId });
+  await removeCustomCategoryRow(id);
+  return docs.length;
 }
 
 export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, 'name' | 'category' | 'doc_type' | 'expiry' | 'notes' | 'favorite' | 'pinned'>> & { fields?: DocFields; tags?: string[] }) {
@@ -209,6 +255,7 @@ export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, '
     updated_at: Date.now(),
     ...(cloud ? { meta_dirty: 1, sync_state: doc.sync_state === 'synced' ? 'upload_pending' : doc.sync_state } : {}),
   });
+  if (fields || 'name' in patch || 'expiry' in patch || 'category' in patch || 'notes' in patch || tags) logActivity(id, 'edited');
   const next = await getDoc(id);
   if (next && ('expiry' in patch || 'name' in patch)) {
     if ((await getPrefs()).expiryReminders) scheduleReminders(next).catch(() => {});
@@ -216,10 +263,82 @@ export async function updateDetails(id: string, patch: Partial<Pick<DocRecord, '
   requestSync();
 }
 
+/** Replaces a document's content in place (same id and key), e.g. after editing. */
+export async function replaceContent(doc: DocRecord, plain: Uint8Array, mime: string, ext: string) {
+  const dek = await unwrapDek(doc.id, doc.wrapped_dek);
+  const ct = seal(dek, plain, blobAad(doc.id));
+  dek.fill(0);
+  await writeBlob(doc.id, ct);
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, {
+    mime,
+    ext,
+    size: plain.length,
+    content_hash: hashHex(ct),
+    plain_hash: plainHash(plain),
+    has_local: 1,
+    updated_at: Date.now(),
+    ...(cloud ? { content_dirty: 1, meta_dirty: 1, sync_state: 'upload_pending' } : {}),
+  });
+  logActivity(doc.id, 'edited', 'content replaced');
+  requestSync();
+}
+
 export const toggleFavorite = (doc: DocRecord) => updateDetails(doc.id, { favorite: doc.favorite ? 0 : 1 });
 export const togglePinned = (doc: DocRecord) => updateDetails(doc.id, { pinned: doc.pinned ? 0 : 1 });
 
+/** Native SHA-256 of plaintext (local-only fingerprint for duplicate detection). */
+export function plainHash(plain: Uint8Array) {
+  return QuickCrypto.createHash('sha256').update(plain as never).digest('hex') as string;
+}
+
+/** Returns an existing document with identical content, if any. */
+export async function findDuplicate(plain: Uint8Array) {
+  return findByPlainHash(plainHash(plain));
+}
+
+const TRASH_DAYS = 30;
+
+/** Moves a document to Recently Deleted (restorable for 30 days; syncs to other devices). */
 export async function deleteDocument(doc: DocRecord) {
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, {
+    trashed_at: Date.now(),
+    updated_at: Date.now(),
+    ...(cloud ? { meta_dirty: 1, sync_state: 'upload_pending' } : {}),
+  });
+  cancelReminders(doc.id).catch(() => {});
+  requestSync();
+}
+
+export async function restoreDocument(doc: DocRecord) {
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, { trashed_at: null, updated_at: Date.now(), ...(cloud ? { meta_dirty: 1, sync_state: 'upload_pending' } : {}) });
+  if ((await getPrefs()).expiryReminders) scheduleReminders(doc).catch(() => {});
+  requestSync();
+}
+
+export async function emptyTrash(docs: DocRecord[]) {
+  for (const d of docs) await purgeDocument(d);
+}
+
+/** Permanently removes items that have been in Recently Deleted for 30+ days. */
+export async function purgeExpiredTrash() {
+  const { listTrashed } = await import('./db');
+  const cutoff = Date.now() - TRASH_DAYS * 86_400_000;
+  for (const d of await listTrashed()) if (d.trashed_at && d.trashed_at < cutoff) await purgeDocument(d);
+}
+
+export async function setLocked(doc: DocRecord, locked: boolean) {
+  const cloud = doc.sync_state !== 'local_only';
+  await updateDoc(doc.id, { locked: locked ? 1 : 0, updated_at: Date.now(), ...(cloud ? { meta_dirty: 1, sync_state: doc.sync_state === 'synced' ? 'upload_pending' : doc.sync_state } : {}) });
+  // Reminders show the document name on the lock screen; use a neutral title for locked docs.
+  if ((await getPrefs()).expiryReminders) scheduleReminders({ ...doc, locked: locked ? 1 : 0 }).catch(() => {});
+  requestSync();
+}
+
+/** Permanently deletes a document everywhere (device, Drive, other devices). */
+export async function purgeDocument(doc: DocRecord) {
   deleteBlob(doc.id);
   cancelReminders(doc.id).catch(() => {});
   if (!doc.remote_meta_id && !doc.remote_bin_id) {
@@ -269,6 +388,7 @@ export async function duplicateAsConflictCopy(doc: DocRecord) {
       favorite: !!doc.favorite,
       notes: doc.notes,
       tags: parseTags(doc),
+      folderId: doc.folder_id,
     },
   );
 }

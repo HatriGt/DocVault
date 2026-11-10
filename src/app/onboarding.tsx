@@ -1,16 +1,17 @@
-import React, { useRef, useState } from 'react';
-import { Alert, FlatList, useWindowDimensions, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, useWindowDimensions, View } from 'react-native';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Image } from 'expo-image';
 import { Button, Screen, T, Tap } from '../components/ui';
 import { radius, space, useTheme } from '../theme';
-import { GOOGLE_SCOPES, googleClientIds, isGoogleConfigured } from '../lib/google';
-import { completeGoogleSignIn } from '../lib/googleSignIn';
+import { isGoogleConfigured } from '../lib/google';
+import { useGoogleSignIn } from '../lib/useGoogleSignIn';
+import { onGoogleSignIn } from '../lib/googleSignIn';
 import { lookupExistingVault } from '../lib/vault';
 import { setPendingAccount } from '../lib/pending';
+import { notifyError, inform } from '../lib/feedback';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -39,32 +40,45 @@ export default function Onboarding() {
   const list = useRef<FlatList>(null);
   const [busy, setBusy] = useState(false);
 
-  const [request, , promptAsync] = Google.useAuthRequest({
-    ...googleClientIds,
-    scopes: GOOGLE_SCOPES,
-    selectAccount: true,
-    extraParams: { access_type: 'offline', prompt: 'consent' },
-  });
+  const google = useGoogleSignIn();
+
+  useEffect(
+    () =>
+      onGoogleSignIn(async ({ profile, error }) => {
+        if (error) {
+          setBusy(false);
+          notifyError(error, 'Couldn’t sign in with Google');
+          return;
+        }
+        try {
+          setPendingAccount({ mode: 'google', profile: profile!, displayName: profile!.name.split(' ')[0] });
+          const existing = await lookupExistingVault();
+          router.replace(existing ? '/recovery/restore' : '/recovery/setup');
+        } catch (e) {
+          notifyError(e, 'Couldn’t connect Google Drive');
+        } finally {
+          setBusy(false);
+        }
+      }),
+    [],
+  );
 
   const signInGoogle = async () => {
     if (!isGoogleConfigured()) {
-      Alert.alert(
+      inform(
         'Google isn’t configured',
         'Add your OAuth client IDs to .env (see README) to enable Google Drive backup. You can continue on this device only for now.',
       );
       return;
     }
+    if (!google.ready) return;
     setBusy(true);
     try {
-      const profile = await completeGoogleSignIn(await promptAsync(), request?.clientId ?? '');
-      if (!profile) return;
-      setPendingAccount({ mode: 'google', profile, displayName: profile.name.split(' ')[0] });
-      const existing = await lookupExistingVault();
-      router.replace(existing ? '/recovery/restore' : '/recovery/setup');
+      const ok = await google.start();
+      if (!ok) setBusy(false); // cancelled; on success the listener navigates
     } catch (e) {
-      Alert.alert('Couldn’t connect Google Drive', e instanceof Error ? e.message : String(e));
-    } finally {
       setBusy(false);
+      notifyError(e, 'Couldn’t sign in with Google');
     }
   };
 
@@ -79,9 +93,7 @@ export default function Onboarding() {
     <Screen edges={['top', 'bottom']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.xl, height: 48 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-          <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="lock-closed" size={17} color={c.onAccent} />
-          </View>
+          <Image source={require('../../assets/logo.png')} style={{ width: 34, height: 34 }} contentFit="contain" accessibilityIgnoresInvertColors />
           <T v="heading">DocVault</T>
         </View>
         {!last && (
@@ -106,7 +118,7 @@ export default function Onboarding() {
           item ? (
             <View style={{ width, paddingHorizontal: space.xxl, justifyContent: 'center' }}>
               <Hero icon={item.icon} />
-              <T v="display" style={{ marginTop: space.xxxl }}>
+              <T v="display" style={{ marginTop: space.xl }}>
                 {item.title}
               </T>
               <T v="body" color="muted" style={{ marginTop: space.lg }}>
@@ -115,14 +127,19 @@ export default function Onboarding() {
             </View>
           ) : (
             <View style={{ width, paddingHorizontal: space.xxl, justifyContent: 'center' }}>
-              <Animated.View entering={FadeInDown.duration(400)}>
+              {/* No entering animation: this page mounts off-screen in the pager and the
+                  animation could stay stuck at opacity 0 on slow devices. The scroll is the transition. */}
+              <View>
                 <T v="display">Let’s set up{'\n'}your vault</T>
                 <T v="body" color="muted" style={{ marginTop: space.lg }}>
                   Sign in with Google to back up your encrypted vault to your own Google Drive and sync it across devices.
                 </T>
                 <View style={{ marginTop: space.xxxl, gap: space.md }}>
-                  <Button title="Continue with Google" icon="logo-google" onPress={signInGoogle} loading={busy} disabled={!request && isGoogleConfigured()} />
+                  <Button title="Continue with Google" icon="logo-google" onPress={signInGoogle} loading={busy} disabled={google.configured && !google.ready} />
                   <Button title="Use on this device only" variant="secondary" onPress={localOnly} />
+                  <T v="caption" color="muted" style={{ textAlign: 'center' }}>
+                    No backup: if this phone is lost, its documents are gone. You can connect Drive later.
+                  </T>
                 </View>
                 <View style={{ flexDirection: 'row', gap: space.sm, marginTop: space.xl, alignItems: 'flex-start' }}>
                   <Ionicons name="information-circle-outline" size={18} color={c.textMuted} />
@@ -130,7 +147,7 @@ export default function Onboarding() {
                     DocVault can only access its own hidden folder in your Drive — never your other files. Your Google password never unlocks your documents; your recovery key does.
                   </T>
                 </View>
-              </Animated.View>
+              </View>
             </View>
           )
         }
@@ -152,9 +169,12 @@ export default function Onboarding() {
 
 function Hero({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
   const { c } = useTheme();
+  const { height } = useWindowDimensions();
+  // Scale down on short screens so the slide text is never clipped.
+  const k = Math.max(0.6, Math.min(1, (height - 520) / 300));
   return (
-    <View style={{ height: 260, alignItems: 'center', justifyContent: 'center' }}>
-      {[220, 160, 100].map((s, i) => (
+    <View style={{ height: 260 * k, alignItems: 'center', justifyContent: 'center' }}>
+      {[220 * k, 160 * k, 100 * k].map((s, i) => (
         <View
           key={s}
           style={{
@@ -167,8 +187,8 @@ function Hero({ icon }: { icon: keyof typeof Ionicons.glyphMap }) {
           }}
         />
       ))}
-      <View style={{ width: 88, height: 88, borderRadius: radius.xl, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={42} color={c.onAccent} />
+      <View style={{ width: 88 * k, height: 88 * k, borderRadius: radius.xl * k, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={42 * k} color={c.onAccent} />
       </View>
     </View>
   );

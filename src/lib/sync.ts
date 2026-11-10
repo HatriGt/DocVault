@@ -33,9 +33,35 @@ import { emit } from './events';
 import { getAccount, getPrefs } from './session';
 import { duplicateAsConflictCopy } from './documents';
 import { registerSyncRunner } from './syncQueue';
+import { allFoldersIncludingDeleted, Folder, mergeFolders } from './folders';
 import { scheduleReminders, cancelReminders } from './notifications';
 
 const KEYFILE = 'vault.json';
+const FOLDERS_FILE = 'folders.dvf';
+
+async function pullFolders(fileId: string) {
+  const bytes = await Drive.download(fileId);
+  try {
+    const list = openJson<Folder[]>(await getVmk(), bytes, 'folders');
+    await mergeFolders(list);
+  } catch {
+    console.warn('[sync] skipping undecryptable folders file');
+  }
+}
+
+async function pushFoldersIfDirty() {
+  if (!(await kvGet<boolean>('folders.dirty', false))) return;
+  const existing = await Drive.findByName(FOLDERS_FILE);
+  if (existing) await pullFolders(existing.id); // merge first so we never clobber another device
+  const all = await allFoldersIncludingDeleted();
+  await Drive.upload({
+    name: FOLDERS_FILE,
+    bytes: sealJson(await getVmk(), all, 'folders'),
+    existingId: existing?.id,
+    appProperties: { dv: 'folders' },
+  });
+  await kvSet('folders.dirty', false);
+}
 
 /** Fields replicated through the encrypted .meta file. */
 interface RemoteMeta {
@@ -55,6 +81,9 @@ interface RemoteMeta {
   fields: string;
   notes: string | null;
   tags?: string; // optional for metas written before tags existed
+  folder_id?: string | null;
+  trashed_at?: number | null;
+  locked?: number;
   wrapped_dek: string;
   content_hash: string | null;
   bin_id: string | null;
@@ -85,8 +114,20 @@ export async function initSyncStatus() {
 }
 
 // ---------- key file ----------
+export class VaultConflictError extends Error {}
+
 export async function uploadKeyFile(kf: VaultKeyFile) {
   const existing = await Drive.findByName(KEYFILE);
+  if (existing && kf.vaultId) {
+    // Never replace a key file that belongs to a different vault (e.g. queued offline, then the
+    // account got a new vault elsewhere) — that would make the other vault unrecoverable.
+    try {
+      const remote = JSON.parse(new TextDecoder().decode(await Drive.download(existing.id))) as VaultKeyFile;
+      if (remote.vaultId && remote.vaultId !== kf.vaultId) throw new VaultConflictError('This Google account now holds a different vault.');
+    } catch (e) {
+      if (e instanceof VaultConflictError) throw e;
+    }
+  }
   await Drive.upload({
     name: KEYFILE,
     bytes: new TextEncoder().encode(JSON.stringify(kf)),
@@ -125,6 +166,9 @@ async function encodeMeta(d: DocRecord): Promise<Uint8Array> {
     fields: d.fields,
     notes: d.notes,
     tags: d.tags,
+    folder_id: d.folder_id,
+    trashed_at: d.trashed_at,
+    locked: d.locked,
     wrapped_dek: d.wrapped_dek,
     content_hash: d.content_hash,
     bin_id: d.remote_bin_id,
@@ -176,8 +220,12 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
       back_id: null,
       notes: meta.notes,
       tags: meta.tags ?? '[]',
+      folder_id: meta.folder_id ?? null,
+      trashed_at: meta.trashed_at ?? null,
+      locked: meta.locked ?? 0,
+      plain_hash: null,
     });
-    if (prefs.expiryReminders && meta.expiry) scheduleReminders({ ...meta }).catch(() => {});
+    if (prefs.expiryReminders && meta.expiry && !meta.trashed_at) scheduleReminders({ ...meta }).catch(() => {});
     return;
   }
 
@@ -189,8 +237,9 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
 
   if (meta.deleted) {
     if (local.content_dirty) {
-      // Edited here, deleted elsewhere: keep the user's data as a fresh document.
-      await updateDoc(local.id, { remote_meta_id: null, remote_bin_id: null, meta_dirty: 1 });
+      // Edited here, deleted elsewhere: keep the user's data. Overwrite the tombstone file (same id)
+      // with a newer timestamp so a freshly restoring device can't apply the deletion over it.
+      await updateDoc(local.id, { remote_meta_id: metaFileId, remote_bin_id: null, meta_dirty: 1, content_dirty: 1, updated_at: Date.now() });
       return;
     }
     deleteBlob(local.id);
@@ -222,6 +271,9 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
     fields: meta.fields,
     notes: meta.notes,
     tags: meta.tags ?? local.tags,
+    folder_id: meta.folder_id !== undefined ? meta.folder_id : local.folder_id,
+    trashed_at: meta.trashed_at !== undefined ? meta.trashed_at : local.trashed_at,
+    locked: meta.locked ?? local.locked,
     wrapped_dek: meta.wrapped_dek,
     content_hash: meta.content_hash,
     remote_meta_id: metaFileId,
@@ -234,6 +286,12 @@ async function applyRemote(meta: RemoteMeta, metaFileId: string) {
     last_synced_at: Date.now(),
     last_error: null,
   });
+  const nowTrashed = meta.trashed_at !== undefined ? meta.trashed_at : local.trashed_at;
+  if (nowTrashed) {
+    cancelReminders(local.id).catch(() => {});
+  } else if (prefs.expiryReminders && (local.trashed_at || meta.expiry !== local.expiry || meta.name !== local.name)) {
+    scheduleReminders({ id: local.id, name: meta.name, expiry: meta.expiry, doc_type: meta.doc_type }).catch(() => {});
+  }
 }
 
 async function pullMetaFile(fileId: string, name: string) {
@@ -250,22 +308,44 @@ async function pullMetaFile(fileId: string, name: string) {
   await applyRemote(meta, fileId);
 }
 
+/** Pulls one meta file; returns false (without throwing) if it couldn't be applied. */
+async function tryPull(fileId: string, name: string) {
+  try {
+    await pullMetaFile(fileId, name);
+    return true;
+  } catch (e) {
+    if (e instanceof AuthRequiredError || (e instanceof DriveError && e.status === 0)) throw e;
+    console.warn(`[sync] could not apply ${name}:`, e instanceof Error ? e.message : e);
+    return false;
+  }
+}
+
 async function pull() {
   const token = await kvGet<string | null>('sync.changesToken', null);
   if (!token) {
     const start = await Drive.getStartPageToken(); // take token first: no gap
-    const metas = await Drive.listAll('.meta');
-    for (const f of metas) if (f.name.endsWith('.meta')) await pullMetaFile(f.id, f.name);
-    await kvSet('sync.changesToken', start);
+    // Drive's `name contains` only matches prefixes, so filter by our appProperties tag instead.
+    const metas = await Drive.listAll("appProperties has { key='dv' and value='meta' } and trashed = false");
+    let ok = true;
+    for (const f of metas) if (f.name.endsWith('.meta')) ok = (await tryPull(f.id, f.name)) && ok;
+    const ff = await Drive.findByName(FOLDERS_FILE);
+    if (ff) await pullFolders(ff.id);
+    if (ok) await kvSet('sync.changesToken', start); // otherwise retry the full pull next time
     return;
   }
   const { changes, newStartPageToken } = await Drive.listChanges(token);
+  let ok = true;
   for (const c of changes) {
     if (c.removed || !c.file || c.file.trashed) continue;
+    if (c.file.name === FOLDERS_FILE) {
+      await pullFolders(c.fileId);
+      continue;
+    }
     if (!c.file.name.endsWith('.meta')) continue;
-    await pullMetaFile(c.fileId, c.file.name);
+    ok = (await tryPull(c.fileId, c.file.name)) && ok;
   }
-  await kvSet('sync.changesToken', newStartPageToken);
+  // Only move the bookmark forward when every change was applied; failures are retried next run.
+  if (ok) await kvSet('sync.changesToken', newStartPageToken);
 }
 
 // ---------- push ----------
@@ -287,6 +367,7 @@ async function pushDoc(d: DocRecord) {
   }
 
   if (doc.content_dirty) {
+    const uploadedHash = doc.content_hash;
     const ct = await readBlob(doc.id);
     const bin = await Drive.upload({
       name: `${doc.id}.bin`,
@@ -296,6 +377,12 @@ async function pushDoc(d: DocRecord) {
       session: doc.upload_session,
       onSession: (uri) => updateDoc(doc.id, { upload_session: uri }, true),
     });
+    const latest = await getDoc(doc.id);
+    if (latest && latest.content_hash !== uploadedHash) {
+      // Content changed while uploading: keep it dirty and push the new version next cycle.
+      await updateDoc(doc.id, { remote_bin_id: bin.id, upload_session: null, sync_state: 'upload_pending' }, true);
+      return;
+    }
     await updateDoc(doc.id, { remote_bin_id: bin.id, content_dirty: 0, upload_session: null }, true);
     doc = (await getDoc(doc.id))!;
   }
@@ -334,11 +421,13 @@ async function withDocErrors(d: DocRecord, fn: () => Promise<void>, failState: D
   } catch (e) {
     if (e instanceof AuthRequiredError) throw e;
     const msg = e instanceof Error ? e.message : String(e);
-    const retryable = e instanceof DriveError ? e.retryable : true;
+    const isDrive = e instanceof DriveError;
+    const retryable = isDrive ? e.retryable : true;
+    const attempts = isDrive ? d.attempts + 1 : d.attempts; // local hiccups never exhaust retries
     await updateDoc(d.id, {
-      sync_state: retryable && d.attempts < 5 ? failState : 'failed',
+      sync_state: retryable && attempts < 5 ? failState : 'failed',
       last_error: msg,
-      attempts: d.attempts + 1,
+      attempts,
     });
     if (e instanceof DriveError && e.status === 0) throw e; // offline: stop the cycle
   }
@@ -360,12 +449,28 @@ export function syncNow(): Promise<void> {
   if (current) return current;
   current = (async () => {
     if (!(await canSync())) return;
+    try {
+      await getVmk(); // e.g. iPhone locked during a background run → don't touch anything
+    } catch {
+      setStatus({ lastError: 'Unlock your phone to finish syncing.' });
+      return;
+    }
     setStatus({ running: true, lastError: null, progress: null });
     try {
       const pendingKf = await kvGet<VaultKeyFile | null>('keyfile.pending', null);
-      if (pendingKf) await uploadKeyFile(pendingKf);
+      if (pendingKf) {
+        try {
+          await uploadKeyFile(pendingKf);
+        } catch (e) {
+          if (!(e instanceof VaultConflictError)) throw e;
+          await kvSet('keyfile.pending', null);
+          setStatus({ lastError: 'This Google account has a different vault. Sign out and restore it, or use another account.' });
+          return;
+        }
+      }
 
       await pull();
+      await pushFoldersIfDirty();
 
       const toPush = await docsNeedingPush();
       const toFetch = await docsNeedingDownload();

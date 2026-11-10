@@ -1,6 +1,7 @@
 import React from 'react';
-import { Alert, Image, ScrollView, View } from 'react-native';
+import { Image, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
+import { TabSwipe } from '../../components/TabSwipe';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Group, Row, Screen, T } from '../../components/ui';
 import { radius, space, useTheme } from '../../theme';
@@ -8,6 +9,7 @@ import { useAccount, useDocuments, usePrefs, useSyncStatus } from '../../lib/hoo
 import { relativeTime } from '../../lib/format';
 import { setPrefs } from '../../lib/session';
 import { signOutAndWipeDevice } from '../../lib/vault';
+import { notifyError, confirm } from '../../lib/feedback';
 
 export default function Settings() {
   const { c } = useTheme();
@@ -17,66 +19,78 @@ export default function Settings() {
   const prefs = usePrefs();
   const sync = useSyncStatus();
 
-  const signOut = () =>
-    Alert.alert(
-      'Sign out and remove from this device?',
-      account?.mode === 'google'
+  const signOut = async () => {
+    const google = account?.mode === 'google';
+    const ok = await confirm({
+      title: google ? 'Sign out and remove from this device?' : 'Delete this vault?',
+      message: google
         ? 'All documents and keys will be erased from this phone. Your encrypted vault stays in Google Drive — you’ll need your recovery key to restore it.'
         : 'This vault exists only on this device. Everything will be permanently deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: account?.mode === 'google' ? 'Sign out' : 'Delete everything',
-          style: 'destructive',
-          onPress: async () => {
-            await signOutAndWipeDevice();
-            router.replace('/onboarding');
-          },
-        },
-      ],
-    );
+      confirmLabel: google ? 'Sign out' : 'Delete everything',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await signOutAndWipeDevice();
+      router.replace('/onboarding');
+    } catch (e) {
+      notifyError(e, google ? 'Couldn’t sign out' : 'Couldn’t delete the vault');
+    }
+  };
 
   const cycleTheme = () => setPrefs({ theme: prefs.theme === 'system' ? 'light' : prefs.theme === 'light' ? 'dark' : 'system' });
 
   return (
+    <TabSwipe>
     <Screen>
-      <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + 120 }}>
+      <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: insets.bottom + 140 }}>
         <T v="title" style={{ marginBottom: space.xl }}>
-          Settings
+          You
         </T>
 
         {/* Account card */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, marginBottom: space.xxl }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.lg, backgroundColor: c.hero, borderRadius: radius.xl, padding: space.xl, marginBottom: space.xxl }}>
           {account?.profile?.picture ? (
             <Image source={{ uri: account.profile.picture }} style={{ width: 52, height: 52, borderRadius: 26 }} />
           ) : (
-            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: c.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-              <T v="heading" color="accent">
+            <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+              <T v="heading" color="#FFFFFF">
                 {(account?.displayName?.[0] ?? 'D').toUpperCase()}
               </T>
             </View>
           )}
           <View style={{ flex: 1 }}>
-            <T v="bodyStrong">{account?.profile?.name ?? account?.displayName}</T>
-            <T v="caption" color="muted">
+            <T v="bodyStrong" color={c.heroText}>
+              {account?.profile?.name ?? account?.displayName}
+            </T>
+            <T v="caption" color={c.heroMuted}>
               {account?.mode === 'google' ? account.profile?.email : 'On-device vault · not backed up'}
             </T>
           </View>
         </View>
 
-        <Group title="Cloud & sync">
+        <Group title="Backup">
           {account?.mode === 'google' ? (
-            <Row icon="logo-google" title="Google Drive" subtitle="Encrypted backup in a private app folder" value="Connected" />
+            <>
+              <Row icon="logo-google" title="Google Drive" subtitle="Encrypted backup in a private app folder" value="Connected" />
+              <Row
+                icon="sync-outline"
+                title="Sync status"
+                value={sync.running ? 'Syncing…' : relativeTime(sync.lastSyncAt)}
+                onPress={() => router.push('/manage/sync')}
+              />
+              <Row icon="cloud-download-outline" title="Offline storage" subtitle="Choose what stays on this phone" value={`${docs.filter((d) => d.has_local).length} of ${docs.length}`} onPress={() => router.push('/manage/storage')} />
+            </>
           ) : (
-            <Row icon="logo-google" title="Connect Google Drive" subtitle="Back up and sync across devices" onPress={() => router.push('/manage/connect')} />
+            <Row icon="cloud-upload-outline" title="Back up to Google Drive" subtitle="Not backed up — a lost phone means lost documents" onPress={() => router.push('/manage/connect')} />
           )}
-          <Row
-            icon="sync-outline"
-            title="Sync status"
-            value={account?.mode === 'google' ? (sync.running ? 'Syncing…' : relativeTime(sync.lastSyncAt)) : 'Off'}
-            onPress={() => router.push('/manage/sync')}
-          />
-          <Row icon="phone-portrait-outline" title="Offline storage" value={`${docs.filter((d) => d.has_local).length} of ${docs.length}`} onPress={() => router.push('/manage/storage')} />
+        </Group>
+
+        <Group title="Your vault">
+          <Row icon="calendar-outline" title="Renewals" subtitle="Expiry timeline and reminders" onPress={() => router.push('/renewals')} />
+          <Row icon="pie-chart-outline" title="Insights" subtitle="Storage, formats and coverage" onPress={() => router.push('/manage/insights')} />
+          <Row icon="pricetags-outline" title="Categories" onPress={() => router.push('/manage/categories')} />
+          <Row icon="trash-outline" title="Recently deleted" subtitle="Restore within 30 days" onPress={() => router.push('/trash')} />
         </Group>
 
         <Group title="Security">
@@ -88,7 +102,6 @@ export default function Settings() {
         <Group title="Preferences">
           <Row icon="notifications-outline" title="Expiry reminders" value={prefs.expiryReminders ? 'On' : 'Off'} onPress={() => setPrefs({ expiryReminders: !prefs.expiryReminders })} />
           <Row icon="contrast-outline" title="Appearance" value={{ system: 'System', light: 'Light', dark: 'Dark' }[prefs.theme]} onPress={cycleTheme} />
-          <Row icon="folder-open-outline" title="Categories" onPress={() => router.push('/manage/categories')} />
         </Group>
 
         <Group title="About">
@@ -101,5 +114,6 @@ export default function Settings() {
         </Group>
       </ScrollView>
     </Screen>
+    </TabSwipe>
   );
 }

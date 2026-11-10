@@ -14,6 +14,7 @@ export async function lookupExistingVault(): Promise<VaultKeyFile | null> {
 
 export async function setUpNewVault(account: Account) {
   const { recoveryKey, keyFile } = await createVault();
+  await kvSet('recovery.unconfirmed', true); // cleared once the user confirms they saved it
   await setAccount(account);
   if (account.mode === 'google') {
     try {

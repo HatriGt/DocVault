@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, Switch, View } from 'react-native';
-import { Stack } from 'expo-router';
-import { Banner, Button, Group, Row, T } from '../../components/ui';
+import { router, Stack } from 'expo-router';
+import { Banner, Button, EmptyState, Group, Row, T } from '../../components/ui';
 import { DocRow } from '../../components/docs';
 import { space, useTheme } from '../../theme';
 import { useAccount, useDocuments, usePrefs, useSyncStatus } from '../../lib/hooks';
@@ -26,24 +26,35 @@ export default function SyncScreen() {
   return (
     <ScrollView contentContainerStyle={{ padding: space.xl, paddingBottom: 60 }}>
       <Stack.Screen options={{ title: 'Sync' }} />
-      {!google && <Banner tone="info" icon="cloud-offline-outline" text="Your vault is on this device only. Connect Google Drive in Settings to back up and sync." />}
+      {!google && (
+        // A phone-only vault has nothing to sync: offer the one thing that matters here.
+        <EmptyState
+          icon="cloud-upload-outline"
+          title="Not backed up yet"
+          body={`Your ${docs.length} ${docs.length === 1 ? 'document is' : 'documents are'} only on this phone. Back up to Google Drive to keep them safe if it’s lost — everything stays encrypted.`}
+          action="Back up to Google Drive"
+          onAction={() => router.push('/manage/connect')}
+        />
+      )}
       {google && s.lastError && <Banner tone="warning" icon="alert-circle-outline" text={s.lastError} />}
       {google && (
         <View style={{ marginVertical: space.xl, gap: space.xs }}>
           <T v="display">{s.running ? 'Syncing…' : failed.length ? 'Needs attention' : pending.length ? 'Waiting' : 'Up to date'}</T>
           <T v="callout" color="muted">
-            Last synced {relativeTime(s.lastSyncAt).toLowerCase()} · {s.online ? 'Online' : 'Offline'}
+            Last synced {relativeTime(s.lastSyncAt).toLowerCase()} · {s.online ? 'Online' : 'No internet'}
           </T>
           <Button title="Sync now" icon="sync" onPress={() => syncNow()} loading={s.running} disabled={!s.online} style={{ marginTop: space.lg }} />
         </View>
       )}
 
+      {google && (
       <Group title="Overview">
         <Row icon="checkmark-circle-outline" title="Synced" value={String(counts.synced)} />
         <Row icon="phone-portrait-outline" title="Available offline" value={String(counts.offline)} />
         <Row icon="time-outline" title="Pending" value={String(pending.length)} />
         <Row icon="alert-circle-outline" title="Failed" value={String(failed.length)} />
       </Group>
+      )}
 
       {google && (
         <Group title="Preferences" footer="Background sync runs when your phone allows it, typically every 30 minutes or more.">

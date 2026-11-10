@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#5B4CF0",
+        "backgroundColor": "#5B45F2",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -50,7 +50,6 @@
           "faceIDPermission": "Unlock your document vault with Face ID."
         }
       ],
-      "expo-sharing",
       "expo-web-browser",
       "expo-font",
       "expo-image",
@@ -72,7 +71,7 @@
       [
         "expo-notifications",
         {
-          "color": "#5B4CF0"
+          "color": "#5B45F2"
         }
       ],
       [
@@ -81,6 +80,55 @@
           "android": {
             "extraProguardRules": "# WorkManager (used by expo-background-task) creates its Room database via reflection.\n-keep class androidx.work.impl.WorkDatabase_Impl { <init>(...); }\n-keep class * extends androidx.room.RoomDatabase { <init>(...); }\n-keep class androidx.work.** { *; }\n-dontwarn androidx.work.**"
           }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 110,
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F5FA",
+          "dark": {
+            "backgroundColor": "#0F0D1A"
+          }
+        }
+      ],
+      [
+        "expo-sharing",
+        {
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "*/*"
+            ],
+            "multipleShareMimeTypes": [
+              "*/*"
+            ]
+          },
+          "ios": {
+            "enabled": false
+          }
+        }
+      ],
+      "react-native-quick-crypto",
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true,
+          "supportsBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false
+        }
+      ],
+      [
+        "react-native-document-scanner-plugin",
+        {
+          "cameraPermission": "Scan documents and ID cards with your camera."
         }
       ]
     ],

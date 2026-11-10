@@ -3,16 +3,23 @@ import { AppState, StyleSheet, View } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn, FadeOut, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { Image } from 'expo-image';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { FadeIn, FadeOut } from '../theme/anim';
 import { getPrefs } from '../lib/session';
 import { lockKeysInMemory, verifyPin } from '../lib/keys';
 import { purgeTempPlain } from '../lib/blobs';
+import { relockAll } from '../lib/guard';
 import { radius, space, useTheme } from '../theme';
 import { T, Tap } from './ui';
+import { PinDots, PinPad } from './PinPad';
+
+const clock = () => Date.now();
 
 /** Full-screen privacy shield + biometric / PIN lock. */
 export function AppLock({ children }: { children: React.ReactNode }) {
-  const [locked, setLocked] = useState(false);
+  // null = prefs not loaded yet → show the shield, so vault content never flashes on cold start.
+  const [locked, setLocked] = useState<boolean | null>(null);
   const [shield, setShield] = useState(false);
   const bgAt = useRef<number | null>(null);
 
@@ -32,8 +39,10 @@ export function AppLock({ children }: { children: React.ReactNode }) {
         const p = await getPrefs();
         const away = bgAt.current ? (Date.now() - bgAt.current) / 1000 : 0;
         bgAt.current = null;
+        if (away >= 60) purgeTempPlain(); // drop decrypted leftovers after a real absence
         if ((p.biometricLock || p.pinLock) && away >= p.lockAfterSeconds) {
           lockKeysInMemory();
+          relockAll();
           purgeTempPlain();
           setLocked(true);
         }
@@ -45,9 +54,9 @@ export function AppLock({ children }: { children: React.ReactNode }) {
   return (
     <View style={{ flex: 1 }}>
       {children}
-      {(locked || shield) && (
+      {(locked !== false || shield) && (
         <Animated.View entering={FadeIn.duration(120)} exiting={FadeOut.duration(200)} style={StyleSheet.absoluteFill}>
-          <LockScreen showControls={locked} onUnlock={() => setLocked(false)} />
+          <LockScreen showControls={locked === true} onUnlock={() => setLocked(false)} />
         </Animated.View>
       )}
     </View>
@@ -60,6 +69,24 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
   const [pin, setPin] = useState('');
   const [hasBio, setHasBio] = useState(false);
   const [pinEnabled, setPinEnabled] = useState(false);
+  const [fails, setFails] = useState(0);
+  const [waitUntil, setWaitUntil] = useState(0);
+  const [remaining, setRemaining] = useState(0); // seconds left in the PIN back-off
+  useEffect(() => {
+    if (!waitUntil) return;
+    const tick = () => {
+      const left = Math.ceil((waitUntil - Date.now()) / 1000);
+      setRemaining(Math.max(0, left));
+      if (left <= 0) setWaitUntil(0);
+    };
+    const t = setInterval(tick, 500);
+    const first = setTimeout(tick, 0);
+    return () => {
+      clearInterval(t);
+      clearTimeout(first);
+    };
+  }, [waitUntil]);
+  const waiting = waitUntil !== 0 && remaining > 0;
   const shake = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
 
@@ -85,12 +112,23 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
   }, [showControls, tryBiometric]);
 
   const press = async (d: string) => {
+    if (waiting) return;
     Haptics.selectionAsync().catch(() => {});
     const next = (pin + d).slice(0, 6);
     setPin(next);
     if (next.length === 6) {
-      if (await verifyPin(next)) onUnlock();
-      else {
+      if (await verifyPin(next)) {
+        setFails(0);
+        onUnlock();
+      } else {
+        const n = fails + 1;
+        setFails(n);
+        // After 5 wrong PINs: 30s, 60s, 120s… between attempts.
+        if (n >= 5) {
+          const ms = 30_000 * 2 ** Math.min(n - 5, 5);
+          setRemaining(Math.ceil(ms / 1000));
+          setWaitUntil(clock() + ms);
+        }
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
         shake.set(withSequence(...[-10, 10, -8, 8, 0].map((x) => withTiming(x, { duration: 50 }))));
         setPin('');
@@ -100,9 +138,7 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: space.xxl }}>
-      <View style={{ width: 76, height: 76, borderRadius: 26, backgroundColor: c.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name="lock-closed" size={34} color={c.onAccent} />
-      </View>
+      <Image source={require('../../assets/logo.png')} style={{ width: 96, height: 96 }} contentFit="contain" />
       <T v="title" style={{ marginTop: space.xl }}>
         DocVault is locked
       </T>
@@ -110,39 +146,18 @@ function LockScreen({ onUnlock, showControls }: { onUnlock: () => void; showCont
         <>
           {pinMode && pinEnabled ? (
             <>
-              <Animated.View style={[{ flexDirection: 'row', gap: space.md, marginVertical: space.xxl }, shakeStyle]}>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <View
-                    key={i}
-                    style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: i < pin.length ? c.accent : c.surfaceAlt }}
-                  />
-                ))}
-              </Animated.View>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', width: 276, gap: space.lg, justifyContent: 'center' }}>
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'bio', '0', 'del'].map((k) => (
-                  <Tap
-                    key={k}
-                    accessibilityLabel={k === 'bio' ? 'Use biometrics' : k === 'del' ? 'Delete' : k}
-                    onPress={() => (k === 'del' ? setPin(pin.slice(0, -1)) : k === 'bio' ? hasBio && tryBiometric() : press(k))}
-                    style={{
-                      width: 76,
-                      height: 76,
-                      borderRadius: 38,
-                      backgroundColor: k === 'bio' || k === 'del' ? 'transparent' : c.surface,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {k === 'del' ? (
-                      <Ionicons name="backspace-outline" size={26} color={c.text} />
-                    ) : k === 'bio' ? (
-                      hasBio ? <Ionicons name="finger-print" size={28} color={c.accent} /> : null
-                    ) : (
-                      <T v="title">{k}</T>
-                    )}
-                  </Tap>
-                ))}
-              </View>
+              {waiting && (
+                <T v="callout" color="danger" style={{ marginTop: space.lg }}>
+                  Too many attempts. Try again in {remaining}s
+                </T>
+              )}
+              <PinDots count={pin.length} style={[{ marginVertical: space.xxl }, shakeStyle]} />
+              <PinPad
+                onDigit={press}
+                onDelete={() => setPin(pin.slice(0, -1))}
+                disabled={waiting}
+                extraKey={hasBio ? { icon: 'finger-print', label: 'Use biometrics', onPress: tryBiometric } : undefined}
+              />
             </>
           ) : (
             <Tap

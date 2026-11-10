@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share, Switch, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, BackHandler, ScrollView, Share, Switch, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { FadeIn } from '../../theme/anim';
 import * as Haptics from 'expo-haptics';
 import { Button, Field, Screen, T } from '../../components/ui';
-import { radius, space, type, useTheme } from '../../theme';
+import { KeyboardSpacer } from '../../components/KeyboardSpacer';
+import { radius, space, type, useTheme, fonts } from '../../theme';
 import { getPendingAccount } from '../../lib/pending';
 import { setUpNewVault } from '../../lib/vault';
 import { seedSampleVault } from '../../lib/sampleVault';
 import { registerBackgroundSync } from '../../lib/backgroundSync';
 import { normalizeRecoveryKey } from '../../lib/crypto';
+import { kvSet } from '../../lib/db';
+import { notifyError } from '../../lib/feedback';
 
 type Step = 'intro' | 'working' | 'show' | 'confirm' | 'profile';
 
@@ -23,6 +27,18 @@ export default function RecoverySetup() {
   const [name, setName] = useState(account?.displayName ?? '');
   const [samples, setSamples] = useState(true);
   const [finishing, setFinishing] = useState(false);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+
+  // Android back steps backwards through setup instead of closing the app halfway.
+  // The key is already created after 'intro', so going back past 'show' would orphan it.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === 'confirm') setStep('show');
+      else if (step === 'intro') return false;
+      return true;
+    });
+    return () => sub.remove();
+  }, [step]);
 
   if (!account) {
     router.replace('/onboarding');
@@ -36,13 +52,18 @@ export default function RecoverySetup() {
       setKey(k);
       setStep('show');
     } catch (e) {
-      Alert.alert('Couldn’t create your vault', e instanceof Error ? e.message : String(e));
+      notifyError(e, 'Couldn’t create your vault');
       setStep('intro');
     }
   };
 
   const lastGroup = key.split('-').slice(-1)[0];
   const confirmOk = normalizeRecoveryKey(check) === lastGroup;
+  const confirmKey = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    kvSet('recovery.unconfirmed', false);
+    setStep('profile');
+  };
 
   const finish = async () => {
     setFinishing(true);
@@ -60,7 +81,7 @@ export default function RecoverySetup() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ padding: space.xxl, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scroll} contentContainerStyle={{ padding: space.xxl, paddingBottom: space.xxl + space.lg, flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {step === 'intro' && (
           <Animated.View entering={FadeIn} style={{ flex: 1 }}>
             <Badge icon="key" />
@@ -110,8 +131,8 @@ export default function RecoverySetup() {
               accessibilityLabel={`Recovery key ${key.split('').join(' ')}`}
             >
               {key.split('-').map((g, i) => (
-                <View key={i} style={{ width: '22%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
-                  <T v="mono" selectable style={{ fontWeight: '700' }}>
+                <View key={i} style={{ width: '30%', alignItems: 'center', paddingVertical: space.sm, backgroundColor: c.surfaceAlt, borderRadius: radius.sm }}>
+                  <T v="mono" selectable numberOfLines={1} testID={i === key.split('-').length - 1 ? 'recovery-key-last' : undefined} style={{ fontFamily: fonts.bold }}>
                     {g}
                   </T>
                 </View>
@@ -140,8 +161,15 @@ export default function RecoverySetup() {
             </T>
             <Field
               label="Last group"
+              testID="recovery-confirm-input"
               value={check}
-              onChangeText={setCheck}
+              onChangeText={(v) => {
+                setCheck(v);
+                // Continue automatically once the last group matches — no need to close the keyboard.
+                if (normalizeRecoveryKey(v) === lastGroup) setTimeout(confirmKey, 250);
+              }}
+              onSubmitEditing={() => confirmOk && confirmKey()}
+              returnKeyType="done"
               autoCapitalize="characters"
               autoCorrect={false}
               maxLength={4}
@@ -150,14 +178,7 @@ export default function RecoverySetup() {
             />
             <View style={{ flex: 1 }} />
             <Button title="Back" variant="ghost" onPress={() => setStep('show')} style={{ marginTop: space.xl }} />
-            <Button
-              title="Confirm"
-              disabled={!confirmOk}
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-                setStep('profile');
-              }}
-            />
+            <Button title="Confirm" disabled={!confirmOk} onPress={confirmKey} />
           </Animated.View>
         )}
 
@@ -166,7 +187,7 @@ export default function RecoverySetup() {
             <Badge icon="sparkles" />
             <T v="title">Almost there</T>
             {account.mode === 'local' && (
-              <Field label="What should we call you?" value={name} onChangeText={setName} placeholder="Your first name" autoFocus />
+              <Field label="What should we call you?" testID="profile-name-input" value={name} onChangeText={setName} placeholder="Your first name" autoFocus returnKeyType="done" onSubmitEditing={finish} />
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: c.surface, borderRadius: radius.lg, padding: space.lg, gap: space.md }}>
               <View style={{ flex: 1 }}>
@@ -177,11 +198,12 @@ export default function RecoverySetup() {
               </View>
               <Switch value={samples} onValueChange={setSamples} trackColor={{ true: c.accent }} />
             </View>
-            <View style={{ flex: 1 }} />
+            {/* Right under the content, not pinned to the bottom: on short screens the keyboard would cover it. */}
             <Button title="Open my vault" onPress={finish} loading={finishing} />
           </Animated.View>
         )}
       </ScrollView>
+      <KeyboardSpacer scrollRef={scroll} revealKey={step} />
     </Screen>
   );
 }
